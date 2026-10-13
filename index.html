@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>SMUSH! · BluBer Games</title>
-<meta name="description" content="SMUSH! A calm, satisfying little game by BluBer Games: smush colorful dots, earn coins and unlock new tools.">
+<meta name="description" content="SMUSH! A calm, satisfying little game by BluBer Games: smush tiny aliens, earn coins, hire helper fingers and unlock new tools.">
 <meta name="theme-color" content="#F6F5F1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#191918" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-title" content="SMUSH!">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ECEBE6'/%3E%3Ccircle cx='22' cy='22' r='9' fill='%236BCB9B'/%3E%3Ccircle cx='43' cy='21' r='6' fill='%23FF9E55'/%3E%3Ccircle cx='40' cy='42' r='12' fill='%23A584E8'/%3E%3Ccircle cx='19' cy='44' r='7' fill='%23F1C84D'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ECEBE6'/%3E%3Cpath d='M22 22c-2-5-4-8-7-10M42 22c2-5 4-8 7-10' stroke='%2353B886' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='15' cy='12' r='4' fill='%236BCB9B'/%3E%3Ccircle cx='49' cy='12' r='4' fill='%236BCB9B'/%3E%3Cellipse cx='32' cy='36' rx='20' ry='17' fill='%236BCB9B'/%3E%3Cellipse cx='36' cy='38' rx='2.6' ry='4' fill='%232B2140'/%3E%3Cellipse cx='44' cy='38' rx='2.6' ry='4' fill='%232B2140'/%3E%3C/svg%3E">
 <script>
   // Antes de pintar nada: el tema guardado decide el fondo de <html> (y con eso el color de las barras de Safari)
   (function () {
@@ -39,6 +39,8 @@
 :root {
   --bg: #F6F5F1;
   --field: #ECEBE6;
+  --field-hi: #F2F1EC;
+  --speck: rgba(36, 37, 33, 0.045);
   --text: #242521;
   --muted: #8A8982;
   --card: #FFFFFF;
@@ -57,7 +59,8 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #191918; --field: #242422; --text: #EEEDE8; --muted: #8F8E88; --card: #2D2D2A;
+    --bg: #191918; --field: #232321; --field-hi: #2A2A27; --speck: rgba(255, 255, 255, 0.035);
+    --text: #EEEDE8; --muted: #8F8E88; --card: #2D2D2A;
     --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
     --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
@@ -65,7 +68,8 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #191918; --field: #242422; --text: #EEEDE8; --muted: #8F8E88; --card: #2D2D2A;
+  --bg: #191918; --field: #232321; --field-hi: #2A2A27; --speck: rgba(255, 255, 255, 0.035);
+  --text: #EEEDE8; --muted: #8F8E88; --card: #2D2D2A;
   --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
   --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
@@ -105,7 +109,10 @@ a { color: inherit; }
 .coins { display: flex; align-items: center; gap: 9px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .coins .coin { font-size: 20px; }
 #coins { display: inline-block; transform-origin: left center; }
-.sub { margin-top: 5px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sub { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#rate { display: none; align-items: center; gap: 4px; padding: 1px 7px 1px 5px; border-radius: 9px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12px; font-weight: 750; }
+#rate.on { display: inline-flex; }
+#rate svg { width: 12px; height: 12px; }
 .actions { display: flex; align-items: center; gap: 8px; }
 .pill, .icon-btn {
   position: relative; height: 42px; border: 0; background: var(--card); box-shadow: var(--shadow);
@@ -115,14 +122,18 @@ a { color: inherit; }
 .pill { padding: 0 16px 0 13px; border-radius: 21px; font-size: 15px; font-weight: 700; }
 .icon-btn { width: 42px; border-radius: 50%; }
 .pill svg, .icon-btn svg { width: 20px; height: 20px; }
-.pill:active, .icon-btn:active, .tool:active, .buy:active:not(:disabled), .row-btn:active { transform: scale(0.96); }
-.badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #FF9E55; box-shadow: 0 0 0 2px var(--card); opacity: 0; transform: scale(0.4); transition: opacity 0.3s, transform 0.3s; }
+.pill:active, .icon-btn:active, .tool:active, .buy:active:not(:disabled), .row-btn:active, .tabs button:active { transform: scale(0.96); }
+.badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #FF9E55; box-shadow: 0 0 0 2px var(--card); opacity: 0; transform: scale(0.4); transition: opacity 0.3s, transform 0.3s; pointer-events: none; }
 .badge.on { opacity: 1; transform: none; }
 
+/* El área de juego: un "suelo" claro con un puntito muy sutil, como la superficie de un planeta */
 #field {
   position: relative; flex: 1; min-height: 0; overflow: hidden;
   width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 1076px;
-  margin: 0 auto; border-radius: 28px; background: var(--field);
+  margin: 0 auto; border-radius: 28px;
+  background:
+    radial-gradient(var(--speck) 1.1px, transparent 1.4px) 0 0 / 22px 22px,
+    radial-gradient(120% 90% at 50% 35%, var(--field-hi), var(--field) 70%);
   box-shadow: inset 0 0 0 1px var(--line);
 }
 #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
@@ -143,7 +154,7 @@ a { color: inherit; }
 }
 .tool svg { width: 26px; height: 26px; transition: opacity 0.25s; }
 .tool .name { font-size: 12px; font-weight: 700; }
-.tool .pips { display: flex; gap: 3px; height: 5px; }
+.pips { display: flex; gap: 3px; height: 5px; }
 .pips i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.18; transition: opacity 0.3s; }
 .pips i.on { opacity: 0.85; }
 .tool .price { display: none; align-items: center; gap: 3px; font-size: 11px; font-weight: 750; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -162,11 +173,12 @@ a { color: inherit; }
 .scrim { position: absolute; inset: 0; background: var(--scrim); opacity: 0; transition: opacity 0.32s ease; }
 .sheet.open .scrim { opacity: 1; }
 .panel {
-  position: relative; width: 100%; max-width: 520px; max-height: min(80dvh, 760px);
+  position: relative; width: 100%; max-width: 520px; height: min(80dvh, 760px);
   display: flex; flex-direction: column; background: var(--bg); border-radius: 28px 28px 0 0;
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12); transform: translateY(100%);
   transition: transform 0.4s cubic-bezier(0.22, 0.8, 0.24, 1);
 }
+#sheet-menu .panel { height: auto; max-height: min(84dvh, 780px); }
 .sheet.open .panel { transform: none; }
 @media (min-width: 720px) and (min-height: 620px) {
   .sheet { align-items: center; }
@@ -182,27 +194,34 @@ a { color: inherit; }
 .close { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--field); display: grid; place-items: center; transition: transform 0.14s; }
 .close svg { width: 14px; height: 14px; }
 .panel-body {
-  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
   padding: 2px 16px calc(env(safe-area-inset-bottom) + 20px);
 }
 .note { margin: 0 4px 12px; font-size: 13px; font-weight: 550; color: var(--muted); }
 
-/* Tienda */
+/* Pestañas de la Tienda */
+.tabs { display: flex; gap: 3px; margin: 0 16px 12px; padding: 3px; border-radius: 13px; background: var(--field); flex: none; }
+.tabs button { position: relative; flex: 1; height: 36px; border: 0; border-radius: 10px; background: transparent; font-size: 14px; font-weight: 750; color: var(--muted); transition: background-color 0.2s, color 0.2s, transform 0.14s; }
+.tabs button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.tabs .badge { top: 7px; right: 9px; box-shadow: none; }
+
+/* Tarjetas de la Tienda */
 .item {
   display: grid; grid-template-columns: 50px 1fr auto; gap: 12px; align-items: center;
   padding: 14px; margin-bottom: 10px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow);
   transition: box-shadow 0.4s ease;
 }
 .item.flash { box-shadow: var(--shadow), 0 0 0 2px var(--on); }
-.item .pips { display: inline-flex; gap: 3px; }
 .item .ic { width: 50px; height: 50px; border-radius: 15px; background: var(--field); display: grid; place-items: center; }
 .item .ic svg { width: 26px; height: 26px; }
-.item h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; }
+.item h3 { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 16px; font-weight: 800; }
+.item .pips { display: inline-flex; }
+.item .lv { padding: 2px 7px; border-radius: 8px; background: var(--field); color: var(--muted); font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .item p { margin: 2px 0 0; font-size: 13px; font-weight: 550; color: var(--muted); }
 .item .stat { margin-top: 5px; font-size: 12.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .item .stat span { color: var(--muted); font-weight: 650; }
 .buy {
-  min-width: 96px; height: 40px; padding: 0 14px; border: 0; border-radius: 20px;
+  min-width: 96px; height: 42px; padding: 0 14px; border: 0; border-radius: 21px;
   background: var(--accent); color: var(--on-accent); display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
   line-height: 1.1; transition: transform 0.14s, background-color 0.25s, color 0.25s;
 }
@@ -237,9 +256,10 @@ a.row { text-decoration: none; }
 .seg button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
 .foot { margin: 6px 0 4px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--muted); }
 
-/* Diálogo de confirmación */
+/* Diálogos: confirmación y "bienvenido de vuelta" */
 .dialog { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 24px; }
 .dialog[hidden] { display: none; }
+.dialog .scrim { opacity: 1; }
 .dialog .card {
   position: relative; width: 100%; max-width: 320px; padding: 22px 20px 16px; border-radius: 24px; background: var(--card);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); text-align: center; opacity: 0; transform: scale(0.96);
@@ -249,16 +269,22 @@ a.row { text-decoration: none; }
 .dialog h3 { margin: 0 0 6px; font-size: 18px; font-weight: 800; }
 .dialog p { margin: 0 0 18px; font-size: 14px; line-height: 1.4; font-weight: 550; color: var(--muted); }
 .dialog .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.dialog .btns button { height: 44px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 750; background: var(--field); transition: transform 0.14s; }
+.dialog .btns button, .dialog .solo { height: 46px; border: 0; border-radius: 15px; font-size: 15px; font-weight: 750; background: var(--field); transition: transform 0.14s; }
 .dialog .btns .danger { background: var(--danger); color: #FFFFFF; }
+.dialog .solo { width: 100%; background: var(--accent); color: var(--on-accent); }
+.dialog .btns button:active, .dialog .solo:active { transform: scale(0.97); }
+#welcome .hands { display: flex; justify-content: center; margin: -4px 0 8px; }
+#welcome .hands svg { width: 40px; height: 40px; color: var(--text); }
+#welcome .big { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 4px 0 18px; font-size: 34px; font-weight: 850; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+#welcome .big .coin { font-size: 24px; }
 
 /* ============================================================
    Intro del juego (después de la de BluBer)
    ============================================================ */
 #splash { position: absolute; inset: 0; z-index: 200; display: grid; place-items: center; background: var(--bg); }
-#splash .mark { display: flex; flex-direction: column; align-items: center; gap: 16px; transform: translateY(-4vh); }
-#splash .drops { display: flex; align-items: flex-end; gap: 12px; height: 34px; }
-#splash .drops i { display: block; border-radius: 50%; opacity: 0; }
+#splash .mark { display: flex; flex-direction: column; align-items: center; gap: 14px; transform: translateY(-4vh); }
+#splash .drops { display: flex; align-items: flex-end; gap: 10px; height: 64px; }
+#splash .drops img { display: block; opacity: 0; transform-origin: 50% 100%; }
 #splash .word { font-size: clamp(48px, 15vw, 76px); font-weight: 900; letter-spacing: -0.035em; line-height: 1; opacity: 0; }
 
 /* ============================================================
@@ -284,7 +310,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   <header id="top">
     <div class="wallet">
       <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
-      <div class="sub"><span id="smushed">0</span> <span data-i18n="smushed">smushed</span></div>
+      <div class="sub"><span><span id="smushed">0</span> <span data-i18n="smushed">smushed</span></span><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
     </div>
     <div class="actions">
       <button id="btn-shop" class="pill" type="button">
@@ -298,7 +324,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   </header>
   <main id="field">
     <canvas id="cv" aria-label="Game area"></canvas>
-    <div id="hint" data-i18n="hint">Tap the dots to smush them</div>
+    <div id="hint" data-i18n="hint">Tap the aliens to smush them</div>
   </main>
   <nav id="tools" aria-label="Tools"></nav>
 </div>
@@ -315,8 +341,13 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
         <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
       </div>
     </div>
-    <div class="panel-body">
-      <p class="note" data-i18n="shopSub">Tools stay unlocked forever.</p>
+    <div class="tabs" id="shop-tabs" role="tablist">
+      <button type="button" data-tab="tools" role="tab"><span data-i18n="tabTools">Tools</span><i class="badge"></i></button>
+      <button type="button" data-tab="helpers" role="tab"><span data-i18n="tabHelpers">Helpers</span><i class="badge"></i></button>
+      <button type="button" data-tab="boosts" role="tab"><span data-i18n="tabBoosts">Boosts</span><i class="badge"></i></button>
+    </div>
+    <div class="panel-body" id="shop-body">
+      <p class="note" id="shop-note"></p>
       <div id="shop-list"></div>
     </div>
   </section>
@@ -348,7 +379,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 
       <div class="group-title" data-i18n="howTo">How to play</div>
       <div class="group">
-        <ul class="how"><li data-i18n="how1"></li><li data-i18n="how2"></li><li data-i18n="how3"></li><li data-i18n="how4"></li></ul>
+        <ul class="how"><li data-i18n="how1"></li><li data-i18n="how2"></li><li data-i18n="how3"></li><li data-i18n="how4"></li><li data-i18n="how5"></li></ul>
       </div>
 
       <div class="group-title" data-i18n="data">Data</div>
@@ -367,11 +398,23 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 
 <!-- Confirmación para reiniciar -->
 <div id="confirm" class="dialog" hidden>
-  <div class="scrim" data-cancel style="opacity:1"></div>
+  <div class="scrim" data-cancel></div>
   <div class="card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
     <h3 id="confirm-title" data-i18n="resetQ">Reset progress?</h3>
     <p data-i18n="resetMsg"></p>
     <div class="btns"><button type="button" data-cancel data-i18n="cancel">Cancel</button><button type="button" class="danger" id="btn-reset-yes" data-i18n="resetBtn">Reset</button></div>
+  </div>
+</div>
+
+<!-- Bienvenido de vuelta: lo que ganaron los ayudantes mientras no estabas -->
+<div id="welcome" class="dialog" hidden>
+  <div class="scrim"></div>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="hands"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg></div>
+    <h3 id="welcome-title" data-i18n="welcome">Welcome back!</h3>
+    <p id="welcome-msg"></p>
+    <div class="big"><span class="coin"></span><span id="welcome-coins">0</span></div>
+    <button type="button" class="solo" id="btn-collect" data-i18n="collect">Collect</button>
   </div>
 </div>
 
@@ -431,32 +474,32 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 /* =====================================================================
    SMUSH! · BluBer Games
    Módulos (en orden): configuración · guardado · idioma · sonido · vibración
-   · campo y sprites · bolitas · efectos · herramientas · economía · interfaz
-   · bucle principal · intros
+   · campo y sprites · marcianitos · efectos · herramientas · ayudantes
+   · economía · interfaz · bucle principal · intros
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
-// Bolitas. r = radio en px; speed = px/s; hp = puntos de daño; weight = probabilidad relativa de aparecer
+// Marcianitos. r = radio del cuerpo en px; speed = px/s; hp = puntos de daño; weight = probabilidad de aparecer
 const BALL_TYPES = {
-  green:  { color: "#6BCB9B", r: 22, speed: 34, hp: 1, reward: 1,  weight: 58, pitch: 330 },
-  orange: { color: "#FF9E55", r: 15, speed: 92, hp: 1, reward: 3,  weight: 26, pitch: 440 },
-  purple: { color: "#A584E8", r: 32, speed: 26, hp: 3, reward: 10, weight: 13, pitch: 230 },
-  yellow: { color: "#F1C84D", r: 22, speed: 58, hp: 1, reward: 25, weight: 3,  pitch: 392 },
+  green:  { color: "#6BCB9B", r: 24, speed: 34, hp: 1, reward: 1,  weight: 58, pitch: 330 },
+  orange: { color: "#FF9E55", r: 17, speed: 90, hp: 1, reward: 3,  weight: 26, pitch: 440 },
+  purple: { color: "#A584E8", r: 33, speed: 26, hp: 3, reward: 10, weight: 10, pitch: 230 },
+  yellow: { color: "#F1C84D", r: 21, speed: 58, hp: 1, reward: 25, weight: 3,  pitch: 392 },
 };
 const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
 
-// Aparición: entre 12 y 20 bolitas según el tamaño del área y el rendimiento del equipo
+// Aparición: entre 12 y 20 marcianitos según el tamaño del área y el rendimiento (más con "Planeta lleno")
 const SPAWN = {
   min: 12, max: 20,
-  areaPerBall: 15000,     // px² de área de juego por bolita
-  delayMin: 0.25, delayMax: 0.6, // pausa normal entre una bolita y la siguiente (s)
-  fastDelay: 0.1,         // pausa cuando faltan muchas
-  yellowGap: 9,           // segundos mínimos entre doradas (y nunca dos a la vez)
-  edge: 6,                // margen contra los bordes del área
+  areaPerBall: 15000,     // px² de área de juego por marcianito
+  delayMin: 0.25, delayMax: 0.6, // pausa normal entre uno y el siguiente (s)
+  fastDelay: 0.1,         // pausa cuando faltan muchos
+  yellowGap: 9,           // segundos mínimos entre dorados (y nunca dos a la vez)
+  edge: 4,                // margen contra los bordes del área
 };
 
 // Herramientas. price = compra; upgrades = precio de nivel 2 y nivel 3; los arreglos son [nivel 1, 2, 3]
@@ -468,13 +511,52 @@ const TOOLS = {
 };
 const TOOL_ORDER = ["finger", "boot", "spray", "bolt"];
 
-// Íconos de las herramientas (trazo, toman el color del texto)
-const ICONS = {
-  finger: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M6.5 7.6a7 7 0 0 0 0 8.8M17.5 7.6a7 7 0 0 1 0 8.8"/><path d="M3.6 5.3a10.6 10.6 0 0 0 0 13.4M20.4 5.3a10.6 10.6 0 0 1 0 13.4" opacity=".45"/></svg>',
-  boot:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14M13 7h-3M13 10h-3"/></svg>',
-  spray:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="9" width="9" height="12" rx="2.4"/><path d="M6.8 9V6.2h4.4V9M9 6.2V4h3"/><circle cx="17.2" cy="4.6" r=".6" fill="currentColor"/><circle cx="19.6" cy="7.4" r=".6" fill="currentColor"/><circle cx="16.6" cy="9" r=".6" fill="currentColor"/><circle cx="19.8" cy="11.4" r=".6" fill="currentColor"/></svg>',
-  bolt:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6.2L10 21.5l9-11.6h-6.3z"/></svg>',
+// Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
+const UP = {
+  hire:  { tab: "helpers", max: 12, cost: (l) => Math.round(75 * 1.6 ** l) },   // un dedo ayudante más
+  speed: { tab: "helpers", max: 5,  cost: [250, 800, 2400, 7000, 18000] },     // tocan más seguido
+  power: { tab: "helpers", max: 2,  cost: [3000, 15000] },                     // pegan más fuerte
+  value: { tab: "boosts",  max: 8,  cost: [120, 300, 750, 1800, 4200, 9500, 21000, 45000] }, // más monedas
+  crowd: { tab: "boosts",  max: 4,  cost: [250, 900, 3000, 9000] },            // más marcianitos y más rápido
+  luck:  { tab: "boosts",  max: 4,  cost: [400, 1400, 4500, 12000] },          // más dorados
+  calm:  { tab: "boosts",  max: 3,  cost: [300, 1500, 6000] },                 // caminan más lento
+  night: { tab: "boosts",  max: 4,  cost: [600, 2500, 8000, 20000] },          // más horas fuera
 };
+const UP_ORDER = ["hire", "speed", "power", "value", "crowd", "luck", "calm", "night"];
+// Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
+const FX = {
+  helperInterval: (l) => 2.5 * 0.82 ** l,   // s entre toques de cada ayudante
+  helperDamage: (l) => 1 + l,
+  valueMult: (l) => 1 + 0.2 * l,            // multiplicador de monedas
+  crowdExtra: (l) => 2 * l,                 // marcianitos extra en pantalla
+  crowdSpawn: (l) => 0.85 ** l,             // pausa entre apariciones
+  luckWeight: (l) => 3 + 3 * l,             // peso del dorado (base 3)
+  luckGap: (l) => SPAWN.yellowGap - 1.5 * l,
+  calmSpeed: (l) => 1 - 0.12 * l,
+  nightHours: (l) => [0.5, 1, 2, 4, 8][l],  // horas que trabajan los ayudantes mientras no estás
+};
+const OFFLINE_MIN = 20;   // segundos fuera antes de contar lo que hicieron los ayudantes
+const OFFLINE_RATE = 0.5; // fuera rinden la mitad: jugar sigue valiendo más la pena
+
+// Íconos (trazo, toman el color del texto)
+const svgI = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICONS = {
+  finger: svgI('<circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M6.5 7.6a7 7 0 0 0 0 8.8M17.5 7.6a7 7 0 0 1 0 8.8"/><path d="M3.6 5.3a10.6 10.6 0 0 0 0 13.4M20.4 5.3a10.6 10.6 0 0 1 0 13.4" opacity=".45"/>'),
+  boot:   svgI('<path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14M13 7h-3M13 10h-3"/>'),
+  spray:  svgI('<rect x="4.5" y="9" width="9" height="12" rx="2.4"/><path d="M6.8 9V6.2h4.4V9M9 6.2V4h3"/><circle cx="17.2" cy="4.6" r=".6" fill="currentColor"/><circle cx="19.6" cy="7.4" r=".6" fill="currentColor"/><circle cx="16.6" cy="9" r=".6" fill="currentColor"/><circle cx="19.8" cy="11.4" r=".6" fill="currentColor"/>'),
+  bolt:   svgI('<path d="M13.5 2.5 5 13.5h6.2L10 21.5l9-11.6h-6.3z"/>'),
+  hire:   svgI('<path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/>'),
+  speed:  svgI('<path d="M5 6.5 10.5 12 5 17.5M12.5 6.5 18 12l-5.5 5.5"/>'),
+  power:  svgI('<path d="M6.5 7.5v9M3.5 10v4M17.5 7.5v9M20.5 10v4M6.5 12h11"/>'),
+  value:  svgI('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/>'),
+  crowd:  svgI('<circle cx="7.5" cy="9" r="3"/><circle cx="16.5" cy="9" r="3"/><circle cx="12" cy="16.5" r="3"/>'),
+  luck:   svgI('<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>'),
+  calm:   svgI('<path d="M4 9h5l-5 6h5M12.5 5h7l-7 8.5h7"/>'),
+  night:  svgI('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+};
+
+// Los marcianitos: vectores del archivo original (todos miran a la derecha). body = caja del cuerpo.
+const ALIENS = {"green":{"svg":"<svg width=\"364\" height=\"470\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-861.9 -675.6 364.3 470.1\"><defs><radialGradient id=\"radial-gradient7\" cx=\"-526.3\" cy=\"-377.7\" fx=\"-526.3\" fy=\"-377.7\" r=\"44.3\" xlink:href=\"#radial-gradient4\"></radialGradient><radialGradient id=\"radial-gradient4\" cx=\"-625.6\" cy=\"-504.6\" fx=\"-625.6\" fy=\"-504.6\" r=\"25.1\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#9beac5\"></stop>\n      <stop offset=\".7\" stop-color=\"#65cfa4\"></stop>\n      <stop offset=\"1\" stop-color=\"#319879\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient6\" cx=\"-608.9\" cy=\"-374.7\" fx=\"-608.9\" fy=\"-374.7\" r=\"45.2\" xlink:href=\"#radial-gradient4\"></radialGradient><linearGradient id=\"linear-gradient2\" x1=\"-594.3\" y1=\"-214.5\" x2=\"-531.5\" y2=\"-293\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#8de1b9\"></stop>\n      <stop offset=\"1\" stop-color=\"#42ae8b\"></stop>\n    </linearGradient><linearGradient id=\"linear-gradient1\" x1=\"-863.7\" y1=\"-242.3\" x2=\"-794.1\" y2=\"-329.2\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#8de1b9\"></stop>\n      <stop offset=\"1\" stop-color=\"#42ae8b\"></stop>\n    </linearGradient><radialGradient id=\"radial-gradient5\" cx=\"-670.6\" cy=\"-407.6\" fx=\"-670.6\" fy=\"-407.6\" r=\"161.2\" xlink:href=\"#radial-gradient4\"></radialGradient><radialGradient id=\"radial-gradient3\" cx=\"-526.3\" cy=\"-377.7\" fx=\"-526.3\" fy=\"-377.7\" r=\"44.3\" xlink:href=\"#radial-gradient2\"></radialGradient><radialGradient id=\"radial-gradient2\" cx=\"-608.9\" cy=\"-374.7\" fx=\"-608.9\" fy=\"-374.7\" r=\"45.2\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#9beac5\"></stop>\n      <stop offset=\".7\" stop-color=\"#65cfa4\"></stop>\n      <stop offset=\"1\" stop-color=\"#319879\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient1\" cx=\"-867.2\" cy=\"570.4\" fx=\"-867.2\" fy=\"570.4\" r=\".9\" gradientTransform=\"translate(58414.9142 38129.4449) scale(68 -68)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#9beac5\"></stop>\n      <stop offset=\".7\" stop-color=\"#65cfa4\"></stop>\n      <stop offset=\"1\" stop-color=\"#319879\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient\" cx=\"-867.2\" cy=\"570.4\" fx=\"-867.2\" fy=\"570.4\" r=\".9\" gradientTransform=\"translate(58212.9142 38131.4449) scale(68 -68)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#9beac5\"></stop>\n      <stop offset=\".7\" stop-color=\"#65cfa4\"></stop>\n      <stop offset=\"1\" stop-color=\"#319879\"></stop>\n    </radialGradient><linearGradient id=\"linear-gradient\" x1=\"-775.1\" y1=\"-212.1\" x2=\"-714.6\" y2=\"-287.8\" gradientTransform=\"translate(13 -5.2) rotate(-3.3) scale(1 1.1)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#8de1b9\"></stop>\n      <stop offset=\"1\" stop-color=\"#42ae8b\"></stop>\n    </linearGradient></defs><path d=\"M-698.5-268.2c-1.4,5.8-3.3,11.7-5.9,17.5-13.4,31-38,48.2-54.8,38.4-16.9-9.8-19.6-42.9-6.2-73.9,1.3-3,2.7-5.8,4.2-8.5,18.6,12.8,39.8,22,62.7,26.6Z\" style=\"fill: url(&quot;#linear-gradient&quot;);\"></path><path d=\"M-720.6-551.6c-10.7-31.3-25.7-57-45-77\" style=\"fill: none; stroke-linecap: round;stroke: rgb(88, 185, 147); stroke-width: 24px;\"></path><path d=\"M-611.6-548.6c10-34.7,24-61,42-79\" style=\"fill: none; stroke-linecap: round;stroke: rgb(88, 185, 147); stroke-width: 24px;\"></path><circle cx=\"-769.6\" cy=\"-635.6\" r=\"34\" style=\"fill: url(&quot;#radial-gradient&quot;);\"></circle><circle cx=\"-567.6\" cy=\"-637.6\" r=\"34\" style=\"fill: url(&quot;#radial-gradient1&quot;);\"></circle><path d=\"M-612.9-360.8c-10.4,1.1-20.5-13.6-22.6-32.8-2-19.2,4.8-35.7,15.2-36.8,10.4-1.1,20.5,13.6,22.6,32.8,2,19.2-4.8,35.7-15.2,36.8Z\" style=\"fill: url(&quot;#radial-gradient2&quot;);\"></path><path d=\"M-529.9-363.8c-9.9,1-19.5-13.7-21.6-32.9-2-19.2,4.4-35.7,14.2-36.7,9.9-1,19.5,13.7,21.6,32.9,2,19.2-4.4,35.7-14.2,36.7Z\" style=\"fill: url(&quot;#radial-gradient3&quot;);\"></path><path d=\"M-620.1-516.4c-16.5-7.7-32.4-8.7-35.4-2.2-3,6.5,7.9,18,24.4,25.7,16.5,7.7,32.4,8.7,35.4,2.2,3-6.5-7.9-18-24.4-25.7Z\" style=\"fill: url(&quot;#radial-gradient4&quot;);\"></path><path d=\"M-501.6-415.6c0-62-45.4-115-109.2-135.7-18.6-6-38.7-9.3-59.8-9.3s-34.8,2.3-50.8,6.7c-68.5,18.5-118.2,73.4-118.2,138.3s0,5.3.3,8c-.2,2.7-.3,5.3-.3,8,0,18.1,3.9,35.4,10.9,51.4,10.3,23.2,27.3,43.6,49.1,59.4,1.4,1,2.8,2,4.2,3,17.8,12.1,38.5,21.2,61.1,26.3,10.9,2.5,22.3,4.1,34,4.7,3.2.2,6.5.2,9.7.2,12.8,0,25.2-1.2,37.1-3.5,9.3-1.8,18.3-4.2,26.9-7.2,21.9-7.7,41.5-19.2,57.7-33.7,29.3-26.1,47.3-61.5,47.3-100.6s0-5.3-.3-8c.2-2.7.3-5.3.3-8ZM-612.9-360.8c-10.4,1.1-20.5-13.6-22.6-32.8-2-19.2,4.8-35.7,15.2-36.8,10.4-1.1,20.5,13.6,22.6,32.8,2,19.2-4.8,35.7-15.2,36.8ZM-595.7-490.7c-3,6.5-18.9,5.5-35.4-2.2-16.5-7.7-27.5-19.2-24.4-25.7,3-6.5,18.9-5.5,35.4,2.2,16.5,7.7,27.5,19.2,24.4,25.7ZM-529.9-363.8c-9.9,1-19.5-13.7-21.6-32.9-2-19.2,4.4-35.7,14.2-36.7,9.9-1,19.5,13.7,21.6,32.9,2,19.2-4.4,35.7-14.2,36.7Z\" style=\"fill: url(&quot;#radial-gradient5&quot;);\"></path><path d=\"M-779.6-288.8c-.2.4-.4.8-.6,1.2-14.5,31-41.6,49-60.6,40.1-19-8.9-22.7-41.2-8.2-72.2,5.4-11.5,12.5-21.3,20.4-28.5,10.3,23.2,27.3,43.6,49.1,59.4Z\" style=\"fill: url(&quot;#linear-gradient1&quot;);\"></path><path d=\"M-544.2-214.5c-17.4,8.5-42.8-8-56.9-36.8-2.3-4.7-4.1-9.4-5.5-14.1,21.9-7.7,41.5-19.2,57.7-33.7,4,5,7.6,10.8,10.7,17.1,14,28.8,11.3,59-6,67.5Z\" style=\"fill: url(&quot;#linear-gradient2&quot;);\"></path><path d=\"M-612.9-360.8c-10.4,1.1-20.5-13.6-22.6-32.8-2-19.2,4.8-35.7,15.2-36.8,10.4-1.1,20.5,13.6,22.6,32.8,2,19.2-4.8,35.7-15.2,36.8Z\" style=\"fill: url(&quot;#radial-gradient6&quot;);\"></path><path d=\"M-529.9-363.8c-9.9,1-19.5-13.7-21.6-32.9-2-19.2,4.4-35.7,14.2-36.7,9.9-1,19.5,13.7,21.6,32.9,2,19.2-4.4,35.7-14.2,36.7Z\" style=\"fill: url(&quot;#radial-gradient7&quot;);\"></path><path d=\"M-612.9-360.8c-10.4,1.1-20.5-13.6-22.6-32.8-2-19.2,4.8-35.7,15.2-36.8,10.4-1.1,20.5,13.6,22.6,32.8,2,19.2-4.8,35.7-15.2,36.8Z\" style=\"fill: rgb(44, 33, 59);\"></path><path d=\"M-529.9-363.8c-9.9,1-19.5-13.7-21.6-32.9-2-19.2,4.4-35.7,14.2-36.7,9.9-1,19.5,13.7,21.6,32.9,2,19.2-4.4,35.7-14.2,36.7Z\" style=\"fill: rgb(44, 33, 59);\"></path><path d=\"M-595.7-490.7c-3,6.5-18.9,5.5-35.4-2.2-16.5-7.7-27.5-19.2-24.4-25.7,3-6.5,18.9-5.5,35.4,2.2,16.5,7.7,27.5,19.2,24.4,25.7Z\" style=\"isolation: isolate;fill: rgb(229, 255, 240); opacity: 0.8;\"></path></svg>","vb":[-861.9,-675.6,364.3,470.1],"body":[-839.6,-560.6,338,306],"pad":4},"orange":{"svg":"<svg width=\"339\" height=\"429\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-446.6 -628.1 338.7 429.2\"><defs><radialGradient id=\"radial-gradient19\" cx=\"-210\" cy=\"-460.3\" fx=\"-210\" fy=\"-460.3\" r=\"43.7\" xlink:href=\"#radial-gradient17\"></radialGradient><radialGradient id=\"radial-gradient17\" cx=\"-269.6\" cy=\"-391.6\" fx=\"-269.6\" fy=\"-391.6\" r=\"144.8\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffc071\"></stop>\n      <stop offset=\".7\" stop-color=\"#ff9238\"></stop>\n      <stop offset=\"1\" stop-color=\"#df5b1d\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient18\" cx=\"-220.8\" cy=\"-336.4\" fx=\"-220.8\" fy=\"-336.4\" r=\"42.2\" xlink:href=\"#radial-gradient17\"></radialGradient><linearGradient id=\"linear-gradient8\" x1=\"-875\" y1=\"575.4\" x2=\"-874.2\" y2=\"574.4\" gradientTransform=\"translate(48812.0158 58374.3354) scale(56 -102)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffb261\"></stop>\n      <stop offset=\"1\" stop-color=\"#e86c27\"></stop>\n    </linearGradient><linearGradient id=\"linear-gradient7\" x1=\"-360.4\" y1=\"-205.3\" x2=\"-298.9\" y2=\"-282.2\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffb261\"></stop>\n      <stop offset=\"1\" stop-color=\"#e86c27\"></stop>\n    </linearGradient><linearGradient id=\"linear-gradient6\" x1=\"-436.5\" y1=\"-238.9\" x2=\"-378.4\" y2=\"-311.6\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffb261\"></stop>\n      <stop offset=\"1\" stop-color=\"#e86c27\"></stop>\n    </linearGradient><radialGradient id=\"radial-gradient16\" cx=\"-867.8\" cy=\"569.5\" fx=\"-867.8\" fy=\"569.5\" r=\".9\" gradientTransform=\"translate(55407.9324 27432.4363) rotate(-6.5131) scale(60 -60)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffc071\"></stop>\n      <stop offset=\".7\" stop-color=\"#ff9238\"></stop>\n      <stop offset=\"1\" stop-color=\"#df5b1d\"></stop>\n    </radialGradient></defs><path d=\"M-260.6-513.9c10.8-28.7,25-48.8,42.4-60.2\" style=\"fill: none; stroke-linecap: round;stroke: rgb(246, 139, 54); stroke-width: 22px;\"></path><circle cx=\"-210.3\" cy=\"-594.1\" r=\"30\" style=\"fill: url(&quot;#radial-gradient16&quot;);\"></circle><path d=\"M-359.1-281.8c-4.5,4.8-9.7,9.4-15.7,13.5-25.8,18.1-54.7,21.3-64.5,7.3-9.8-14,3.1-40,28.9-58.1,2.5-1.8,5-3.4,7.6-4.8,11,16.6,25.9,30.9,43.7,42.1Z\" style=\"fill: url(&quot;#linear-gradient6&quot;);\"></path><path d=\"M-276.6-256.8c-2.5,6.2-5.9,12.5-10.4,18.4-18.3,24.3-46.3,33.9-62.6,21.6-15-11.3-14.9-37.1-.7-60,21.6,11.7,46.8,18.8,73.7,19.9Z\" style=\"fill: url(&quot;#linear-gradient7&quot;);\"></path><ellipse cx=\"-164.6\" cy=\"-260.6\" rx=\"28\" ry=\"51\" transform=\"translate(121.8 -146.5) rotate(-36)\" style=\"fill: url(&quot;#linear-gradient8&quot;);\"></ellipse><path d=\"M-269.6-526.6c-85,0-154,60.4-154,135s7.6,47.9,20.8,67.8c11,16.6,25.9,30.9,43.7,42.1,2.8,1.8,5.7,3.5,8.7,5.1,21.6,11.7,46.8,18.8,73.7,19.9,2.3.1,4.7.2,7.1.2,85,0,154-60.4,154-135s-69-135-154-135ZM-211.9-348.3c-3.6,16.7-13.5,28.8-22.1,27-8.6-1.8-12.8-16.9-9.2-33.7,3.6-16.7,13.5-28.8,22.1-27,8.6,1.8,12.8,16.9,9.2,33.7ZM-195.2-452.8c-4.1,5.9-18.8,2.7-32.9-7.1-14-9.8-22-22.6-17.9-28.4,4.1-5.9,18.8-2.7,32.9,7.1,14,9.8,22,22.6,17.9,28.4Z\" style=\"fill: url(&quot;#radial-gradient17&quot;);\"></path><path d=\"M-211.9-348.3c-3.6,16.7-13.5,28.8-22.1,27-8.6-1.8-12.8-16.9-9.2-33.7,3.6-16.7,13.5-28.8,22.1-27,8.6,1.8,12.8,16.9,9.2,33.7Z\" style=\"fill: url(&quot;#radial-gradient18&quot;);\"></path><path d=\"M-195.2-452.8c-4.1,5.9-18.8,2.7-32.9-7.1-14-9.8-22-22.6-17.9-28.4,4.1-5.9,18.8-2.7,32.9,7.1,14,9.8,22,22.6,17.9,28.4Z\" style=\"fill: url(&quot;#radial-gradient19&quot;);\"></path><path d=\"M-211.9-348.3c-3.6,16.7-13.5,28.8-22.1,27-8.6-1.8-12.8-16.9-9.2-33.7,3.6-16.7,13.5-28.8,22.1-27,8.6,1.8,12.8,16.9,9.2,33.7Z\" style=\"fill: rgb(48, 33, 59);\"></path><ellipse cx=\"-165.6\" cy=\"-346.6\" rx=\"29\" ry=\"15\" transform=\"translate(207.9 -436.5) rotate(-78)\" style=\"fill: rgb(48, 33, 59);\"></ellipse><path d=\"M-195.2-452.8c-4.1,5.9-18.8,2.7-32.9-7.1-14-9.8-22-22.6-17.9-28.4,4.1-5.9,18.8-2.7,32.9,7.1,14,9.8,22,22.6,17.9,28.4Z\" style=\"isolation: isolate;fill: rgb(255, 240, 212); opacity: 0.8;\"></path></svg>","vb":[-446.6,-628.1,338.7,429.2],"body":[-423.6,-526.6,308,270.1],"pad":4},"purple":{"svg":"<svg width=\"453\" height=\"522\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"-48.2 -722.6 452.9 522.0\"><defs><radialGradient id=\"radial-gradient32\" cx=\"341.4\" cy=\"-396.2\" fx=\"341.4\" fy=\"-396.2\" r=\"50.5\" xlink:href=\"#radial-gradient29\"></radialGradient><radialGradient id=\"radial-gradient29\" cx=\"178.4\" cy=\"-426.1\" fx=\"178.4\" fy=\"-426.1\" r=\"195.9\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#c49cff\"></stop>\n      <stop offset=\".7\" stop-color=\"#9663df\"></stop>\n      <stop offset=\"1\" stop-color=\"#6943b7\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient31\" cx=\"277.4\" cy=\"-541.3\" fx=\"277.4\" fy=\"-541.3\" r=\"66.1\" xlink:href=\"#radial-gradient29\"></radialGradient><radialGradient id=\"radial-gradient30\" cx=\"258.8\" cy=\"-383.6\" fx=\"258.8\" fy=\"-383.6\" r=\"52.3\" xlink:href=\"#radial-gradient29\"></radialGradient><linearGradient id=\"linear-gradient14\" x1=\"303.2\" y1=\"-214.4\" x2=\"407.4\" y2=\"-344.7\" xlink:href=\"#linear-gradient13\"></linearGradient><linearGradient id=\"linear-gradient13\" x1=\"331.2\" y1=\"-380.3\" x2=\"335.6\" y2=\"-385.7\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#b68af4\"></stop>\n      <stop offset=\"1\" stop-color=\"#784cc2\"></stop>\n    </linearGradient><linearGradient id=\"linear-gradient12\" x1=\"-45.5\" y1=\"-236.6\" x2=\"39.5\" y2=\"-343\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#b68af4\"></stop>\n      <stop offset=\"1\" stop-color=\"#784cc2\"></stop>\n    </linearGradient><radialGradient id=\"radial-gradient28\" cx=\"341.4\" cy=\"-396.2\" fx=\"341.4\" fy=\"-396.2\" r=\"50.5\" xlink:href=\"#radial-gradient26\"></radialGradient><radialGradient id=\"radial-gradient26\" cx=\"258.8\" cy=\"-383.6\" fx=\"258.8\" fy=\"-383.6\" r=\"52.3\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#c49cff\"></stop>\n      <stop offset=\".7\" stop-color=\"#9663df\"></stop>\n      <stop offset=\"1\" stop-color=\"#6943b7\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient27\" cx=\"277.4\" cy=\"-541.3\" fx=\"277.4\" fy=\"-541.3\" r=\"66.1\" xlink:href=\"#radial-gradient26\"></radialGradient><radialGradient id=\"radial-gradient25\" cx=\"-867.2\" cy=\"571.2\" fx=\"-867.2\" fy=\"571.2\" r=\".9\" gradientTransform=\"translate(64507.6677 41599.5705) scale(74 -74)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#c49cff\"></stop>\n      <stop offset=\".7\" stop-color=\"#9663df\"></stop>\n      <stop offset=\"1\" stop-color=\"#6943b7\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient24\" cx=\"-867.1\" cy=\"572.1\" fx=\"-867.1\" fy=\"572.1\" r=\".9\" gradientTransform=\"translate(71160.6724 46212.0714) scale(82 -82)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#c49cff\"></stop>\n      <stop offset=\".7\" stop-color=\"#9663df\"></stop>\n      <stop offset=\"1\" stop-color=\"#6943b7\"></stop>\n    </radialGradient></defs><path d=\"M89.4-582.6c-10-30.7-23.7-59.7-41-87\" style=\"stroke: rgb(148, 102, 217); stroke-width: 28px;fill: none; stroke-linecap: round;\"></path><path d=\"M315.4-642.6c-7.3,3.5-14.5,9.4-21.4,17.7-8,9.5-15.8,22-23.4,37.7\" style=\"stroke: rgb(148, 102, 217); stroke-width: 28px;fill: none; stroke-linecap: round;\"></path><path d=\"M266.7-578.7c-.8,1.7-1.5,3.4-2.2,5.1\" style=\"stroke: rgb(148, 102, 217); stroke-width: 28px;fill: none; stroke-linecap: round;\"></path><circle cx=\"38.4\" cy=\"-677.6\" r=\"41\" style=\"fill: url(&quot;#radial-gradient24&quot;);\"></circle><circle cx=\"322.4\" cy=\"-648.6\" r=\"37\" style=\"fill: url(&quot;#radial-gradient25&quot;);\"></circle><path d=\"M255.1-369c-12.6,1.8-25.3-15-28.5-37.4-3.1-22.4,4.5-42,17.1-43.8,12.6-1.8,25.3,15,28.5,37.4,3.1,22.4-4.5,42-17.1,43.8Z\" style=\"fill: url(&quot;#radial-gradient26&quot;);\"></path><path d=\"M300.8-535.8c-4,7.2-24.9,3.3-46.6-8.7-21.7-12-36.1-27.7-32.1-34.9,4-7.2,24.9-3.3,46.6,8.7,21.7,12,36.1,27.7,32.1,34.9Z\" style=\"fill: url(&quot;#radial-gradient27&quot;);\"></path><path d=\"M339.1-382.3c-.6.2-1.2.3-1.9.4-3.1.4-6.3-.5-9.2-2.3-8.4-5.2-15.5-18.5-17.5-34.7-2.7-21.9,4.9-40.9,17-42.4,12-1.5,24,15.1,26.7,37,2.5,20.8-4.1,38.9-15.1,42Z\" style=\"fill: url(&quot;#radial-gradient28&quot;);\"></path><path d=\"M63.6-278.8c-19.9,37-56.5,52.8-82.9,35.3-27-17.9-33-63.8-13.5-102.6,5.6-11.1,12.7-20.4,20.6-27.7C.1-334,27.5-300.4,63.6-278.8Z\" style=\"fill: url(&quot;#linear-gradient12&quot;);\"></path><path d=\"M339.1-382.3c-.6.2-1.2.3-1.9.4-3.1.4-6.3-.5-9.2-2.3,3.7.2,7.4.9,11.1,1.9Z\" style=\"fill: url(&quot;#linear-gradient13&quot;);\"></path><path d=\"M366.5-227.6c-27.5,10-60.5-9.5-78.1-44.5,39.2-19.8,69.9-49.8,86.8-85.5,7.7,9.1,14.2,20.2,18.7,32.8,15.5,42.6,3.2,86.1-27.4,97.2Z\" style=\"fill: url(&quot;#linear-gradient14&quot;);\"></path><path d=\"M165.4-257.2l-.2.7c-12,35.4-39.6,58-61.6,50.5-21.4-7.3-29.6-40.5-18.8-75,10.2,7.3,21.3,13,33.2,17.1,15.3,5.2,31.2,7.4,47.4,6.7Z\" style=\"fill: rgb(135, 86, 206);\"></path><path d=\"M376.8-480.1c-15.8-46.9-54.8-85.6-106.2-107.2-28-11.8-59.7-18.4-93.2-18.4s-62.8,6.1-90,17.1c-60.1,24.2-104.1,71.8-114.6,128.5-3.5,12.7-5.4,25.8-5.4,39.4s2.9,33.3,8.4,48.8c14.6,41.1,47,76,90,98.3,22.7,11.8,48.2,20.2,75.6,24.1,12,1.8,24.4,2.7,37,2.7s31.9-1.5,47-4.3c22.6-4.2,43.7-11.4,62.9-21.1,39.2-19.8,69.9-49.8,86.8-85.5,9.2-19.5,14.3-40.8,14.3-63.1s-4.5-40.9-12.6-59.5ZM255.1-369c-12.6,1.8-25.3-15-28.5-37.4-3.1-22.4,4.5-42,17.1-43.8,12.6-1.8,25.3,15,28.5,37.4,3.1,22.4-4.5,42-17.1,43.8ZM300.8-535.8c-4,7.2-24.9,3.3-46.6-8.7-21.7-12-36.1-27.7-32.1-34.9,4-7.2,24.9-3.3,46.6,8.7,21.7,12,36.1,27.7,32.1,34.9ZM339.1-382.3c-.6.2-1.2.3-1.9.4-3.1.4-6.3-.5-9.2-2.3-8.4-5.2-15.5-18.5-17.5-34.7-2.7-21.9,4.9-40.9,17-42.4,12-1.5,24,15.1,26.7,37,2.5,20.8-4.1,38.9-15.1,42Z\" style=\"fill: url(&quot;#radial-gradient29&quot;);\"></path><path d=\"M255.1-369c-12.6,1.8-25.3-15-28.5-37.4-3.1-22.4,4.5-42,17.1-43.8,12.6-1.8,25.3,15,28.5,37.4,3.1,22.4-4.5,42-17.1,43.8Z\" style=\"fill: url(&quot;#radial-gradient30&quot;);\"></path><path d=\"M300.8-535.8c-4,7.2-24.9,3.3-46.6-8.7-21.7-12-36.1-27.7-32.1-34.9,4-7.2,24.9-3.3,46.6,8.7,21.7,12,36.1,27.7,32.1,34.9Z\" style=\"fill: url(&quot;#radial-gradient31&quot;);\"></path><path d=\"M339.1-382.3c-.6.2-1.2.3-1.9.4-3.1.4-6.3-.5-9.2-2.3-8.4-5.2-15.5-18.5-17.5-34.7-2.7-21.9,4.9-40.9,17-42.4,12-1.5,24,15.1,26.7,37,2.5,20.8-4.1,38.9-15.1,42Z\" style=\"fill: url(&quot;#radial-gradient32&quot;);\"></path><path d=\"M255.1-369c-12.6,1.8-25.3-15-28.5-37.4-3.1-22.4,4.5-42,17.1-43.8,12.6-1.8,25.3,15,28.5,37.4,3.1,22.4-4.5,42-17.1,43.8Z\" style=\"fill: rgb(46, 32, 68);\"></path><path d=\"M339.1-382.3c-.6.2-1.2.3-1.9.4-3.1.4-6.3-.5-9.2-2.3-8.4-5.2-15.5-18.5-17.5-34.7-2.7-21.9,4.9-40.9,17-42.4,12-1.5,24,15.1,26.7,37,2.5,20.8-4.1,38.9-15.1,42Z\" style=\"fill: rgb(46, 32, 68);\"></path><path d=\"M300.8-535.8c-4,7.2-24.9,3.3-46.6-8.7-21.7-12-36.1-27.7-32.1-34.9,4-7.2,24.9-3.3,46.6,8.7,21.7,12,36.1,27.7,32.1,34.9Z\" style=\"fill: rgb(234, 214, 255); opacity: 0.6;isolation: isolate;\"></path></svg>","vb":[-48.2,-722.6,452.9,522],"body":[-32.6,-605.7,422,358.9],"pad":4},"yellow":{"svg":"<svg width=\"269\" height=\"362\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"445.5 -680.1 269.0 361.8\"><defs><radialGradient id=\"radial-gradient49\" cx=\"675.6\" cy=\"-434.5\" fx=\"675.6\" fy=\"-434.5\" r=\"35.3\" xlink:href=\"#radial-gradient47\"></radialGradient><radialGradient id=\"radial-gradient47\" cx=\"613.5\" cy=\"-429.2\" fx=\"613.5\" fy=\"-429.2\" r=\"35.8\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffe990\"></stop>\n      <stop offset=\".7\" stop-color=\"#ffc845\"></stop>\n      <stop offset=\"1\" stop-color=\"#e99c17\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient48\" cx=\"648.7\" cy=\"-525.5\" fx=\"648.7\" fy=\"-525.5\" r=\"40.3\" xlink:href=\"#radial-gradient47\"></radialGradient><radialGradient id=\"radial-gradient46\" cx=\"577.2\" cy=\"-468.7\" fx=\"577.2\" fy=\"-468.7\" r=\"118.7\" gradientTransform=\"matrix(1,0,0,1,0,0)\" xlink:href=\"#radial-gradient42\"></radialGradient><radialGradient id=\"radial-gradient42\" cx=\"-866.8\" cy=\"569.7\" fx=\"-866.8\" fy=\"569.7\" r=\".8\" gradientTransform=\"translate(40044.6381 69081.4836) rotate(28.8505) scale(78.66 -73.83)\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffe990\"></stop>\n      <stop offset=\".7\" stop-color=\"#ffc845\"></stop>\n      <stop offset=\"1\" stop-color=\"#e99c17\"></stop>\n    </radialGradient><linearGradient id=\"linear-gradient20\" x1=\"651.8\" y1=\"-336.6\" x2=\"712.4\" y2=\"-412.4\" xlink:href=\"#linear-gradient19\"></linearGradient><linearGradient id=\"linear-gradient19\" x1=\"663.2\" y1=\"-425\" x2=\"673.6\" y2=\"-438.1\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffe17b\"></stop>\n      <stop offset=\"1\" stop-color=\"#eeb129\"></stop>\n    </linearGradient><linearGradient id=\"linear-gradient18\" x1=\"448.3\" y1=\"-336.8\" x2=\"495.9\" y2=\"-396.4\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffe17b\"></stop>\n      <stop offset=\"1\" stop-color=\"#eeb129\"></stop>\n    </linearGradient><radialGradient id=\"radial-gradient45\" cx=\"675.6\" cy=\"-434.5\" fx=\"675.6\" fy=\"-434.5\" r=\"35.3\" xlink:href=\"#radial-gradient43\"></radialGradient><radialGradient id=\"radial-gradient43\" cx=\"613.5\" cy=\"-429.2\" fx=\"613.5\" fy=\"-429.2\" r=\"35.8\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0\" stop-color=\"#ffe990\"></stop>\n      <stop offset=\".7\" stop-color=\"#ffc845\"></stop>\n      <stop offset=\"1\" stop-color=\"#e99c17\"></stop>\n    </radialGradient><radialGradient id=\"radial-gradient44\" cx=\"648.7\" cy=\"-525.5\" fx=\"648.7\" fy=\"-525.5\" r=\"40.3\" xlink:href=\"#radial-gradient43\"></radialGradient></defs><path d=\"M577.5-507.7s-13.8,2.4-17.7-46.6c-3.3-42.2,32.1-72.3,32.1-72.3\" style=\"fill: none; stroke-linecap: round;stroke: rgb(247, 188, 53); stroke-width: 16.6px;stroke-miterlimit: 2.8;\"></path><path d=\"M619.5-672.6l-1.7,18c-.1,1.2.4,2.4,1.4,3.1l15.4,10.5c2.4,1.7,1.7,5.4-1.2,6.1l-18.1,3.9c-1.2.3-2.2,1.2-2.5,2.5l-4.4,17.1c-.7,2.9-4.6,3.5-6.2.9l-9.6-16.1c-.6-1-1.8-1.7-3-1.6l-18.7.5c-3,0-4.6-3.5-2.5-5.7l12.1-12.9c.9-.9,1.1-2.3.7-3.5l-6.3-17.3c-1-2.8,1.8-5.4,4.5-4.3l17.1,7.4c1.1.5,2.4.3,3.4-.4l14.3-11c2.3-1.8,5.7,0,5.4,3Z\" style=\"stroke-miterlimit: 2.8;stroke: rgb(234, 178, 46); stroke-width: 2.1px;fill: url(&quot;#radial-gradient42&quot;);\"></path><path d=\"M611.1-418c-8,1-15.9-10.8-17.8-26.3-1.9-15.5,3-28.9,10.9-29.9,7.9-1,15.9,10.8,17.8,26.3,1.9,15.5-3,28.9-10.9,29.9Z\" style=\"fill: url(&quot;#radial-gradient43&quot;);\"></path><path d=\"M663.2-523.5c-2.5,5.6-15.5,5.2-29.1-.9-13.6-6.1-22.6-15.5-20.1-21,2.5-5.6,15.5-5.2,29.1.9,13.6,6,22.6,15.5,20.1,21Z\" style=\"fill: url(&quot;#radial-gradient44&quot;);\"></path><path d=\"M681.5-430.5c-1.9,3.9-4.7,6.4-7.9,6.9-5.7.8-11.5-4.8-15.1-13.6-1.4-3.5-2.5-7.4-3.1-11.7-2.1-15.1,2.6-28.2,10.5-29.3,7.9-1.1,16.1,10.2,18.2,25.3,1.2,8.8.2,17-2.6,22.5Z\" style=\"fill: url(&quot;#radial-gradient45&quot;);\"></path><path d=\"M518-372.2c-.2.3-.3.6-.5.9-13.6,25.6-37.7,39.3-53.9,30.8-16.1-8.6-18.2-36.3-4.6-61.9,2.2-4.2,4.8-8.1,7.5-11.6,12.1,17.7,30,32.3,51.5,41.8Z\" style=\"fill: url(&quot;#linear-gradient18&quot;);\"></path><path d=\"M681.5-430.5c-1.9,3.9-4.7,6.4-7.9,6.9-5.7.8-11.5-4.8-15.1-13.6,7.4-.8,15.5,1.6,23,6.7Z\" style=\"fill: url(&quot;#linear-gradient19&quot;);\"></path><path d=\"M694-342.6c-17.3,8-40.9-6.1-52.8-31.7,0,0,0,0,0,0,22.1-10.8,40-27.1,51.2-46.6,4.4,4.9,8.3,10.8,11.4,17.5,11.9,25.6,7.6,52.8-9.7,60.9Z\" style=\"fill: url(&quot;#linear-gradient20&quot;);\"></path><path d=\"M586.2-368c-8.2,28.6-24.9,48.7-38.3,45.3-12.6-3.2-17.9-25.9-13.2-52.6,5.5,3.1,11.3,5.4,17.4,6.9,11,2.8,22.5,2.8,34,.4Z\" style=\"fill: rgb(239, 182, 51);\"></path><path d=\"M704.9-473.6c0-57-55.7-103.3-124.9-104.2-.7,0-1.4,0-2.1,0-62.4,0-114.4,37-125,85.8,0,0,0,0,0,0-2.2,7.9-3.4,16.1-3.4,24.6,0,19.5,6.2,37.8,16.9,53.6,12.1,17.7,30,32.3,51.5,41.8,13.2,5.8,27.7,9.8,43,11.4,5.3.6,10.8.9,16.2.9,9.9,0,19.6-1,28.9-2.8,12.5-2.4,24.2-6.4,35-11.7,22.1-10.8,40-27.1,51.2-46.6,8.1-14.1,12.6-29.9,12.6-46.6s0-2.1,0-3.2c0-1,0-2,0-3ZM611.1-417.9c-8,1-15.9-10.8-17.8-26.3-1.9-15.5,3-28.9,10.9-29.9,7.9-1,15.9,10.8,17.8,26.3,1.9,15.5-3,28.9-10.9,29.9ZM634.2-524.2c-13.6-6.1-22.6-15.5-20.1-21,2.5-5.6,15.5-5.2,29.1.9,13.6,6,22.6,15.5,20.1,21s-15.5,5.2-29.1-.9ZM681.5-430.3c-1.9,3.9-4.7,6.4-7.9,6.9-5.7.8-11.5-4.8-15.1-13.6-1.4-3.5-2.5-7.4-3.1-11.7-2.1-15.1,2.6-28.2,10.5-29.3,7.9-1.1,16.1,10.2,18.2,25.3,1.2,8.8.2,17-2.6,22.5Z\" style=\"fill: url(&quot;#radial-gradient46&quot;);\"></path><path d=\"M611.1-418c-8,1-15.9-10.8-17.8-26.3-1.9-15.5,3-28.9,10.9-29.9,7.9-1,15.9,10.8,17.8,26.3,1.9,15.5-3,28.9-10.9,29.9Z\" style=\"fill: url(&quot;#radial-gradient47&quot;);\"></path><path d=\"M663.2-523.5c-2.5,5.6-15.5,5.2-29.1-.9-13.6-6.1-22.6-15.5-20.1-21,2.5-5.6,15.5-5.2,29.1.9,13.6,6,22.6,15.5,20.1,21Z\" style=\"fill: url(&quot;#radial-gradient48&quot;);\"></path><path d=\"M681.5-430.5c-1.9,3.9-4.7,6.4-7.9,6.9-5.7.8-11.5-4.8-15.1-13.6-1.4-3.5-2.5-7.4-3.1-11.7-2.1-15.1,2.6-28.2,10.5-29.3,7.9-1.1,16.1,10.2,18.2,25.3,1.2,8.8.2,17-2.6,22.5Z\" style=\"fill: url(&quot;#radial-gradient49&quot;);\"></path><path d=\"M611.1-418c-8,1-15.9-10.8-17.8-26.3-1.9-15.5,3-28.9,10.9-29.9,7.9-1,15.9,10.8,17.8,26.3,1.9,15.5-3,28.9-10.9,29.9Z\" style=\"fill: rgb(46, 33, 61);\"></path><path d=\"M681.5-430.5c-1.9,3.9-4.7,6.4-7.9,6.9-5.7.8-11.5-4.8-15.1-13.6-1.4-3.5-2.5-7.4-3.1-11.7-2.1-15.1,2.6-28.2,10.5-29.3,7.9-1.1,16.1,10.2,18.2,25.3,1.2,8.8.2,17-2.6,22.5Z\" style=\"fill: rgb(46, 33, 61);\"></path><path d=\"M663.2-523.5c-2.5,5.6-15.5,5.2-29.1-.9-13.6-6.1-22.6-15.5-20.1-21,2.5-5.6,15.5-5.2,29.1.9,13.6,6,22.6,15.5,20.1,21Z\" style=\"isolation: isolate;fill: rgb(255, 247, 207); opacity: 0.8;\"></path></svg>","vb":[445.5,-680.1,269,361.8],"body":[449.5,-577.8,255.4,218.1],"pad":4}};
 
 /* ---------- 2. Guardado automático (localStorage) ---------- */
 const $ = (s) => document.querySelector(s);
@@ -483,22 +565,27 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const TAU = Math.PI * 2;
 
 const freshSave = () => ({
-  coins: 0, earned: 0, smushed: 0,
+  coins: 0, earned: 0, smushed: 0, awayEarned: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, boot: 0, spray: 0, bolt: 0 }, // 0 = sin comprar; 1–3 = nivel
-  tool: "finger", hinted: false,
+  up: { hire: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, calm: 0, night: 0 },
+  tool: "finger", hinted: false, lastSeen: Date.now(),
+  pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
 });
 function loadSave() {
   const d = freshSave();
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (!s || typeof s !== "object") return d;
-    const num = (v) => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
-    d.coins = num(s.coins); d.earned = num(s.earned); d.smushed = num(s.smushed);
-    TYPE_ORDER.forEach((k) => { d.byType[k] = num(s.byType && s.byType[k]); });
-    TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(num(s.tools && s.tools[k]), k === "finger" ? 1 : 0, 3); });
+    const num = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
+    d.coins = num(s.coins); d.earned = num(s.earned); d.smushed = Math.floor(num(s.smushed)); d.awayEarned = num(s.awayEarned);
+    TYPE_ORDER.forEach((k) => { d.byType[k] = Math.floor(num(s.byType && s.byType[k])); });
+    TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(Math.floor(num(s.tools && s.tools[k])), k === "finger" ? 1 : 0, 3); });
+    UP_ORDER.forEach((k) => { d.up[k] = clamp(Math.floor(num(s.up && s.up[k])), 0, UP[k].max); });
     if (TOOLS[s.tool] && d.tools[s.tool] > 0) d.tool = s.tool;
     d.hinted = !!s.hinted;
+    if (Number.isFinite(s.lastSeen)) d.lastSeen = s.lastSeen;
+    if (s.pending && Number.isFinite(s.pending.coins) && s.pending.coins > 0) d.pending = { coins: Math.floor(s.pending.coins), aliens: Math.floor(num(s.pending.aliens)), away: num(s.pending.away), secs: num(s.pending.secs) };
   } catch (e) {}
   return d;
 }
@@ -506,9 +593,11 @@ let save = loadSave();
 let saveTimer = 0;
 function writeSave() {
   clearTimeout(saveTimer); saveTimer = 0;
+  save.lastSeen = Date.now();
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
 }
 function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
+setInterval(() => { if (!document.hidden) writeSave(); }, 15000); // "sigo aquí" para calcular el tiempo fuera
 
 const settings = { sound: true, vibe: true, theme: "auto", lang: "en" };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); } catch (e) {}
@@ -516,8 +605,12 @@ const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.strin
 
 /* ---------- 3. Idioma: inglés por defecto, español en Ajustes ---------- */
 const STR = {
-  smushed: ["smushed", "aplastadas"],
+  smushed: ["smushed", "aplastados"],
   shop: ["Shop", "Tienda"],
+  tabTools: ["Tools", "Herramientas"], tabHelpers: ["Helpers", "Ayudantes"], tabBoosts: ["Boosts", "Mejoras"],
+  noteTools: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
+  noteHelpers: ["Helper fingers smush aliens on their own, even while you're away.", "Los dedos ayudantes aplastan marcianitos solos, incluso cuando no estás."],
+  noteBoosts: ["Permanent upgrades that make every smush count more.", "Mejoras permanentes para que cada aplastón rinda más."],
   settings: ["Settings", "Ajustes"],
   sound: ["Sound", "Sonido"],
   vibration: ["Vibration", "Vibración"],
@@ -525,56 +618,83 @@ const STR = {
   auto: ["Auto", "Auto"], light: ["Light", "Claro"], dark: ["Dark", "Oscuro"],
   language: ["Language", "Idioma"],
   records: ["Records", "Récords"],
-  totalSmushed: ["Dots smushed", "Bolitas aplastadas"],
+  totalSmushed: ["Aliens smushed", "Marcianitos aplastados"],
   coinsEarned: ["Coins earned", "Monedas ganadas"],
+  awayEarned: ["Earned while away", "Ganadas mientras no estabas"],
   howTo: ["How to play", "Cómo jugar"],
-  how1: ["Tap the dots to smush them and earn coins.", "Toca las bolitas para aplastarlas y ganar monedas."],
-  how2: ["Spend coins in the Shop on new tools and upgrades.", "Usa tus monedas en la Tienda para comprar herramientas y mejoras."],
+  how1: ["Tap the aliens to smush them and earn coins.", "Toca los marcianitos para aplastarlos y ganar monedas."],
+  how2: ["Spend coins in the Shop on tools, helpers and boosts.", "Usa tus monedas en la Tienda: herramientas, ayudantes y mejoras."],
   how3: ["Switch tools anytime from the bar below. Hold to use the Spray.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado para usar el Spray."],
-  how4: ["Purple dots need 3 hits. Golden ones are rare and worth 25.", "Las moradas necesitan 3 golpes. Las doradas son raras y valen 25."],
+  how4: ["Purple aliens need 3 hits. Golden ones are rare and worth 25.", "Los morados necesitan 3 golpes. Los dorados son raros y valen 25."],
+  how5: ["Helper fingers keep smushing while you're away. Come back to collect.", "Los dedos ayudantes siguen aplastando cuando no estás. Vuelve a recoger."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
   resetQ: ["Reset progress?", "¿Reiniciar el progreso?"],
-  resetMsg: ["Your coins, tools and records will be erased. This can't be undone.", "Se borrarán tus monedas, herramientas y récords. No se puede deshacer."],
+  resetMsg: ["Your coins, tools, helpers and records will be erased. This can't be undone.", "Se borrarán tus monedas, herramientas, ayudantes y récords. No se puede deshacer."],
   cancel: ["Cancel", "Cancelar"],
   resetBtn: ["Reset", "Reiniciar"],
   about: ["About", "Acerca de"],
   version: ["Version", "Versión"],
   website: ["Website", "Sitio web"],
   support: ["Support", "Soporte"],
-  hint: ["Tap the dots to smush them", "Toca las bolitas para aplastarlas"],
-  buy: ["Buy", "Comprar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
+  hint: ["Tap the aliens to smush them", "Toca los marcianitos para aplastarlos"],
+  welcome: ["Welcome back!", "¡Qué bueno verte!"],
+  collect: ["Collect", "Recoger"],
+  buy: ["Buy", "Comprar"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
   finger: ["Finger", "Dedo"], boot: ["Boot", "Bota"], spray: ["Spray", "Spray"], bolt: ["Bolt", "Rayo"],
-  fingerD: ["Tap a dot to smush it.", "Toca una bolita para aplastarla."],
-  bootD: ["Stomps every dot in a circle.", "Aplasta todas las bolitas de un círculo."],
+  fingerD: ["Tap an alien to smush it.", "Toca un marcianito para aplastarlo."],
+  bootD: ["Stomps every alien in a circle.", "Aplasta a todos los marcianitos de un círculo."],
   sprayD: ["Hold to mist an area.", "Mantén presionado para rociar un área."],
-  boltD: ["Zaps a dot and arcs to its neighbors.", "Electrocuta una bolita y salta a las cercanas."],
-  green: ["Green", "Verdes"], orange: ["Orange", "Naranjas"], purple: ["Purple", "Moradas"], yellow: ["Golden", "Doradas"],
+  boltD: ["Zaps an alien and arcs to its neighbors.", "Electrocuta a un marcianito y salta a los cercanos."],
+  hire: ["Helper finger", "Dedo ayudante"], hireD: ["Smushes aliens on its own, even while you're away.", "Aplasta marcianitos solo, incluso cuando no estás."],
+  speed: ["Quick hands", "Manos rápidas"], speedD: ["Helpers tap more often.", "Los ayudantes tocan más seguido."],
+  power: ["Strong hands", "Manos fuertes"], powerD: ["Helpers hit harder. Great for purples.", "Los ayudantes pegan más fuerte. Ideal para los morados."],
+  value: ["Golden touch", "Toque de oro"], valueD: ["Every alien is worth more coins.", "Cada marcianito vale más monedas."],
+  crowd: ["Busy planet", "Planeta lleno"], crowdD: ["More aliens, arriving faster.", "Más marcianitos, y llegan más rápido."],
+  luck: ["Lucky star", "Estrella de la suerte"], luckD: ["Golden aliens show up more often.", "Los dorados aparecen más seguido."],
+  calm: ["Sleepy aliens", "Marcianitos con sueño"], calmD: ["Aliens walk slower and are easier to catch.", "Caminan más lento y son más fáciles de atrapar."],
+  night: ["Night shift", "Turno de noche"], nightD: ["Helpers keep working longer while you're away.", "Tus ayudantes trabajan más tiempo mientras no estás."],
+  green: ["Green", "Verdes"], orange: ["Orange", "Naranjas"], purple: ["Purple", "Morados"], yellow: ["Golden", "Dorados"],
   by: ["by BluBer Games", "por BluBer Games"],
-  shopSub: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
 };
 let LANG = settings.lang === "es" ? "es" : "en";
 const tx = (k) => (STR[k] ? STR[k][LANG === "es" ? 1 : 0] : k);
+const loc = () => (LANG === "es" ? "es-MX" : "en-US");
 const fmt = (n) => {
-  const loc = LANG === "es" ? "es-MX" : "en-US";
-  if (n < 100000) return Math.floor(n).toLocaleString(loc);
-  return new Intl.NumberFormat(loc, { notation: "compact", maximumFractionDigits: 1 }).format(n);
+  n = Math.floor(n);
+  if (n < 100000) return n.toLocaleString(loc());
+  return new Intl.NumberFormat(loc(), { notation: "compact", maximumFractionDigits: 1 }).format(n);
 };
+const fmt1 = (n) => (n < 10 ? n.toLocaleString(loc(), { maximumFractionDigits: 1 }) : fmt(n));
 // Texto de la estadística de cada herramienta en un nivel (1–3)
 function statText(id, lvl) {
   const i = lvl - 1, es = LANG === "es";
   if (id === "finger") { const d = TOOLS.finger.damage[i]; return es ? `${d} de daño por toque` : `${d} damage per tap`; }
   if (id === "boot") { const r = TOOLS.boot.radius[i]; return es ? `Radio de ${r} px` : `${r} px radius`; }
   if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · hits every ${v}s`; }
-  const n = TOOLS.bolt.chains[i]; return es ? `+${n} bolitas en cadena` : `+${n} chained dots`;
+  const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`;
 }
-// Versión corta, para la flecha "→ siguiente nivel" de la Tienda
 function statShort(id, lvl) {
   const i = lvl - 1;
   if (id === "finger") return String(TOOLS.finger.damage[i]);
   if (id === "boot") return `${TOOLS.boot.radius[i]} px`;
   if (id === "spray") return `${TOOLS.spray.radius[i]} px · ${TOOLS.spray.interval[i]}${LANG === "es" ? " s" : "s"}`;
   return `+${TOOLS.bolt.chains[i]}`;
+}
+// Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
+function upText(k, l, short) {
+  const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
+  switch (k) {
+    case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "ayudante" : "ayudantes"}` : `${l} ${l === 1 ? "helper" : "helpers"}`;
+    case "speed": { const s = n(FX.helperInterval(l)); return short ? `${s} s` : es ? `Un toque cada ${s} s` : `1 tap every ${s}s`; }
+    case "power": { const d = FX.helperDamage(l); return short ? String(d) : es ? `${d} de daño por toque` : `${d} damage per tap`; }
+    case "value": { const m = "×" + n(FX.valueMult(l)); return short ? m : es ? `${m} monedas` : `${m} coins`; }
+    case "crowd": { const e = FX.crowdExtra(l); return short ? `+${e}` : es ? `+${e} marcianitos` : `+${e} aliens`; }
+    case "luck": { const m = "×" + n(FX.luckWeight(l) / FX.luckWeight(0)); return short ? m : es ? `${m} dorados` : `${m} golden`; }
+    case "calm": { const p = Math.round(12 * l); return short ? `−${p}%` : l ? (es ? `−${p}% de velocidad` : `−${p}% speed`) : (es ? "Velocidad normal" : "Normal speed"); }
+    case "night": { const h = FX.nightHours(l), t = h < 1 ? `${h * 60} min` : `${h} h`; return short ? t : es ? `${t} trabajando fuera` : `${t} of work while away`; }
+  }
+  return "";
 }
 
 /* ---------- 4. Sonido (Web Audio, sin archivos): cálido, suave, tipo ASMR ---------- */
@@ -722,22 +842,24 @@ const Sound = (() => {
       } catch (e) {}
       return false;
     },
-    // Pop suave al aplastar: una burbujita que sube y un golpecito sordo. Si caen muchas juntas, se agrupan.
-    pop(type) {
+    // Pop suave al aplastar: una burbujita que sube y un golpecito sordo. Si caen muchos juntos, se agrupan.
+    // soft = lo aplastó un ayudante (más quedito, para no cansar)
+    pop(type, soft) {
       const c = ensure(); if (!c) return;
       const now = c.currentTime;
-      if (now - lastPop < 0.028) return;
+      if (now - lastPop < (soft ? 0.06 : 0.028)) return;
       popsInRow = now - lastPop < 0.25 ? Math.min(popsInRow + 1, 6) : 0;
       lastPop = now;
+      const k = soft ? 0.45 : 1;
       const f = vary(BALL_TYPES[type].pitch * (1 + popsInRow * 0.035), 0.04);
-      tone(f * 0.72, { dur: 0.075, vol: 0.15, slide: 1.85, attack: 0.002 });
-      tone(f * 0.5, { dur: 0.06, vol: 0.08, slide: 0.6, attack: 0.002 });
-      noise({ dur: 0.04, vol: 0.07, freq: vary(800, 0.1), q: 0.6, attack: 0.002, kind: "lowpass" });
-      if (type === "purple") thump({ vol: 0.12 });
-      // La dorada es un premio: campanita
-      if (type === "yellow") { pluck(659.25, { t: 0.05, vol: 0.075, dur: 1.3 }); pluck(987.77, { t: 0.13, vol: 0.04, dur: 1.3 }); }
+      tone(f * 0.72, { dur: 0.075, vol: 0.15 * k, slide: 1.85, attack: 0.002 });
+      tone(f * 0.5, { dur: 0.06, vol: 0.08 * k, slide: 0.6, attack: 0.002 });
+      noise({ dur: 0.04, vol: 0.07 * k, freq: vary(800, 0.1), q: 0.6, attack: 0.002, kind: "lowpass" });
+      if (type === "purple") thump({ vol: 0.12 * k });
+      // El dorado es un premio: campanita
+      if (type === "yellow") { pluck(659.25, { t: 0.05, vol: 0.075 * k, dur: 1.3 }); pluck(987.77, { t: 0.13, vol: 0.04 * k, dur: 1.3 }); }
     },
-    hit() { thump({ vol: 0.11 }); },
+    hit(soft) { thump({ vol: soft ? 0.05 : 0.11 }); },
     stomp() { tone(120, { dur: 0.16, vol: 0.2, slide: 0.6, attack: 0.003 }); noise({ dur: 0.14, vol: 0.1, freq: 320, q: 0.5, attack: 0.003, kind: "lowpass" }); },
     hiss() { noise({ dur: 0.2, vol: 0.022, freq: vary(2300, 0.08), q: 0.8, attack: 0.06 }); },
     zap() {
@@ -753,7 +875,12 @@ const Sound = (() => {
       const notes = [[392, 523.25, 659.25], [440, 587.33, 739.99], [523.25, 659.25, 783.99, 1046.5]][clamp(level, 0, 2)];
       notes.forEach((f, i) => pluck(f, { t: i * 0.09, vol: 0.08, dur: 1.4 }));
     },
-    drop(i) { thump({ vol: 0.13 }); },
+    // Recoger lo ganado fuera: un arpegio lento y cálido
+    collect() {
+      [261.63, 329.63, 392, 523.25, 659.25].forEach((f, i) => pluck(f, { t: i * 0.11, vol: 0.085, dur: 1.8 }));
+      [196, 261.63].forEach((f) => tone(f, { dur: 2, vol: 0.03, attack: 0.35 }));
+    },
+    drop() { thump({ vol: 0.13 }); },
     // Intro del estudio: el oso aparece con un soplo y una nota grave, golpecitos suaves por letra
     studio(from = 0) {
       const c = ensure(); if (!c) return;
@@ -805,7 +932,7 @@ if (isNative()) {
   }, { capture: true, passive: true });
 }
 
-/* ---------- 6. Campo de juego, colores y sprites pre-dibujados ---------- */
+/* ---------- 6. Campo de juego, colores y sprites de los marcianitos ---------- */
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const field = $("#field"), cv = $("#cv"), ctx = cv.getContext("2d");
 let W = 0, H = 0, DPR = 1;
@@ -819,8 +946,12 @@ function readPalette() {
   const v = (n) => cs.getPropertyValue(n).trim();
   PAL.dark = v("--is-dark") === "1";
   PAL.text = v("--text"); PAL.mist = v("--mist");
+  PAL.shadow = PAL.dark ? "rgba(0,0,0,0.34)" : "rgba(60,52,30,0.13)";
   PAL.boltCore = PAL.dark ? "rgba(255,255,255," : "rgba(84,116,214,";
   PAL.boltGlow = PAL.dark ? "rgba(150,178,255," : "rgba(126,160,242,";
+  PAL.finger = PAL.dark ? "#E8E5DE" : "#FFFFFF";
+  PAL.fingerEdge = PAL.dark ? "rgba(0,0,0,0.35)" : "rgba(36,37,33,0.14)";
+  PAL.nail = PAL.dark ? "#D9CFCB" : "#F2E4DF";
   for (const k of TYPE_ORDER) {
     const T = BALL_TYPES[k];
     T.light = mix(T.color, "#FFFFFF", 0.4);
@@ -828,38 +959,52 @@ function readPalette() {
   }
 }
 
-// Cada tipo de bolita se dibuja una vez (degradado, brillo y sombra) y luego solo se copia: rápido en móviles
-const sprites = {};
+// Las imágenes vectoriales de cada marcianito (se cargan una vez)
+const alienImg = {};
+function loadAliens() {
+  return Promise.all(TYPE_ORDER.map((k) => new Promise((done) => {
+    const img = new Image();
+    img.onload = () => { alienImg[k] = img; done(); };
+    img.onerror = done;
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ALIENS[k].svg);
+  })));
+}
+// Cada marcianito se pinta una vez a la resolución de la pantalla (y su silueta blanca para el destello);
+// después solo se copia, así va fluido en el iPhone.
+const RES = 1.3; // un poco más de resolución para que se vea nítido al aplastarse
 function buildSprites() {
   for (const k of TYPE_ORDER) {
-    const T = BALL_TYPES[k], r = T.r, pad = Math.ceil(r * 0.55), size = (r + pad) * 2;
-    const c = document.createElement("canvas");
-    c.width = c.height = Math.ceil(size * DPR);
-    const g = c.getContext("2d");
-    g.scale(DPR, DPR);
-    const cx = size / 2, cy = size / 2;
-    g.save();
-    g.shadowColor = PAL.dark ? "rgba(0,0,0,0.42)" : "rgba(70,60,30,0.16)";
-    g.shadowBlur = r * 0.55; g.shadowOffsetY = r * 0.2;
-    g.fillStyle = T.color; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
-    g.restore();
-    const body = g.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.05, cx, cy, r);
-    body.addColorStop(0, mix(T.color, "#FFFFFF", 0.3)); body.addColorStop(0.62, T.color); body.addColorStop(1, mix(T.color, "#000000", 0.07));
-    g.fillStyle = body; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
-    const hx = cx - r * 0.36, hy = cy - r * 0.42, hl = g.createRadialGradient(hx, hy, 0, hx, hy, r * 0.5);
-    hl.addColorStop(0, "rgba(255,255,255,0.55)"); hl.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = hl; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
-    sprites[k] = { c, size };
+    const T = BALL_TYPES[k], A = ALIENS[k], img = alienImg[k];
+    const [vx, vy, vw, vh] = A.vb, [bx, by, bw, bh] = A.body;
+    const s = (2 * T.r) / ((bw + bh) / 2); // el cuerpo mide 2r
+    const w = vw * s, h = vh * s;
+    const S = { w, h, cx: (bx + bw / 2 - vx) * s, cy: (by + bh / 2 - vy) * s, ground: (vh - A.pad) * s };
+    T.top = S.cy * 0.82;                       // de centro del cuerpo a la punta de las antenas
+    T.bottom = S.ground - S.cy;                // de centro del cuerpo a los pies
+    T.side = Math.max(S.cx, w - S.cx) * 0.85;  // ancho a cada lado (sirve volteado o no)
+    if (img) {
+      const c = document.createElement("canvas");
+      c.width = Math.ceil(w * DPR * RES); c.height = Math.ceil(h * DPR * RES);
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0, c.width, c.height);
+      const f = document.createElement("canvas");
+      f.width = c.width; f.height = c.height;
+      const gf = f.getContext("2d");
+      gf.drawImage(c, 0, 0); gf.globalCompositeOperation = "source-in"; gf.fillStyle = "#FFFFFF"; gf.fillRect(0, 0, f.width, f.height);
+      S.img = c; S.flash = f;
+    }
+    T.spr = S;
   }
-  // Halo de la dorada
-  const r = BALL_TYPES.yellow.r * 2, c = document.createElement("canvas");
+  // Halo del dorado
+  const r = BALL_TYPES.yellow.r * 2.2, c = document.createElement("canvas");
   c.width = c.height = Math.ceil(r * 2 * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR);
   const gr = g.createRadialGradient(r, r, 0, r, r, r);
-  gr.addColorStop(0, "rgba(241,200,77,0.55)"); gr.addColorStop(0.45, "rgba(241,200,77,0.18)"); gr.addColorStop(1, "rgba(241,200,77,0)");
+  gr.addColorStop(0, "rgba(241,200,77,0.5)"); gr.addColorStop(0.45, "rgba(241,200,77,0.16)"); gr.addColorStop(1, "rgba(241,200,77,0)");
   g.fillStyle = gr; g.fillRect(0, 0, r * 2, r * 2);
-  sprites.halo = { c, size: r * 2 };
+  haloSprite = { c, size: r * 2 };
 }
+let haloSprite = null;
 
 let baseTarget = SPAWN.min;
 function resize() {
@@ -870,81 +1015,100 @@ function resize() {
   W = r.width; H = r.height; DPR = dpr;
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (changedDpr || !sprites.green) buildSprites();
-  for (const b of balls) { b.x = clamp(b.x, b.r, Math.max(b.r, W - b.r)); b.y = clamp(b.y, b.r, Math.max(b.r, H - b.r)); }
-  baseTarget = clamp(Math.round((W * H) / SPAWN.areaPerBall), SPAWN.min, SPAWN.max);
+  if (changedDpr || !BALL_TYPES.green.spr) buildSprites();
+  for (const b of balls) keepInside(b);
+  for (const h of helpers) { h.x = clamp(h.x, 0, W); h.y = clamp(h.y, 0, H); }
+  updateTarget();
+}
+function updateTarget() {
+  const extra = FX.crowdExtra(save.up.crowd);
+  baseTarget = clamp(Math.round((W * H) / SPAWN.areaPerBall) + extra, SPAWN.min, SPAWN.max + extra);
 }
 
-/* ---------- 7. Bolitas: aparición, movimiento orgánico y rebotes suaves ---------- */
+/* ---------- 7. Marcianitos: aparición, caminata orgánica, rebotes y volteo ---------- */
 const balls = [];
-const DIE = 0.22; // duración de la animación de aplastado (s)
+const DIE = 0.24; // duración del aplastado (s)
 let time = 0, playing = false, spawnClock = 0, lastYellow = -99;
 
+function weightOf(k) { return k === "yellow" ? FX.luckWeight(save.up.luck) : BALL_TYPES[k].weight; }
 function pickType() {
   let total = 0;
-  for (const k of TYPE_ORDER) total += BALL_TYPES[k].weight;
-  let x = Math.random() * total;
-  let type = "green";
-  for (const k of TYPE_ORDER) { x -= BALL_TYPES[k].weight; if (x <= 0) { type = k; break; } }
-  if (type === "yellow" && (time - lastYellow < SPAWN.yellowGap || balls.some((b) => b.type === "yellow" && b.state !== "die"))) type = "green";
+  for (const k of TYPE_ORDER) total += weightOf(k);
+  let x = Math.random() * total, type = "green";
+  for (const k of TYPE_ORDER) { x -= weightOf(k); if (x <= 0) { type = k; break; } }
+  if (type === "yellow" && (time - lastYellow < FX.luckGap(save.up.luck) || balls.some((b) => b.type === "yellow" && b.state !== "die"))) type = "green";
   return type;
 }
+function keepInside(b) {
+  const T = b.T;
+  b.x = clamp(b.x, T.side, Math.max(T.side, W - T.side));
+  b.y = clamp(b.y, T.top, Math.max(T.top, H - T.bottom));
+}
 function spawnBall() {
-  const type = pickType(), T = BALL_TYPES[type], m = T.r + SPAWN.edge;
-  if (W < m * 2 || H < m * 2) return;
+  const type = pickType(), T = BALL_TYPES[type], e = SPAWN.edge;
+  if (W < T.side * 2 + e * 2 || H < T.top + T.bottom + e * 2) return;
   let x = 0, y = 0;
-  // Busca un lugar libre, lejos de otras bolitas y del dedo
+  // Busca un lugar libre, lejos de otros marcianitos y del dedo
   for (let i = 0; i < 16; i++) {
-    x = rand(m, W - m); y = rand(m, H - m);
+    x = rand(T.side + e, W - T.side - e); y = rand(T.top + e, H - T.bottom - e);
     let ok = true;
-    for (const b of balls) { const d = T.r + b.r + 12; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
+    for (const b of balls) { const d = T.r + b.r + 14; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
     for (const p of pointers.values()) { if ((p.x - x) ** 2 + (p.y - y) ** 2 < (T.r + 40) ** 2) { ok = false; break; } }
     if (ok) break;
   }
   if (type === "yellow") lastYellow = time;
   const a = Math.random() * TAU, sp = T.speed * rand(0.85, 1.15);
+  const face = Math.cos(a) >= 0 ? 1 : -1;
   balls.push({
     type, T, x, y, r: T.r, hp: T.hp, heading: a, speed: sp, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
     f1: rand(0.3, 0.8), f2: rand(0.9, 1.7), f3: rand(0.2, 0.5), p1: rand(0, TAU), p2: rand(0, TAU), p3: rand(0, TAU),
     turn: rand(0.6, 1.1), state: "in", t: 0, squash: 0, flash: 0, lastSpray: -99,
+    face, flip: face, walk: rand(0, TAU), claimed: null,
   });
 }
 function aliveCount() { let n = 0; for (const b of balls) if (b.state !== "die") n++; return n; }
 
 function spawnStep(dt) {
-  const target = Math.min(baseTarget, perfCap);
+  const target = Math.min(baseTarget, perfCap + FX.crowdExtra(save.up.crowd));
   const alive = aliveCount();
   if (alive >= target) { spawnClock = Math.max(spawnClock, 0.2); return; }
   spawnClock -= dt;
   if (spawnClock <= 0) {
     spawnBall();
-    spawnClock = target - alive - 1 > 4 ? SPAWN.fastDelay : rand(SPAWN.delayMin, SPAWN.delayMax);
+    const f = FX.crowdSpawn(save.up.crowd);
+    spawnClock = (target - alive - 1 > 4 ? SPAWN.fastDelay : rand(SPAWN.delayMin, SPAWN.delayMax)) * f;
   }
 }
 
 function updateBalls(dt) {
+  const slow = FX.calmSpeed(save.up.calm);
   for (let i = balls.length - 1; i >= 0; i--) {
     const b = balls[i];
     b.t += dt;
     if (b.state === "die") { if (b.t >= DIE) balls.splice(i, 1); continue; }
-    if (b.state === "in" && b.t >= 0.4) b.state = "live";
+    if (b.state === "in" && b.t >= 0.45) b.state = "live";
     // Rumbo que serpentea con dos ondas lentas: trayectorias orgánicas, nunca iguales
     const wob = Math.sin(time * b.f1 + b.p1) + 0.6 * Math.sin(time * b.f2 + b.p2);
     b.heading += wob * b.turn * dt;
-    const sp = b.speed * (0.82 + 0.18 * Math.sin(time * b.f3 + b.p3));
+    const sp = b.speed * slow * (0.82 + 0.18 * Math.sin(time * b.f3 + b.p3));
     const k = Math.min(1, dt * 2.5);
     b.vx += (Math.cos(b.heading) * sp - b.vx) * k;
     b.vy += (Math.sin(b.heading) * sp - b.vy) * k;
     b.x += b.vx * dt; b.y += b.vy * dt;
     // Rebote contra los bordes del área
-    const r = b.r;
+    const T = b.T;
     let bounced = false;
-    if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx); bounced = true; }
-    else if (b.x > W - r) { b.x = W - r; b.vx = -Math.abs(b.vx); bounced = true; }
-    if (b.y < r) { b.y = r; b.vy = Math.abs(b.vy); bounced = true; }
-    else if (b.y > H - r) { b.y = H - r; b.vy = -Math.abs(b.vy); bounced = true; }
+    if (b.x < T.side) { b.x = T.side; b.vx = Math.abs(b.vx); bounced = true; }
+    else if (b.x > W - T.side) { b.x = W - T.side; b.vx = -Math.abs(b.vx); bounced = true; }
+    if (b.y < T.top) { b.y = T.top; b.vy = Math.abs(b.vy); bounced = true; }
+    else if (b.y > H - T.bottom) { b.y = H - T.bottom; b.vy = -Math.abs(b.vy); bounced = true; }
     if (bounced) b.heading = Math.atan2(b.vy, b.vx);
-    b.squash = Math.max(0, b.squash - dt / 0.22);
+    // Voltean solo a la izquierda o a la derecha (con un margen para no temblar si van casi vertical)
+    if (b.vx > 6) b.face = 1; else if (b.vx < -6) b.face = -1;
+    b.flip += (b.face - b.flip) * Math.min(1, dt * 14);
+    // Pasitos: el paso va más rápido si caminan más rápido
+    b.walk += dt * (5 + Math.hypot(b.vx, b.vy) * 0.09);
+    b.squash = Math.max(0, b.squash - dt / 0.24);
     b.flash = Math.max(0, b.flash - dt / 0.18);
   }
   // Separación suave para que no se encimen
@@ -953,7 +1117,7 @@ function updateBalls(dt) {
     const a = balls[i]; if (a.state === "die") continue;
     for (let j = i + 1; j < balls.length; j++) {
       const b = balls[j]; if (b.state === "die") continue;
-      const dx = b.x - a.x, dy = b.y - a.y, min = a.r + b.r + 2, d2 = dx * dx + dy * dy;
+      const dx = b.x - a.x, dy = b.y - a.y, min = a.r + b.r + 4, d2 = dx * dx + dy * dy;
       if (d2 >= min * min || d2 < 0.01) continue;
       const d = Math.sqrt(d2), o = (min - d) * 0.5 * push, nx = dx / d, ny = dy / d;
       a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o;
@@ -961,8 +1125,8 @@ function updateBalls(dt) {
   }
 }
 
-/* ---------- 8. Efectos: partículas, anillos, textos flotantes, rayos (con reciclaje) ---------- */
-const parts = [], pool = [], rings = [], texts = [], bolts = [];
+/* ---------- 8. Efectos: partículas, anillos, manchas, textos flotantes, rayos (con reciclaje) ---------- */
+const parts = [], pool = [], rings = [], texts = [], bolts = [], splats = [];
 const MAX_PARTS = 360;
 let lowFx = false;
 function part(x, y, vx, vy, r, life, color, kind = "dot", drag = 4, g = 0, a = 1) {
@@ -972,17 +1136,22 @@ function part(x, y, vx, vy, r, life, color, kind = "dot", drag = 4, g = 0, a = 1
   parts.push(p);
 }
 function ring(x, y, r0, r1, dur, color, width, alpha = 0.5, fill = 0) { rings.push({ x, y, r0, r1, dur, color, width, alpha, fill, t: 0 }); }
-function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, size, t: 0, dur: 0.85, dx: rand(-6, 6) }); }
+function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, size, t: 0, dur: 0.9, dx: rand(-6, 6) }); }
 
-// Explosión al aplastar: anillo que se expande y partículas del mismo color
+// Explosión al aplastar: anillo, gotitas del mismo color y una manchita en el piso que se desvanece
 function burst(b) {
   const T = b.T, n = (lowFx ? 0.6 : 1) * (b.type === "purple" || b.type === "yellow" ? 14 : b.type === "orange" ? 8 : 10);
+  const gy = b.y + T.bottom * 0.75;
   for (let i = 0; i < n; i++) {
-    const a = rand(0, TAU), s = rand(70, 210) * (b.r / 22) ** 0.5;
-    part(b.x + Math.cos(a) * b.r * 0.4, b.y + Math.sin(a) * b.r * 0.4, Math.cos(a) * s, Math.sin(a) * s, rand(2, 4.2) * (b.r / 22) ** 0.6, rand(0.4, 0.65), i % 3 ? T.color : T.light, "dot", 5, 50);
+    const a = rand(Math.PI * 1.05, Math.PI * 1.95) + (Math.random() < 0.3 ? Math.PI * 0.9 : 0), s = rand(70, 200) * (b.r / 22) ** 0.5;
+    part(b.x + Math.cos(a) * b.r * 0.4, b.y + Math.sin(a) * b.r * 0.3, Math.cos(a) * s, Math.sin(a) * s, rand(2, 4.2) * (b.r / 22) ** 0.6, rand(0.45, 0.7), i % 3 ? T.color : T.light, "dot", 4.5, 260);
   }
-  ring(b.x, b.y, b.r * 0.8, b.r * 1.9, 0.38, T.color, 3, 0.45);
-  if (b.type === "yellow") ring(b.x, b.y, b.r, b.r * 2.8, 0.6, T.color, 2, 0.35);
+  ring(b.x, b.y, b.r * 0.8, b.r * 1.9, 0.38, T.color, 3, 0.4);
+  splats.push({ x: b.x, y: gy, rx: b.r * 1.15, color: T.color, t: 0, dur: 1.8, seed: Math.random() * 10 });
+  if (b.type === "yellow") {
+    ring(b.x, b.y, b.r, b.r * 2.8, 0.6, T.color, 2, 0.35);
+    for (let i = 0; i < 6; i++) { const a = rand(0, TAU), s = rand(40, 110); part(b.x, b.y, Math.cos(a) * s, Math.sin(a) * s - 40, rand(1.4, 2.4), 0.9, "#FFF3C4", "star", 2.5, 30); }
+  }
 }
 function jag(x1, y1, x2, y2) {
   const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, n = Math.max(3, Math.round(d / 14));
@@ -1000,48 +1169,52 @@ function updateFx(dt) {
     p.vx *= dr; p.vy = p.vy * dr + p.g * dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
   }
-  for (const arr of [rings, texts, bolts]) for (let i = arr.length - 1; i >= 0; i--) { arr[i].t += dt; if (arr[i].t >= arr[i].dur) arr.splice(i, 1); }
+  for (const arr of [rings, texts, bolts, splats]) for (let i = arr.length - 1; i >= 0; i--) { arr[i].t += dt; if (arr[i].t >= arr[i].dur) arr.splice(i, 1); }
 }
 
-/* ---------- 9. Herramientas ---------- */
+/* ---------- 9. Herramientas del jugador ---------- */
 const pointers = new Map(); // dedos o mouse presionados
 let hover = null;           // posición del mouse (para el cursor dibujado)
 const timers = [];          // acciones programadas en tiempo de juego (cadena del rayo)
 const later = (d, fn) => timers.push({ at: time + d, fn });
 const lvlOf = (id) => save.tools[id];
 
-// La bolita bajo el punto (con un poco de margen para dedos)
+// El marcianito bajo el punto (con un poco de margen para dedos); si se enciman, gana el de enfrente
 function pick(x, y, slop) {
   let best = null, bs = Infinity;
   for (const b of balls) {
     if (b.state === "die") continue;
     const d = Math.hypot(b.x - x, b.y - y);
-    if (d < b.r + slop) { const s = d / b.r; if (s < bs) { bs = s; best = b; } }
+    if (d < b.r + slop) { const s = d / b.r - b.y * 0.001; if (s < bs) { bs = s; best = b; } }
   }
   return best;
 }
-// Daño a una bolita. Devuelve true si la aplastó.
-function hit(b, dmg, fromX, fromY, quiet) {
+// Daño a un marcianito. auto = lo hizo un ayudante. Devuelve true si lo aplastó.
+function hit(b, dmg, fromX, fromY, quiet, auto) {
   if (!b || b.state === "die") return false;
   b.hp -= dmg;
-  if (b.hp <= 0) { smush(b); return true; }
+  if (b.hp <= 0) { smush(b, auto); return true; }
   b.squash = 1; b.flash = 1;
   // Un empujoncito lejos del golpe
   const dx = b.x - fromX, dy = b.y - fromY, d = Math.hypot(dx, dy) || 1;
   b.vx += (dx / d) * 40; b.vy += (dy / d) * 40;
   for (let i = 0; i < 4; i++) { const a = rand(0, TAU), s = rand(40, 100); part(b.x + Math.cos(a) * b.r, b.y + Math.sin(a) * b.r, Math.cos(a) * s, Math.sin(a) * s, rand(1.6, 2.8), 0.35, b.T.light, "dot", 6, 0); }
-  if (!quiet) Sound.hit();
-  buzz(6);
+  if (!quiet) Sound.hit(auto);
+  if (!auto) buzz(6);
   return false;
 }
-function smush(b) {
+// Redondeo al azar: con ×1.2, un verde da 1 moneda el 80 % de las veces y 2 el 20 % (en promedio, 1.2)
+const luckyRound = (x) => Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1 : 0);
+function smush(b, auto) {
   b.state = "die"; b.t = 0;
-  addCoins(b.T.reward, b.x, b.y - b.r * 0.4, b.T);
+  if (b.claimed) b.claimed.target = null;
+  const coins = Math.max(1, luckyRound(b.T.reward * FX.valueMult(save.up.value)));
+  addCoins(coins, b.x, b.y - b.T.top * 0.55, b.T);
   save.smushed++; save.byType[b.type]++;
   burst(b);
-  Sound.pop(b.type);
-  buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
-  if (!save.hinted) { save.hinted = true; $("#hint").classList.remove("on"); }
+  Sound.pop(b.type, auto);
+  if (!auto) buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
+  if (!save.hinted && !auto) { save.hinted = true; $("#hint").classList.remove("on"); }
 }
 
 function useTool(x, y) {
@@ -1074,7 +1247,7 @@ function useTool(x, y) {
       if (!best) break;
       chain.push(best); cur = best;
     }
-    // Cada salto llega un instante después del anterior: se ve la electricidad recorrer las bolitas
+    // Cada salto llega un instante después del anterior: se ve la electricidad recorrer a los marcianitos
     let px = x, py = y;
     chain.forEach((c, i) => {
       later(i * TOOLS.bolt.hop, () => {
@@ -1090,7 +1263,7 @@ function useTool(x, y) {
 function sparks(x, y, n) {
   for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 160); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2), 0.25, PAL.dark ? "#FFFFFF" : "#7EA0F2", "dot", 7, 0); }
 }
-// Spray: mientras se mantiene presionado, niebla suave y daño a intervalos controlados (por bolita)
+// Spray: mientras se mantiene presionado, niebla suave y daño a intervalos controlados (por marcianito)
 function sprayTick(p, dt) {
   const L = lvlOf("spray") - 1, R = TOOLS.spray.radius[L], iv = TOOLS.spray.interval[L];
   p.emit = (p.emit || 0) + dt * (lowFx ? 45 : 85);
@@ -1107,7 +1280,123 @@ function sprayTick(p, dt) {
   if (p.hiss <= 0) { Sound.hiss(); p.hiss = 0.16; buzz(4); }
 }
 
-/* ---------- 10. Economía: monedas, compras ---------- */
+/* ---------- 10. Dedos ayudantes: trabajan solos (y también mientras no estás) ---------- */
+const helpers = [];
+function syncHelpers() {
+  const n = save.up.hire;
+  while (helpers.length < n) {
+    const a = rand(0, TAU);
+    helpers.push({ x: W / 2 + Math.cos(a) * W * 0.3, y: H / 2 + Math.sin(a) * H * 0.3, target: null, timer: rand(0.3, 1.2), press: 0, lift: 1, home: { x: rand(0.15, 0.85), y: rand(0.15, 0.85) }, tilt: rand(-0.15, 0.15), born: 0 });
+  }
+  while (helpers.length > n) { const h = helpers.pop(); if (h.target) h.target.claimed = null; }
+}
+function updateHelpers(dt) {
+  if (!helpers.length) return;
+  const iv = FX.helperInterval(save.up.speed), dmg = FX.helperDamage(save.up.power);
+  for (const h of helpers) {
+    h.born = Math.min(1, h.born + dt * 2.5);
+    h.timer -= dt;
+    h.press = Math.max(0, h.press - dt / 0.16);
+    if (h.target && (h.target.state === "die" || h.target.claimed !== h)) h.target = null;
+    // Elige al marcianito libre más cercano
+    if (!h.target && playing) {
+      let best = null, bd = Infinity;
+      for (const b of balls) {
+        if (b.state === "die" || b.claimed || b.t < 0.3) continue;
+        const d = (b.x - h.x) ** 2 + (b.y - h.y) ** 2;
+        if (d < bd) { bd = d; best = b; }
+      }
+      if (best) { h.target = best; best.claimed = h; }
+    }
+    const tx = h.target ? h.target.x : h.home.x * W, ty = h.target ? h.target.y : h.home.y * H;
+    const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy);
+    // Se desliza con suavidad (rápido de lejos, lento al llegar)
+    if (d > 0.5) { const step = Math.min(d, (140 + d * 4.5) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
+    const near = h.target && d < 8;
+    h.lift += ((near ? 0.35 : 1) - h.lift) * Math.min(1, dt * 8);
+    if (near && h.timer <= 0) {
+      h.press = 1; h.timer = iv * rand(0.9, 1.1);
+      ring(h.x, h.y, 3, 14, 0.28, PAL.text, 1.4, 0.18);
+      const t = h.target;
+      if (hit(t, dmg, h.x, h.y - 10, false, true)) h.target = null;
+    }
+  }
+}
+// Un dedo índice suave visto desde arriba: la yema es el punto que toca
+function drawHelper(h) {
+  const press = Math.sin(h.press * Math.PI), lift = h.lift * 9 + 3 - press * 3;
+  ctx.globalAlpha = h.born;
+  // Sombra en el piso (más chica y nítida cuando toca)
+  ctx.fillStyle = PAL.shadow;
+  ctx.beginPath(); ctx.ellipse(h.x + lift * 0.5, h.y + lift * 0.6, 7 + lift * 0.25, 4 + lift * 0.12, 0, 0, TAU); ctx.fill();
+  ctx.save();
+  ctx.translate(h.x, h.y - lift * 0.7);
+  ctx.rotate(-0.5 + h.tilt);
+  const s = 1 - press * 0.06; ctx.scale(s, s);
+  ctx.fillStyle = PAL.finger; ctx.strokeStyle = PAL.fingerEdge; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(-8, -3, 16, 48, 8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = PAL.nail;
+  ctx.beginPath(); ctx.roundRect(-5, 0.5, 10, 11, [5, 5, 3, 3]); ctx.fill();
+  ctx.strokeStyle = PAL.fingerEdge; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(-4, 21); ctx.quadraticCurveTo(0, 23, 4, 21); ctx.moveTo(-4, 24.5); ctx.quadraticCurveTo(0, 26.5, 4, 24.5); ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+// Lo que gana un ayudante por segundo, en promedio (sirve para el "+x/s" y para lo ganado fuera)
+function coinsPerTap(dmg) {
+  let coins = 0, taps = 0;
+  for (const k of TYPE_ORDER) { const T = BALL_TYPES[k], w = weightOf(k); coins += w * T.reward; taps += w * Math.ceil(T.hp / dmg); }
+  return (coins / taps) * FX.valueMult(save.up.value);
+}
+function helperRate() {
+  const n = save.up.hire;
+  if (!n) return 0;
+  return (n / FX.helperInterval(save.up.speed)) * coinsPerTap(FX.helperDamage(save.up.power));
+}
+function avgReward() {
+  let c = 0, w = 0;
+  for (const k of TYPE_ORDER) { c += weightOf(k) * BALL_TYPES[k].reward; w += weightOf(k); }
+  return (c / w) * FX.valueMult(save.up.value);
+}
+// Al volver: cuánto hicieron los ayudantes mientras no estabas (con el límite del Turno de noche)
+function checkAway(since) {
+  const away = (Date.now() - since) / 1000;
+  if (!(away >= OFFLINE_MIN) || !save.up.hire) return;
+  const secs = Math.min(away, FX.nightHours(save.up.night) * 3600);
+  const coins = Math.floor(helperRate() * secs * OFFLINE_RATE);
+  if (coins < 1) return;
+  // Se suma a lo que ya estaba pendiente (si cerraste la app sin recoger) y se guarda de inmediato
+  const p = save.pending || { coins: 0, aliens: 0, away: 0, secs: 0 };
+  save.pending = { coins: p.coins + coins, aliens: p.aliens + Math.max(1, Math.round(coins / avgReward())), away: p.away + away, secs: p.secs + secs };
+  writeSave();
+  if (playing) showWelcome();
+}
+function showWelcome() {
+  if (!save.pending) return;
+  const w = $("#welcome"), a = save.pending, es = LANG === "es";
+  const mins = Math.round(a.away / 60), t = mins < 60 ? `${Math.max(1, mins)} min` : `${fmt1(a.away / 3600)} h`;
+  const capped = a.away > a.secs + 1;
+  $("#welcome-msg").textContent = (es
+    ? `Estuviste fuera ${t} y tus ayudantes aplastaron ${fmt(a.aliens)} marcianitos.`
+    : `You were away for ${t} and your helpers smushed ${fmt(a.aliens)} aliens.`)
+    + (capped ? (es ? ` Trabajan hasta ${upText("night", save.up.night, true)}; con Turno de noche, más.` : ` They work up to ${upText("night", save.up.night, true)}. Night shift lets them work longer.`) : "");
+  $("#welcome-coins").textContent = "+" + fmt(a.coins);
+  w.hidden = false; void w.offsetWidth; w.classList.add("open");
+}
+$("#btn-collect").addEventListener("click", () => {
+  const a = save.pending; save.pending = null;
+  const w = $("#welcome");
+  w.classList.remove("open"); setTimeout(() => { if (!w.classList.contains("open")) w.hidden = true; }, 250);
+  if (!a) return;
+  Sound.unlock();
+  save.coins += a.coins; save.earned += a.coins; save.awayEarned += a.coins; save.smushed += a.aliens;
+  uiDirty = true; coinBump = true; writeSave();
+  Sound.collect(); buzz([12, 70, 12, 70, 20]);
+  // Una lluvia suave de monedas en el campo
+  for (let i = 0; i < 18; i++) later(i * 0.035, () => { const x = rand(W * 0.2, W * 0.8), y = rand(H * 0.3, H * 0.7); ring(x, y, 2, 14, 0.4, "#F1C84D", 2, 0.5); part(x, y, rand(-40, 40), rand(-160, -60), rand(2.5, 4), 0.8, "#F1C84D", "dot", 2.5, 220); });
+});
+
+/* ---------- 11. Economía: monedas y compras ---------- */
 let uiDirty = true;
 function addCoins(n, x, y, T) {
   save.coins += n; save.earned += n;
@@ -1121,42 +1410,68 @@ function priceOf(id) {
   if (l >= 3) return null;
   return T.upgrades[l - 1];
 }
-function buy(id) {
+function upPrice(k) {
+  const u = UP[k], l = save.up[k];
+  if (l >= u.max) return null;
+  return typeof u.cost === "function" ? u.cost(l) : u.cost[l];
+}
+function afterBuy(was, card) {
+  Sound.buy(was); buzz([10, 60, 18]);
+  writeSave();
+  renderShop(); renderToolbar(); uiDirty = true;
+  const el = document.querySelector(`.item[data-key="${card}"]`);
+  if (el) { el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 600); }
+}
+function buyTool(id) {
   const price = priceOf(id);
   if (price == null) return;
   if (save.coins < price) { Sound.nope(); return; }
   const was = save.tools[id];
-  save.coins -= price;
-  save.tools[id] = was + 1;
+  save.coins -= price; save.tools[id] = was + 1;
   if (was === 0) save.tool = id; // la herramienta nueva queda seleccionada
-  Sound.buy(was); buzz([10, 60, 18]);
-  writeSave();
-  renderShop(); renderToolbar(); uiDirty = true;
-  const card = document.querySelector(`.item[data-id="${id}"]`);
-  if (card) { card.classList.add("flash"); setTimeout(() => card.classList.remove("flash"), 600); }
+  afterBuy(was, id);
+}
+function buyUp(k) {
+  const price = upPrice(k);
+  if (price == null) return;
+  if (save.coins < price) { Sound.nope(); return; }
+  const was = save.up[k];
+  save.coins -= price; save.up[k] = was + 1;
+  if (k === "hire") syncHelpers();
+  if (k === "crowd") updateTarget();
+  afterBuy(Math.min(was, 2), k);
 }
 
-/* ---------- 11. Interfaz: encabezado, barra, tienda, ajustes ---------- */
+/* ---------- 12. Interfaz: encabezado, barra, tienda, ajustes ---------- */
 const coinsEl = $("#coins"), smushedEl = $("#smushed"), shopCoinsEl = $("#shop-coins");
-let coinBump = false, bumpAnim = null;
+let coinBump = false, bumpAnim = null, shopTab = "tools";
+const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p; };
+const canUp = (k) => { const p = upPrice(k); return p != null && save.coins >= p; };
 function updateUI() {
   uiDirty = false;
   coinsEl.textContent = fmt(save.coins);
   shopCoinsEl.textContent = fmt(save.coins);
   smushedEl.textContent = fmt(save.smushed);
+  const rate = helperRate();
+  $("#rate").classList.toggle("on", rate > 0);
+  if (rate > 0) $("#rate-v").textContent = "+" + fmt1(rate) + "/s";
   if (coinBump && !reduceMotion && (!bumpAnim || bumpAnim.playState === "finished")) {
     bumpAnim = coinsEl.animate([{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
   }
   coinBump = false;
-  // ¿Alcanza para algo? Punto en la Tienda y precios activos
-  let any = false;
-  for (const id of TOOL_ORDER) { const p = priceOf(id); if (p != null && p > 0 && save.coins >= p) any = true; }
-  $("#shop-badge").classList.toggle("on", any);
+  // ¿Alcanza para algo? Punto en la Tienda y en cada pestaña
+  const tabs = { tools: TOOL_ORDER.some(canTool), helpers: false, boosts: false };
+  for (const k of UP_ORDER) if (canUp(k)) tabs[UP[k].tab] = true;
+  $("#shop-badge").classList.toggle("on", tabs.tools || tabs.helpers || tabs.boosts);
+  document.querySelectorAll("#shop-tabs button").forEach((b) => b.querySelector(".badge").classList.toggle("on", tabs[b.dataset.tab] && b.dataset.tab !== shopTab));
   document.querySelectorAll(".tool").forEach((el) => { const p = priceOf(el.dataset.id); el.classList.toggle("can", p != null && save.coins >= p); });
-  document.querySelectorAll(".buy[data-id]").forEach((el) => { const p = priceOf(el.dataset.id); if (p != null) el.disabled = save.coins < p; });
+  document.querySelectorAll(".buy[data-key]").forEach((el) => {
+    const p = el.dataset.kind === "tool" ? priceOf(el.dataset.key) : upPrice(el.dataset.key);
+    if (p != null) el.disabled = save.coins < p;
+  });
   if (!$("#sheet-menu").hidden) renderRecords();
 }
-const pips = (n) => [1, 2, 3].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
+const pips = (n, max = 3) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
 
 function renderToolbar() {
   $("#tools").innerHTML = TOOL_ORDER.map((id) => {
@@ -1167,37 +1482,55 @@ function renderToolbar() {
   }).join("");
   updateCursor();
 }
+function buyButton(kind, key, price, label) {
+  if (price == null) return `<button class="buy max" type="button" disabled>${tx("max")}</button>`;
+  return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}"${save.coins < price ? " disabled" : ""}>
+    <span class="what">${label}</span><span class="cost">${price ? '<span class="coin"></span>' + fmt(price) : ""}</span></button>`;
+}
 function renderShop() {
-  $("#shop-list").innerHTML = TOOL_ORDER.map((id) => {
-    const l = save.tools[id], price = priceOf(id);
-    const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span>→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
-    const btn = price == null
-      ? `<button class="buy max" type="button" disabled>${tx("max")}</button>`
-      : `<button class="buy" type="button" data-id="${id}"${save.coins < price ? " disabled" : ""}>
-           <span class="what">${l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1)}</span>
-           <span class="cost">${price ? '<span class="coin"></span>' + fmt(price) : ""}</span></button>`;
-    return `<div class="item" data-id="${id}"><div class="ic">${ICONS[id]}</div>
-      <div><h3>${tx(id)}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
-  }).join("");
+  document.querySelectorAll("#shop-tabs button").forEach((b) => { const on = b.dataset.tab === shopTab; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+  $("#shop-note").textContent = tx({ tools: "noteTools", helpers: "noteHelpers", boosts: "noteBoosts" }[shopTab]);
+  let html = "";
+  if (shopTab === "tools") {
+    html = TOOL_ORDER.map((id) => {
+      const l = save.tools[id], price = priceOf(id);
+      const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span>→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
+      const btn = buyButton("tool", id, price, l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1));
+      return `<div class="item" data-key="${id}"><div class="ic">${ICONS[id]}</div>
+        <div><h3>${tx(id)}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
+    }).join("");
+  } else {
+    html = UP_ORDER.filter((k) => UP[k].tab === shopTab).map((k) => {
+      const l = save.up[k], u = UP[k], price = upPrice(k);
+      const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span>→ ${upText(k, l + 1, true)}</span>`;
+      const label = k === "hire" ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1);
+      const lv = u.max <= 5 ? `<span class="pips">${pips(l, u.max)}</span>` : `<span class="lv">${l}/${u.max}</span>`;
+      return `<div class="item" data-key="${k}"><div class="ic">${ICONS[k]}</div>
+        <div><h3>${tx(k)}${lv}</h3><p>${tx(k + "D")}</p><div class="stat">${stat}</div></div>${buyButton("up", k, price, label)}</div>`;
+    }).join("");
+  }
+  $("#shop-list").innerHTML = html;
+  uiDirty = true;
 }
 function renderRecords() {
   const rows = [
-    `<div class="row"><span data-i18n="totalSmushed">${tx("totalSmushed")}</span><span class="val">${fmt(save.smushed)}</span></div>`,
+    `<div class="row"><span>${tx("totalSmushed")}</span><span class="val">${fmt(save.smushed)}</span></div>`,
     `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.earned)}</span></div>`,
+    `<div class="row"><span>${tx("awayEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.awayEarned)}</span></div>`,
     ...TYPE_ORDER.map((k) => `<div class="row"><span><i class="dot" style="background:${BALL_TYPES[k].color}"></i>${tx(k)}</span><span class="val">${fmt(save.byType[k])}</span></div>`),
   ];
   $("#records").innerHTML = rows.join("");
 }
 function selectTool(id) {
-  if (!save.tools[id]) { openSheet($("#sheet-shop")); focusItem(id); return; }
+  if (!save.tools[id]) { shopTab = "tools"; openSheet($("#sheet-shop")); focusItem(id); return; }
   if (save.tool === id) return;
   save.tool = id; markSave();
   Sound.tick(); buzz(6);
   document.querySelectorAll(".tool").forEach((el) => { const on = el.dataset.id === id; el.classList.toggle("sel", on); el.setAttribute("aria-pressed", on); });
   updateCursor();
 }
-function focusItem(id) {
-  const card = document.querySelector(`.item[data-id="${id}"]`);
+function focusItem(key) {
+  const card = document.querySelector(`.item[data-key="${key}"]`);
   if (!card) return;
   setTimeout(() => { card.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" }); card.classList.add("flash"); setTimeout(() => card.classList.remove("flash"), 900); }, 250);
 }
@@ -1207,7 +1540,7 @@ function openSheet(el) {
   if (!el.hidden && el.classList.contains("open")) return;
   pointers.clear();
   if (el.id === "sheet-menu") { renderRecords(); syncSettingsUI(); }
-  if (el.id === "sheet-shop") renderShop();
+  if (el.id === "sheet-shop") { renderShop(); $("#shop-body").scrollTop = 0; }
   el.hidden = false;
   void el.offsetWidth;
   el.classList.add("open");
@@ -1234,7 +1567,7 @@ function applyLang() {
 function applyTheme() {
   const root = document.documentElement;
   if (settings.theme === "auto") delete root.dataset.theme; else root.dataset.theme = settings.theme;
-  readPalette(); if (DPR && W) buildSprites();
+  readPalette(); if (W) buildSprites();
   syncThemeColor();
 }
 function nativeBar() {
@@ -1259,7 +1592,11 @@ $("#tools").addEventListener("click", (e) => { const b = e.target.closest(".tool
 $("#btn-shop").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-shop")); });
 $("#btn-menu").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-menu")); });
 document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) { Sound.tick(); closeSheet(s); } }));
-$("#shop-list").addEventListener("click", (e) => { const b = e.target.closest(".buy[data-id]"); if (b && !b.disabled) buy(b.dataset.id); });
+$("#shop-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === shopTab) return; shopTab = b.dataset.tab; renderShop(); $("#shop-body").scrollTop = 0; Sound.tick(); });
+$("#shop-list").addEventListener("click", (e) => {
+  const b = e.target.closest(".buy[data-key]"); if (!b || b.disabled) return;
+  if (b.dataset.kind === "tool") buyTool(b.dataset.key); else buyUp(b.dataset.key);
+});
 $("#sw-sound").addEventListener("click", () => { Sound.set(!settings.sound); syncSettingsUI(); Sound.toggle(true); });
 $("#sw-vibe").addEventListener("click", () => { settings.vibe = !settings.vibe; saveSettings(); syncSettingsUI(); Sound.toggle(settings.vibe); buzz(12); });
 $("#seg-theme").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; settings.theme = b.dataset.v; saveSettings(); applyTheme(); syncSettingsUI(); Sound.tick(); });
@@ -1270,9 +1607,10 @@ const closeConfirm = () => { confirmEl.classList.remove("open"); setTimeout(() =
 confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]")) { Sound.tick(); closeConfirm(); } });
 $("#btn-reset-yes").addEventListener("click", () => {
   save = freshSave(); writeSave();
-  balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; timers.length = 0;
-  spawnClock = 0; lastYellow = -99;
-  renderToolbar(); renderShop(); renderRecords(); uiDirty = true;
+  balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; timers.length = 0;
+  helpers.length = 0;
+  spawnClock = 0; lastYellow = -99; shopTab = "tools";
+  updateTarget(); renderToolbar(); renderShop(); renderRecords(); uiDirty = true;
   $("#hint").classList.add("on");
   closeConfirm(); closeSheet($("#sheet-menu"));
   Sound.nope(); buzz(20);
@@ -1285,7 +1623,7 @@ document.addEventListener("keydown", (e) => {
     else document.querySelectorAll(".sheet.open").forEach(closeSheet);
     return;
   }
-  if (!playing || document.querySelector(".sheet.open")) return;
+  if (!playing || document.querySelector(".sheet.open, .dialog.open")) return;
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= 4) selectTool(TOOL_ORDER[n - 1]);
   else if (e.key.toLowerCase() === "s") openSheet($("#sheet-shop"));
@@ -1321,16 +1659,58 @@ cv.addEventListener("contextmenu", (e) => e.preventDefault());
 document.addEventListener("touchmove", (e) => { if (!e.target.closest(".panel-body")) e.preventDefault(); }, { passive: false });
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("dblclick", (e) => e.preventDefault());
-let lastTouchEnd = 0;
-document.addEventListener("touchend", (e) => { const now = Date.now(); if (now - lastTouchEnd < 320 && e.target === cv) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
+document.addEventListener("touchend", (e) => { if (e.target === cv) e.preventDefault(); }, { passive: false });
 // Cursor: el del sistema se esconde en el área y se dibuja uno según la herramienta
 function updateCursor() { cv.style.cursor = matchMedia("(pointer: fine)").matches ? "none" : "default"; }
 
-/* ---------- 12. Dibujo y bucle principal (requestAnimationFrame) ---------- */
+/* ---------- 13. Dibujo y bucle principal (requestAnimationFrame) ---------- */
 const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+function drawAlien(b) {
+  const T = b.T, S = T.spr;
+  if (!S || !S.img) return;
+  let sx = 1, sy = 1, alpha = 1, lift = 0, tilt = 0;
+  if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.45)); sx = sy = 0.35 + 0.65 * k; alpha = k; }
+  else if (b.state === "die") {
+    // 1) se aplasta contra el piso  2) se desvanece mientras se encoge
+    const u = b.t / DIE;
+    if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.38 * k; sy = 1 - 0.55 * k; }
+    else { const k = (u - 0.35) / 0.65; sx = 1.38 * (1 - 0.35 * k); sy = 0.45 * (1 - 0.6 * k); alpha = 1 - k; }
+  } else {
+    // Caminata: rebotito suave y un balanceo de lado a lado
+    const st = Math.sin(b.walk);
+    lift = Math.abs(st) * 2.4 * (reduceMotion ? 0.3 : 1);
+    tilt = st * 0.045 * (reduceMotion ? 0.3 : 1);
+    sy = 1 - Math.abs(Math.cos(b.walk)) * 0.025;
+  }
+  if (b.squash > 0) { const e = Math.sin(b.squash * Math.PI) * 0.5 + b.squash * 0.5; sx *= 1 + 0.18 * e; sy *= 1 - 0.2 * e; }
+  const hpScale = T.hp > 1 ? 0.86 + 0.14 * Math.max(0, b.hp) / T.hp : 1;
+  const gy = b.y + T.bottom; // el piso, bajo sus pies
+  if (b.type === "yellow" && b.state !== "die" && haloSprite) {
+    ctx.globalAlpha = alpha * (0.5 + 0.3 * Math.sin(time * 3.2));
+    ctx.drawImage(haloSprite.c, b.x - haloSprite.size / 2, b.y - haloSprite.size / 2, haloSprite.size, haloSprite.size);
+  }
+  ctx.globalAlpha = alpha;
+  ctx.save();
+  ctx.translate(b.x, gy - lift);
+  ctx.rotate(tilt);
+  // Se voltea a la izquierda o a la derecha con un giro rápido (nunca se ve como una rayita)
+  const fx = Math.sign(b.flip || 1) * Math.max(0.45, Math.abs(b.flip));
+  ctx.scale(fx * sx * hpScale, sy * hpScale);
+  ctx.drawImage(S.img, -S.cx, -S.ground, S.w, S.h);
+  if (b.flash > 0) { ctx.globalAlpha = alpha * b.flash * 0.55; ctx.drawImage(S.flash, -S.cx, -S.ground, S.w, S.h); }
+  ctx.restore();
+}
 function render() {
   ctx.clearRect(0, 0, W, H);
-  // Niebla del spray (detrás de las bolitas)
+  // Manchitas en el piso de los que ya se aplastaron
+  for (const s of splats) {
+    const u = s.t / s.dur;
+    ctx.globalAlpha = 0.22 * (1 - u) * (1 - u);
+    ctx.fillStyle = s.color;
+    ctx.beginPath(); ctx.ellipse(s.x, s.y, s.rx * (1 + u * 0.15), s.rx * 0.32, 0, 0, TAU); ctx.fill();
+    for (let i = 0; i < 4; i++) { const a = s.seed + i * 1.7, d = s.rx * (1.25 + (i % 2) * 0.3); ctx.beginPath(); ctx.ellipse(s.x + Math.cos(a) * d, s.y + Math.sin(a) * d * 0.32, 3 + (i % 3), 1.6 + (i % 2), 0, 0, TAU); ctx.fill(); }
+  }
+  // Niebla del spray (en el piso, detrás de los marcianitos)
   for (const p of parts) {
     if (p.kind !== "mist") continue;
     const u = p.t / p.life;
@@ -1338,42 +1718,30 @@ function render() {
     ctx.fillStyle = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill();
   }
-  ctx.globalAlpha = 1;
-  // Bolitas
+  // Sombras en el piso
+  ctx.fillStyle = PAL.shadow;
   for (const b of balls) {
-    const sp = sprites[b.type]; if (!sp) continue;
-    let sx = 1, sy = 1, alpha = 1;
-    if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.4)); sx = sy = 0.3 + 0.7 * k; alpha = k; }
-    else if (b.state === "die") {
-      // 1) se comprime rápido  2) se desvanece mientras se encoge
-      const u = b.t / DIE;
-      if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.34 * k; sy = 1 - 0.44 * k; }
-      else { const k = (u - 0.35) / 0.65; sx = 1.34 * (1 - 0.5 * k); sy = 0.56 * (1 - 0.7 * k); alpha = 1 - k; }
-    }
-    if (b.squash > 0) { const e = Math.sin(b.squash * Math.PI) * 0.5 + b.squash * 0.5; sx *= 1 + 0.16 * e; sy *= 1 - 0.16 * e; }
-    const hpScale = b.T.hp > 1 ? 0.84 + 0.16 * Math.max(0, b.hp) / b.T.hp : 1;
-    if (b.type === "yellow" && b.state !== "die") {
-      const h = sprites.halo;
-      ctx.globalAlpha = alpha * (0.55 + 0.3 * Math.sin(time * 3.2));
-      ctx.drawImage(h.c, b.x - h.size / 2, b.y - h.size / 2, h.size, h.size);
-    }
-    ctx.globalAlpha = alpha;
-    ctx.save();
-    ctx.translate(b.x, b.y);
-    ctx.scale(sx * hpScale, sy * hpScale);
-    ctx.drawImage(sp.c, -sp.size / 2, -sp.size / 2, sp.size, sp.size);
-    if (b.flash > 0) { ctx.globalAlpha = alpha * b.flash * 0.45; ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); ctx.arc(0, 0, b.r, 0, TAU); ctx.fill(); }
-    ctx.restore();
-    // Moradas: arquitos que muestran los golpes que les quedan
-    if (b.T.hp > 1 && b.state !== "die") {
-      const R = b.r * hpScale + 5, seg = TAU / b.T.hp, rot = time * 0.5 - Math.PI / 2;
-      ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.strokeStyle = b.T.color;
-      for (let i = 0; i < b.T.hp; i++) {
-        ctx.globalAlpha = alpha * (i < b.hp ? 0.55 : 0.12);
-        ctx.beginPath(); ctx.arc(b.x, b.y, R, rot + i * seg + 0.28, rot + (i + 1) * seg - 0.28); ctx.stroke();
-      }
+    const T = b.T;
+    let a = 1, w = 1;
+    if (b.state === "in") a = Math.min(1, b.t / 0.45);
+    else if (b.state === "die") { const u = b.t / DIE; w = 1 + 0.4 * Math.min(1, u * 3); a = 1 - u; }
+    ctx.globalAlpha = a;
+    ctx.beginPath(); ctx.ellipse(b.x, b.y + T.bottom - 1, T.r * 0.95 * w, T.r * 0.26 * w, 0, 0, TAU); ctx.fill();
+  }
+  // Morados: anillo en el piso con los golpes que les quedan
+  ctx.lineWidth = 2.5; ctx.lineCap = "round";
+  for (const b of balls) {
+    if (b.T.hp <= 1 || b.state === "die") continue;
+    const rx = b.r * 1.25, ry = b.r * 0.4, seg = TAU / b.T.hp, rot = time * 0.5 - Math.PI / 2, gy = b.y + b.T.bottom - 1;
+    ctx.strokeStyle = b.T.color;
+    for (let i = 0; i < b.T.hp; i++) {
+      ctx.globalAlpha = i < b.hp ? 0.55 : 0.12;
+      ctx.beginPath(); ctx.ellipse(b.x, gy, rx, ry, 0, rot + i * seg + 0.3, rot + (i + 1) * seg - 0.3); ctx.stroke();
     }
   }
+  // Marcianitos, del fondo hacia el frente
+  balls.sort((a, b) => a.y - b.y);
+  for (const b of balls) drawAlien(b);
   // Anillos (pisotón, aplastado, toque al aire)
   for (const g of rings) {
     const u = g.t / g.dur, k = easeOut(u), r = g.r0 + (g.r1 - g.r0) * k;
@@ -1388,6 +1756,7 @@ function render() {
     const u = p.t / p.life;
     ctx.globalAlpha = p.a * (1 - u * u);
     ctx.fillStyle = p.color;
+    if (p.kind === "star") { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.t * 4); const r = p.r * 1.8; ctx.fillRect(-r, -0.7, r * 2, 1.4); ctx.fillRect(-0.7, -r, 1.4, r * 2); ctx.restore(); continue; }
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 - u * 0.5), 0, TAU); ctx.fill();
   }
   // Rayos: brillo suave y un hilo central
@@ -1401,14 +1770,20 @@ function render() {
       ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
     }
   }
-  // Monedas que flotan hacia arriba
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  // Dedos ayudantes (encima de todo lo del piso)
+  for (const h of helpers) drawHelper(h);
+  // Monedas que flotan hacia arriba, con su monedita
+  ctx.textAlign = "left"; ctx.textBaseline = "middle";
   for (const tt of texts) {
     const u = tt.t / tt.dur;
     ctx.globalAlpha = u < 0.15 ? u / 0.15 : 1 - Math.pow((u - 0.15) / 0.85, 2);
     ctx.font = `800 ${tt.size}px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif`;
+    const w = ctx.measureText(tt.text).width, cr = tt.size * 0.32, total = w + cr * 2 + 3;
+    const x = tt.x + tt.dx * u - total / 2, y = tt.y - 36 * easeOut(u);
+    ctx.fillStyle = "#F1C84D"; ctx.beginPath(); ctx.arc(x + cr, y, cr, 0, TAU); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.beginPath(); ctx.arc(x + cr * 0.7, y - cr * 0.3, cr * 0.35, 0, TAU); ctx.fill();
     ctx.fillStyle = tt.color;
-    ctx.fillText(tt.text, tt.x + tt.dx * u, tt.y - 34 * easeOut(u));
+    ctx.fillText(tt.text, x + cr * 2 + 3, y);
   }
   // Cursor dibujado (solo con mouse)
   if (hover && playing) drawCursor(hover.x, hover.y);
@@ -1431,7 +1806,7 @@ function drawCursor(x, y) {
   }
 }
 
-// Rendimiento: si el equipo no alcanza ~48 fps se reducen bolitas (mínimo 12) y partículas
+// Rendimiento: si el equipo no alcanza ~48 fps se reducen marcianitos (mínimo 12) y partículas
 let frameEMA = 1 / 60, perfCap = SPAWN.max, perfClock = 0;
 function perf(raw, dt) {
   if (raw < 0.25) frameEMA = frameEMA * 0.95 + raw * 0.05;
@@ -1454,22 +1829,24 @@ function loop(now) {
   for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= time) { const f = timers[i].fn; timers.splice(i, 1); f(); }
   if (playing) spawnStep(dt);
   updateBalls(dt);
+  updateHelpers(dt);
   if (playing && save.tool === "spray") for (const p of pointers.values()) sprayTick(p, dt);
   updateFx(dt);
   render();
   if (uiDirty) updateUI();
 }
 function startLoop() { if (!raf && !document.hidden) { last = 0; raf = requestAnimationFrame(loop); } }
-// Pausa total cuando la pestaña o la app no se ven
+// Pausa total cuando la pestaña o la app no se ven; al volver se cuenta lo que hicieron los ayudantes
+let hiddenAt = 0;
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { cancelAnimationFrame(raf); raf = 0; pointers.clear(); writeSave(); }
-  else startLoop();
+  if (document.hidden) { cancelAnimationFrame(raf); raf = 0; pointers.clear(); writeSave(); hiddenAt = Date.now(); }
+  else { startLoop(); if (hiddenAt) { checkAway(hiddenAt); hiddenAt = 0; } }
 });
 window.addEventListener("pagehide", writeSave);
 new ResizeObserver(resize).observe(field);
 window.addEventListener("resize", resize);
 
-/* ---------- 13. Intros: BluBer (4 s, sobre blanco) y luego la de SMUSH! ---------- */
+/* ---------- 14. Intros: BluBer (4 s, sobre blanco) y luego la de SMUSH! ---------- */
 // Intro del estudio, copiada de Cube Swipe: el oso aparece, "BluBer" sube letra por letra, "GAMES" se abre, brillo y parpadeo
 function playStudio(el, next, onStart) {
   const q = (id) => document.getElementById(id);
@@ -1533,14 +1910,11 @@ function playStudio(el, next, onStart) {
   }
 }
 
-// Intro de SMUSH!: cuatro bolitas caen (thump + vibración), aparece el nombre y se aplastan una por una
+// Intro de SMUSH!: los cuatro marcianitos caen (thump + vibración), aparece el nombre y se aplastan uno por uno
 function playSplash(done) {
   const sp = $("#splash"), drops = sp.querySelector(".drops"), word = sp.querySelector(".word");
-  const sizes = { green: 22, orange: 16, purple: 30, yellow: 22 };
-  drops.innerHTML = TYPE_ORDER.map((k) => {
-    const c = BALL_TYPES[k].color, s = sizes[k];
-    return `<i style="width:${s}px;height:${s}px;background:radial-gradient(circle at 34% 30%, ${mix(c, "#FFFFFF", 0.3)}, ${c} 62%, ${mix(c, "#000000", 0.07)})"></i>`;
-  }).join("");
+  const heights = { green: 50, orange: 40, purple: 62, yellow: 40 };
+  drops.innerHTML = TYPE_ORDER.map((k) => `<img alt="" height="${heights[k]}" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(ALIENS[k].svg)}">`).join("");
   const dots = [...drops.children];
   const end = () => {
     const out = sp.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: "ease", fill: "forwards" });
@@ -1556,23 +1930,24 @@ function playSplash(done) {
     d.animate([{ transform: "translateY(-46vh)", opacity: 0 }, { transform: "translateY(-46vh)", opacity: 1, offset: 0.01 }, { transform: "translateY(0)", opacity: 1 }],
       { delay: at, duration: 520, easing: "cubic-bezier(.55,0,.85,.35)", fill: "both" });
     // Al tocar el piso se asienta un poco (sin rebote)
-    d.animate([{ transform: "scale(1.18, .78)" }, { transform: "scale(1)" }], { delay: at + 520, duration: 260, easing: "cubic-bezier(.2,.8,.3,1)" });
-    setTimeout(() => { Sound.drop(i); buzz(9); }, at + 520);
-    // Más tarde, cada una se aplasta con su pop
-    const popAt = 1500 + i * 95;
-    d.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(1.4, .5)", opacity: 1, offset: 0.35 }, { transform: "scale(.2, .1)", opacity: 0 }],
-      { delay: popAt, duration: 240, easing: "cubic-bezier(.3,.7,.3,1)", fill: "forwards" });
+    d.animate([{ transform: "scale(1.14, .82)" }, { transform: "scale(1)" }], { delay: at + 520, duration: 280, easing: "cubic-bezier(.2,.8,.3,1)" });
+    setTimeout(() => { Sound.drop(); buzz(9); }, at + 520);
+    // Más tarde, cada uno se aplasta con su pop
+    const popAt = 1550 + i * 95;
+    d.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(1.4, .45)", opacity: 1, offset: 0.35 }, { transform: "scale(.3, .08)", opacity: 0 }],
+      { delay: popAt, duration: 260, easing: "cubic-bezier(.3,.7,.3,1)", fill: "forwards" });
     setTimeout(() => { Sound.pop(TYPE_ORDER[i]); buzz(7); }, popAt + 60);
   });
   word.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { delay: 700, duration: 600, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
-  word.animate([{ transform: "scale(1)" }, { transform: "scale(1.03, .96)" }, { transform: "scale(1)" }], { delay: 1880, duration: 280, easing: "ease-out" });
-  setTimeout(end, 2450);
+  word.animate([{ transform: "scale(1)" }, { transform: "scale(1.03, .96)" }, { transform: "scale(1)" }], { delay: 1930, duration: 280, easing: "ease-out" });
+  setTimeout(end, 2500);
 }
 
 function startGame() {
   playing = true;
   spawnClock = 0;
   if (!save.hinted) $("#hint").classList.add("on");
+  if (save.pending) setTimeout(showWelcome, 500);
 }
 
 (function boot() {
@@ -1580,9 +1955,12 @@ function startGame() {
   applyTheme();
   applyLang();
   resize();
+  syncHelpers();
+  checkAway(save.lastSeen);
+  writeSave();
+  loadAliens().then(() => { buildSprites(); });
   startLoop();
   const studio = $("#studio");
-  const STUDIO = reduceMotion ? 1.6 : 4;
   // La intro del estudio arranca sola. Si el navegador ya deja sonar, suena desde el inicio;
   // si pide un toque primero, el sonido entra en cuanto la persona toca.
   let t0 = null, pending = false, sounding = false;

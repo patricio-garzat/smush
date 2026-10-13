@@ -1,6 +1,6 @@
 # SMUSH! · BluBer Games
 
-El segundo juego de **BluBer Games**: un clicker tranquilo y satisfactorio para iOS y la web. Aplasta bolitas de colores, gana monedas y desbloquea herramientas.
+El segundo juego de **BluBer Games**: un clicker tranquilo y satisfactorio para iOS y la web. Aplasta marcianitos, gana monedas, contrata dedos ayudantes y desbloquea herramientas.
 
 ## Estructura
 
@@ -8,7 +8,7 @@ El segundo juego de **BluBer Games**: un clicker tranquilo y satisfactorio para 
 |---|---|
 | `index.html` | El juego web completo, en un solo archivo |
 | `CLAUDE.md` | Notas del juego para Claude: identidad, estado y balance |
-| `brand/` | Ícono y logo del juego |
+| `brand/` | Ícono, logo y personajes (`marcianitos.svg`) |
 | `store/` | Capturas e imágenes para la App Store |
 
 Más adelante se agregará `app/`, la app de iOS con Capacitor.
