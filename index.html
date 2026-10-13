@@ -144,7 +144,7 @@ a { color: inherit; }
 #hint.on { opacity: 1; }
 
 #tools {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 560px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 8px; width: 100%; max-width: 640px; margin: 0 auto;
   padding: 12px calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 12px);
 }
 .tool {
@@ -164,6 +164,18 @@ a { color: inherit; }
 .tool.locked .price { display: flex; }
 .tool.locked.can .price { color: var(--text); }
 .tool.sel { background: var(--accent); color: var(--on-accent); }
+#tools.compact { gap: 6px; }
+#tools.compact .tool { height: 64px; border-radius: 18px; }
+#tools.compact .tool .name { display: none; }
+#tools.compact .tool svg { width: 24px; height: 24px; }
+/* Herramientas premium: un toque de color violeta */
+.tool.premium:not(.locked):not(.sel) svg { color: #7C5CE0; }
+:root[data-theme="dark"] .tool.premium:not(.locked):not(.sel) svg { color: #B39BF5; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tool.premium:not(.locked):not(.sel) svg { color: #B39BF5; } }
+/* Espera (agujero negro, meteoritos): un reloj que se vacía sobre el botón */
+.tool .cd { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+  background: conic-gradient(rgba(128, 128, 128, 0.32) calc(var(--p, 0) * 1turn), transparent 0); }
+.tool.cooling .cd { opacity: 1; }
 
 /* ============================================================
    Hojas (Tienda y Ajustes): suben desde abajo sin salir del juego
@@ -214,6 +226,9 @@ a { color: inherit; }
 .item.flash { box-shadow: var(--shadow), 0 0 0 2px var(--on); }
 .item .ic { width: 50px; height: 50px; border-radius: 15px; background: var(--field); display: grid; place-items: center; }
 .item .ic svg { width: 26px; height: 26px; }
+.item .ic img { max-width: 36px; max-height: 36px; }
+.item.premium .ic { background: linear-gradient(135deg, #3B3355, #22202F); color: #E9E1FF; }
+.item .pro { padding: 2px 7px; border-radius: 8px; background: linear-gradient(135deg, #7C5CE0, #A584E8); color: #FFFFFF; font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; }
 .item h3 { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 16px; font-weight: 800; }
 .item .pips { display: inline-flex; }
 .item .lv { padding: 2px 7px; border-radius: 8px; background: var(--field); color: var(--muted); font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
@@ -479,7 +494,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -492,7 +507,8 @@ const BALL_TYPES = {
 };
 const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
 
-// Aparición: entre 12 y 20 marcianitos según el tamaño del área y el rendimiento (más con "Planeta lleno")
+// Aparición: entre 12 y 20 marcianitos según el tamaño del área y el rendimiento (más con "Planeta lleno").
+// Entran caminando por las orillas y, si nadie los aplasta, se van y se pierden.
 const SPAWN = {
   min: 12, max: 20,
   areaPerBall: 15000,     // px² de área de juego por marcianito
@@ -500,6 +516,7 @@ const SPAWN = {
   fastDelay: 0.1,         // pausa cuando faltan muchos
   yellowGap: 9,           // segundos mínimos entre dorados (y nunca dos a la vez)
   edge: 4,                // margen contra los bordes del área
+  wander: 0.75,           // qué tanto serpentean al caminar (0 = en línea recta)
 };
 
 // Herramientas. price = compra; upgrades = precio de nivel 2 y nivel 3; los arreglos son [nivel 1, 2, 3]
@@ -508,12 +525,19 @@ const TOOLS = {
   boot:   { price: 100,  upgrades: [350, 1200],   radius: [45, 65, 85] },
   spray:  { price: 500,  upgrades: [1500, 4000],  radius: [50, 60, 72], interval: [0.45, 0.36, 0.28] },
   bolt:   { price: 1500, upgrades: [4000, 10000], chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
+  // Herramientas premium: mucho más caras, mucho más poderosas
+  laser:  { price: 5000,  upgrades: [12000, 30000],  width: [18, 24, 32], damage: [2, 2, 3], tick: 0.2 },        // arrastra el dedo
+  vortex: { price: 12000, upgrades: [28000, 60000],  radius: [110, 140, 170], cooldown: [2.4, 1.9, 1.4], life: 1.5 }, // se los traga
+  meteor: { price: 30000, upgrades: [70000, 150000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
 };
-const TOOL_ORDER = ["finger", "boot", "spray", "bolt"];
+const TOOL_ORDER = ["finger", "boot", "spray", "bolt", "laser", "vortex", "meteor"];
+const PREMIUM = new Set(["laser", "vortex", "meteor"]);
 
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
 const UP = {
   hire:  { tab: "helpers", max: 12, cost: (l) => Math.round(75 * 1.6 ** l) },   // un dedo ayudante más
+  bootH: { tab: "helpers", max: 12, cost: (l) => Math.round(600 * 1.45 ** l) },  // convierte un dedo en bota
+  boltH: { tab: "helpers", max: 12, cost: (l) => Math.round(3000 * 1.5 ** l) },  // convierte una bota en nube de rayos
   speed: { tab: "helpers", max: 5,  cost: [250, 800, 2400, 7000, 18000] },     // tocan más seguido
   power: { tab: "helpers", max: 2,  cost: [3000, 15000] },                     // pegan más fuerte
   value: { tab: "boosts",  max: 8,  cost: [120, 300, 750, 1800, 4200, 9500, 21000, 45000] }, // más monedas
@@ -522,7 +546,7 @@ const UP = {
   calm:  { tab: "boosts",  max: 3,  cost: [300, 1500, 6000] },                 // caminan más lento
   night: { tab: "boosts",  max: 4,  cost: [600, 2500, 8000, 20000] },          // más horas fuera
 };
-const UP_ORDER = ["hire", "speed", "power", "value", "crowd", "luck", "calm", "night"];
+const UP_ORDER = ["hire", "bootH", "boltH", "speed", "power", "value", "crowd", "luck", "calm", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   helperInterval: (l) => 2.5 * 0.82 ** l,   // s entre toques de cada ayudante
@@ -535,6 +559,12 @@ const FX = {
   calmSpeed: (l) => 1 - 0.12 * l,
   nightHours: (l) => [0.5, 1, 2, 4, 8][l],  // horas que trabajan los ayudantes mientras no estás
 };
+// Tipos de ayudante: every = multiplica la pausa entre golpes; targets = a cuántos alcanza en promedio
+const HELPER_KIND = {
+  finger: { every: 1,   targets: 1 },
+  boot:   { every: 1.5, targets: 2.2, radius: 56 },
+  bolt:   { every: 1.8, targets: 4,   chains: 3, range: 140 },
+};
 const OFFLINE_MIN = 20;   // segundos fuera antes de contar lo que hicieron los ayudantes
 const OFFLINE_RATE = 0.5; // fuera rinden la mitad: jugar sigue valiendo más la pena
 
@@ -545,6 +575,11 @@ const ICONS = {
   boot:   svgI('<path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14M13 7h-3M13 10h-3"/>'),
   spray:  svgI('<rect x="4.5" y="9" width="9" height="12" rx="2.4"/><path d="M6.8 9V6.2h4.4V9M9 6.2V4h3"/><circle cx="17.2" cy="4.6" r=".6" fill="currentColor"/><circle cx="19.6" cy="7.4" r=".6" fill="currentColor"/><circle cx="16.6" cy="9" r=".6" fill="currentColor"/><circle cx="19.8" cy="11.4" r=".6" fill="currentColor"/>'),
   bolt:   svgI('<path d="M13.5 2.5 5 13.5h6.2L10 21.5l9-11.6h-6.3z"/>'),
+  laser:  svgI('<path d="M3 20 20 3"/><path d="M14.5 3H20v5.5" opacity=".45"/><circle cx="4.5" cy="18.5" r="2" fill="currentColor" stroke="none"/>'),
+  vortex: svgI('<path d="M12 12a2 2 0 1 1 2-2"/><path d="M14 10a4.5 4.5 0 1 1-4.5-4.5"/><path d="M9.5 5.5A7.5 7.5 0 1 1 3.4 9.3"/><path d="M3.4 9.3A10 10 0 0 1 12 2"/>'),
+  meteor: svgI('<circle cx="15" cy="15" r="5"/><path d="M11.5 11.5 4 4M14.5 9.5 10 3M9.5 14.5 3 10"/>'),
+  bootH:  svgI('<path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14"/>'),
+  boltH:  svgI('<path d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>'),
   hire:   svgI('<path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/>'),
   speed:  svgI('<path d="M5 6.5 10.5 12 5 17.5M12.5 6.5 18 12l-5.5 5.5"/>'),
   power:  svgI('<path d="M6.5 7.5v9M3.5 10v4M17.5 7.5v9M20.5 10v4M6.5 12h11"/>'),
@@ -553,6 +588,13 @@ const ICONS = {
   luck:   svgI('<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>'),
   calm:   svgI('<path d="M4 9h5l-5 6h5M12.5 5h7l-7 8.5h7"/>'),
   night:  svgI('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+};
+
+// Ayudantes: guante, bota y nube (dibujos vectoriales). ax, ay = el punto que toca el piso; size = alto en px
+const HELPER_ART = {
+  finger: { svg: "<svg width=\"100\" height=\"140\" viewBox=\"0 0 100 140\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"gw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#E4E0D8\"/></linearGradient> <linearGradient id=\"gc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F7F4EE\"/><stop offset=\"1\" stop-color=\"#DCD7CD\"/></linearGradient> </defs> <g stroke=\"#4A4540\" stroke-opacity=\".5\" stroke-width=\"2.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"> <rect x=\"25\" y=\"5\" width=\"54\" height=\"22\" rx=\"9\" fill=\"url(#gc)\"/> <rect x=\"31\" y=\"50\" width=\"21\" height=\"84\" rx=\"10.5\" fill=\"url(#gw)\"/> <rect x=\"9\" y=\"42\" width=\"17\" height=\"38\" rx=\"8.5\" fill=\"url(#gw)\" transform=\"rotate(26 17.5 61)\"/> <rect x=\"21\" y=\"21\" width=\"63\" height=\"58\" rx=\"24\" fill=\"url(#gw)\"/> <circle cx=\"81\" cy=\"64\" r=\"9\" fill=\"url(#gw)\"/> <circle cx=\"71\" cy=\"74\" r=\"10.5\" fill=\"url(#gw)\"/> <circle cx=\"58\" cy=\"79\" r=\"11\" fill=\"url(#gw)\"/> </g> <path d=\"M35 12h34M35 19h34\" stroke=\"#4A4540\" stroke-opacity=\".22\" stroke-width=\"2\" stroke-linecap=\"round\"/> <path d=\"M37 90v34\" stroke=\"#FFFFFF\" stroke-width=\"4\" stroke-linecap=\"round\"/> <path d=\"M30 42c4-9 12-13 21-13\" stroke=\"#FFFFFF\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>", w: 100, h: 140, ax: 41.5, ay: 135, size: 44 },
+  boot:   { svg: "<svg width=\"130\" height=\"120\" viewBox=\"0 0 130 120\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"bb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#8FB0EA\"/><stop offset=\"1\" stop-color=\"#4E6FB0\"/></linearGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6E8ED0\"/><stop offset=\"1\" stop-color=\"#4B68A6\"/></linearGradient> </defs> <path d=\"M30 14q0-9 9-9h34q9 0 9 9v52l24 8q18 6 18 22v4H24V14z\" fill=\"url(#bb)\"/> <rect x=\"26\" y=\"4\" width=\"60\" height=\"16\" rx=\"8\" fill=\"url(#bc)\"/> <rect x=\"20\" y=\"96\" width=\"98\" height=\"16\" rx=\"8\" fill=\"#3B3F4C\"/> <path d=\"M28 104h86\" stroke=\"#FFFFFF\" stroke-opacity=\".12\" stroke-width=\"3\" stroke-linecap=\"round\"/> <path d=\"M40 30v52\" stroke=\"#FFFFFF\" stroke-opacity=\".45\" stroke-width=\"6\" stroke-linecap=\"round\"/> <path d=\"M86 78q14 3 22 10\" stroke=\"#FFFFFF\" stroke-opacity=\".35\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>",  w: 130, h: 120, ax: 69,   ay: 112, size: 42 },
+  bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 40 },
 };
 
 // Los marcianitos: vectores del archivo original (todos miran a la derecha). body = caja del cuerpo.
@@ -565,10 +607,10 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const TAU = Math.PI * 2;
 
 const freshSave = () => ({
-  coins: 0, earned: 0, smushed: 0, awayEarned: 0,
+  coins: 0, earned: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, boot: 0, spray: 0, bolt: 0 }, // 0 = sin comprar; 1–3 = nivel
-  up: { hire: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, calm: 0, night: 0 },
+  up: { hire: 0, bootH: 0, boltH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, calm: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
 });
@@ -578,10 +620,11 @@ function loadSave() {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (!s || typeof s !== "object") return d;
     const num = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
-    d.coins = num(s.coins); d.earned = num(s.earned); d.smushed = Math.floor(num(s.smushed)); d.awayEarned = num(s.awayEarned);
+    d.coins = num(s.coins); d.earned = num(s.earned); d.smushed = Math.floor(num(s.smushed)); d.awayEarned = num(s.awayEarned); d.escaped = Math.floor(num(s.escaped));
     TYPE_ORDER.forEach((k) => { d.byType[k] = Math.floor(num(s.byType && s.byType[k])); });
     TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(Math.floor(num(s.tools && s.tools[k])), k === "finger" ? 1 : 0, 3); });
     UP_ORDER.forEach((k) => { d.up[k] = clamp(Math.floor(num(s.up && s.up[k])), 0, UP[k].max); });
+    d.up.bootH = Math.min(d.up.bootH, d.up.hire); d.up.boltH = Math.min(d.up.boltH, d.up.bootH);
     if (TOOLS[s.tool] && d.tools[s.tool] > 0) d.tool = s.tool;
     d.hinted = !!s.hinted;
     if (Number.isFinite(s.lastSeen)) d.lastSeen = s.lastSeen;
@@ -625,8 +668,8 @@ const STR = {
   how1: ["Tap the aliens to smush them and earn coins.", "Toca los marcianitos para aplastarlos y ganar monedas."],
   how2: ["Spend coins in the Shop on tools, helpers and boosts.", "Usa tus monedas en la Tienda: herramientas, ayudantes y mejoras."],
   how3: ["Switch tools anytime from the bar below. Hold to use the Spray.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado para usar el Spray."],
-  how4: ["Purple aliens need 3 hits. Golden ones are rare and worth 25.", "Los morados necesitan 3 golpes. Los dorados son raros y valen 25."],
-  how5: ["Helper fingers keep smushing while you're away. Come back to collect.", "Los dedos ayudantes siguen aplastando cuando no estás. Vuelve a recoger."],
+  how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 25.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 25."],
+  how5: ["Helpers keep smushing while you're away. Turn fingers into boots and storm clouds for more power.", "Los ayudantes siguen aplastando cuando no estás. Convierte dedos en botas y nubes de rayos para más poder."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
   resetQ: ["Reset progress?", "¿Reiniciar el progreso?"],
@@ -646,6 +689,15 @@ const STR = {
   bootD: ["Stomps every alien in a circle.", "Aplasta a todos los marcianitos de un círculo."],
   sprayD: ["Hold to mist an area.", "Mantén presionado para rociar un área."],
   boltD: ["Zaps an alien and arcs to its neighbors.", "Electrocuta a un marcianito y salta a los cercanos."],
+  laser: ["Laser", "Láser"], laserD: ["Hold and drag: everything the beam touches gets smushed.", "Mantén y arrastra: todo lo que toca el rayo se aplasta."],
+  vortex: ["Black hole", "Agujero negro"], vortexD: ["Opens a black hole that swallows every alien nearby.", "Abre un agujero negro que se traga a todos los cercanos."],
+  meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
+  premium: ["Pro", "Pro"],
+  bootH: ["Boot helper", "Bota ayudante"], bootHD: ["Turns a finger helper into a boot that stomps a whole area.", "Convierte un dedo ayudante en una bota que pisa un área completa."],
+  boltH: ["Storm cloud", "Nube de rayos"], boltHD: ["Turns a boot helper into a cloud that zaps aliens in a chain.", "Convierte una bota ayudante en una nube que electrocuta en cadena."],
+  needFinger: ["Needs a finger", "Falta un dedo"], needBoot: ["Needs a boot", "Falta una bota"],
+  convert: ["Convert", "Convertir"],
+  escaped: ["Got away", "Se escaparon"],
   hire: ["Helper finger", "Dedo ayudante"], hireD: ["Smushes aliens on its own, even while you're away.", "Aplasta marcianitos solo, incluso cuando no estás."],
   speed: ["Quick hands", "Manos rápidas"], speedD: ["Helpers tap more often.", "Los ayudantes tocan más seguido."],
   power: ["Strong hands", "Manos fuertes"], powerD: ["Helpers hit harder. Great for purples.", "Los ayudantes pegan más fuerte. Ideal para los morados."],
@@ -672,20 +724,29 @@ function statText(id, lvl) {
   if (id === "finger") { const d = TOOLS.finger.damage[i]; return es ? `${d} de daño por toque` : `${d} damage per tap`; }
   if (id === "boot") { const r = TOOLS.boot.radius[i]; return es ? `Radio de ${r} px` : `${r} px radius`; }
   if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · hits every ${v}s`; }
-  const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`;
+  if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
+  if (id === "laser") { const w = TOOLS.laser.width[i], d = TOOLS.laser.damage[i]; return es ? `Rayo de ${w} px · ${d} de daño` : `${w} px beam · ${d} damage`; }
+  if (id === "vortex") { const r = TOOLS.vortex.radius[i], c = TOOLS.vortex.cooldown[i]; return es ? `Radio ${r} px · cada ${c} s` : `${r} px pull · every ${c}s`; }
+  const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
 function statShort(id, lvl) {
   const i = lvl - 1;
   if (id === "finger") return String(TOOLS.finger.damage[i]);
   if (id === "boot") return `${TOOLS.boot.radius[i]} px`;
   if (id === "spray") return `${TOOLS.spray.radius[i]} px · ${TOOLS.spray.interval[i]}${LANG === "es" ? " s" : "s"}`;
-  return `+${TOOLS.bolt.chains[i]}`;
+  if (id === "bolt") return `+${TOOLS.bolt.chains[i]}`;
+  const s = LANG === "es" ? " s" : "s";
+  if (id === "laser") return `${TOOLS.laser.width[i]} px · ${TOOLS.laser.damage[i]}`;
+  if (id === "vortex") return `${TOOLS.vortex.radius[i]} px · ${TOOLS.vortex.cooldown[i]}${s}`;
+  return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
 function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
     case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "ayudante" : "ayudantes"}` : `${l} ${l === 1 ? "helper" : "helpers"}`;
+    case "bootH": { const b = l - save.up.boltH; return short ? String(b) : es ? `${b} ${b === 1 ? "bota" : "botas"}` : `${b} ${b === 1 ? "boot" : "boots"}`; }
+    case "boltH": return short ? String(l) : es ? `${l} ${l === 1 ? "nube" : "nubes"}` : `${l} ${l === 1 ? "cloud" : "clouds"}`;
     case "speed": { const s = n(FX.helperInterval(l)); return short ? `${s} s` : es ? `Un toque cada ${s} s` : `1 tap every ${s}s`; }
     case "power": { const d = FX.helperDamage(l); return short ? String(d) : es ? `${d} de daño por toque` : `${d} damage per tap`; }
     case "value": { const m = "×" + n(FX.valueMult(l)); return short ? m : es ? `${m} monedas` : `${m} coins`; }
@@ -860,12 +921,19 @@ const Sound = (() => {
       if (type === "yellow") { pluck(659.25, { t: 0.05, vol: 0.075 * k, dur: 1.3 }); pluck(987.77, { t: 0.13, vol: 0.04 * k, dur: 1.3 }); }
     },
     hit(soft) { thump({ vol: soft ? 0.05 : 0.11 }); },
-    stomp() { tone(120, { dur: 0.16, vol: 0.2, slide: 0.6, attack: 0.003 }); noise({ dur: 0.14, vol: 0.1, freq: 320, q: 0.5, attack: 0.003, kind: "lowpass" }); },
+    stomp(k = 1) { tone(120, { dur: 0.16, vol: 0.2 * k, slide: 0.6, attack: 0.003 }); noise({ dur: 0.14, vol: 0.1 * k, freq: 320, q: 0.5, attack: 0.003, kind: "lowpass" }); },
     hiss() { noise({ dur: 0.2, vol: 0.022, freq: vary(2300, 0.08), q: 0.8, attack: 0.06 }); },
-    zap() {
-      noise({ dur: 0.16, vol: 0.05, freq: 1500, q: 2.5, sweep: 0.45, attack: 0.004 });
-      tone(180, { dur: 0.12, vol: 0.05, slide: 0.6, type: "triangle", attack: 0.003 });
+    zap(soft) {
+      const k = soft ? 0.5 : 1;
+      noise({ dur: 0.16, vol: 0.05 * k, freq: 1500, q: 2.5, sweep: 0.45, attack: 0.004 });
+      tone(180, { dur: 0.12, vol: 0.05 * k, slide: 0.6, type: "triangle", attack: 0.003 });
     },
+    // Láser: un zumbido suave mientras se arrastra
+    laser() { noise({ dur: 0.15, vol: 0.03, freq: vary(1200, 0.05), q: 4, attack: 0.03 }); tone(vary(260, 0.02), { dur: 0.14, vol: 0.02, type: "triangle", attack: 0.03 }); },
+    // Agujero negro: un soplo que baja y un tono grave que respira
+    vortex() { breath({ dur: 1.3, vol: 0.05, from: 1100, to: 180 }); tone(82, { dur: 1.5, vol: 0.08, attack: 0.25, slide: 0.7 }); },
+    whoosh() { breath({ dur: 0.35, vol: 0.035, from: 1800, to: 500 }); },
+    meteor() { tone(95, { dur: 0.3, vol: 0.2, slide: 0.5, attack: 0.003 }); noise({ dur: 0.3, vol: 0.12, freq: 420, q: 0.4, attack: 0.004, kind: "lowpass" }); },
     miss() { noise({ dur: 0.03, vol: 0.03, freq: 700, q: 0.7, attack: 0.002, kind: "lowpass" }); },
     tick() { noise({ dur: 0.035, vol: 0.09, freq: 1000, q: 0.7, attack: 0.002, kind: "lowpass" }); },
     nope() { thump({ vol: 0.1 }); thump({ t: 0.09, vol: 0.07 }); },
@@ -961,13 +1029,20 @@ function readPalette() {
 
 // Las imágenes vectoriales de cada marcianito (se cargan una vez)
 const alienImg = {};
-function loadAliens() {
-  return Promise.all(TYPE_ORDER.map((k) => new Promise((done) => {
+function loadImg(svg, store, k) {
+  return new Promise((done) => {
     const img = new Image();
-    img.onload = () => { alienImg[k] = img; done(); };
+    img.onload = () => { store[k] = img; done(); };
     img.onerror = done;
-    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ALIENS[k].svg);
-  })));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  });
+}
+// Marcianitos y ayudantes (vectores): se cargan una vez
+function loadArt() {
+  return Promise.all([
+    ...TYPE_ORDER.map((k) => loadImg(ALIENS[k].svg, alienImg, k)),
+    ...Object.keys(HELPER_ART).map((k) => loadImg(HELPER_ART[k].svg, helperImg, k)),
+  ]);
 }
 // Cada marcianito se pinta una vez a la resolución de la pantalla (y su silueta blanca para el destello);
 // después solo se copia, así va fluido en el iPhone.
@@ -995,6 +1070,15 @@ function buildSprites() {
     }
     T.spr = S;
   }
+  // Ayudantes: guante, bota y nube
+  for (const k of Object.keys(HELPER_ART)) {
+    const A = HELPER_ART[k], img = helperImg[k];
+    if (!img) continue;
+    const s = A.size / A.h, c = document.createElement("canvas");
+    c.width = Math.ceil(A.w * s * DPR * RES); c.height = Math.ceil(A.h * s * DPR * RES);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    helperSpr[k] = c;
+  }
   // Halo del dorado
   const r = BALL_TYPES.yellow.r * 2.2, c = document.createElement("canvas");
   c.width = c.height = Math.ceil(r * 2 * DPR);
@@ -1005,6 +1089,7 @@ function buildSprites() {
   haloSprite = { c, size: r * 2 };
 }
 let haloSprite = null;
+const helperSpr = {};
 
 let baseTarget = SPAWN.min;
 function resize() {
@@ -1025,7 +1110,7 @@ function updateTarget() {
   baseTarget = clamp(Math.round((W * H) / SPAWN.areaPerBall) + extra, SPAWN.min, SPAWN.max + extra);
 }
 
-/* ---------- 7. Marcianitos: aparición, caminata orgánica, rebotes y volteo ---------- */
+/* ---------- 7. Marcianitos: entran, caminan, voltean y, si no los aplastas, se escapan ---------- */
 const balls = [];
 const DIE = 0.24; // duración del aplastado (s)
 let time = 0, playing = false, spawnClock = 0, lastYellow = -99;
@@ -1040,30 +1125,46 @@ function pickType() {
   return type;
 }
 function keepInside(b) {
+  if (!b.entered) return;
   const T = b.T;
   b.x = clamp(b.x, T.side, Math.max(T.side, W - T.side));
   b.y = clamp(b.y, T.top, Math.max(T.top, H - T.bottom));
 }
-function spawnBall() {
+// ¿Se ve completo? ¿Ya salió por completo?
+const isInside = (b) => b.x - b.T.side >= 0 && b.x + b.T.side <= W && b.y - b.T.top >= 0 && b.y + b.T.bottom <= H;
+const isOut = (b) => b.x + b.T.side < 0 || b.x - b.T.side > W || b.y + b.T.bottom < 0 || b.y - b.T.top > H;
+// inside = aparece adentro con una pequeña animación (al empezar); si no, entra caminando por una orilla
+function spawnBall(inside) {
   const type = pickType(), T = BALL_TYPES[type], e = SPAWN.edge;
   if (W < T.side * 2 + e * 2 || H < T.top + T.bottom + e * 2) return;
-  let x = 0, y = 0;
-  // Busca un lugar libre, lejos de otros marcianitos y del dedo
-  for (let i = 0; i < 16; i++) {
-    x = rand(T.side + e, W - T.side - e); y = rand(T.top + e, H - T.bottom - e);
-    let ok = true;
-    for (const b of balls) { const d = T.r + b.r + 14; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
-    for (const p of pointers.values()) { if ((p.x - x) ** 2 + (p.y - y) ** 2 < (T.r + 40) ** 2) { ok = false; break; } }
-    if (ok) break;
+  let x = 0, y = 0, a = 0;
+  if (inside) {
+    // Busca un lugar libre, lejos de otros marcianitos y del dedo
+    for (let i = 0; i < 16; i++) {
+      x = rand(T.side + e, W - T.side - e); y = rand(T.top + e, H - T.bottom - e);
+      let ok = true;
+      for (const b of balls) { const d = T.r + b.r + 14; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
+      for (const p of pointers.values()) { if ((p.x - x) ** 2 + (p.y - y) ** 2 < (T.r + 40) ** 2) { ok = false; break; } }
+      if (ok) break;
+    }
+    a = Math.random() * TAU;
+  } else {
+    // Una orilla al azar (las más largas, más seguido) y un rumbo hacia algún punto del centro
+    const r = Math.random() * (2 * W + 2 * H);
+    if (r < W) { x = rand(T.side, W - T.side); y = -T.bottom - 2; }
+    else if (r < 2 * W) { x = rand(T.side, W - T.side); y = H + T.top + 2; }
+    else if (r < 2 * W + H) { x = -T.side - 2; y = rand(T.top, H - T.bottom); }
+    else { x = W + T.side + 2; y = rand(T.top, H - T.bottom); }
+    a = Math.atan2(rand(H * 0.25, H * 0.75) - y, rand(W * 0.25, W * 0.75) - x);
   }
   if (type === "yellow") lastYellow = time;
-  const a = Math.random() * TAU, sp = T.speed * rand(0.85, 1.15);
+  const sp = T.speed * rand(0.85, 1.15);
   const face = Math.cos(a) >= 0 ? 1 : -1;
   balls.push({
-    type, T, x, y, r: T.r, hp: T.hp, heading: a, speed: sp, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+    type, T, x, y, r: T.r, hp: T.hp, heading: a, goal: a, speed: sp, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
     f1: rand(0.3, 0.8), f2: rand(0.9, 1.7), f3: rand(0.2, 0.5), p1: rand(0, TAU), p2: rand(0, TAU), p3: rand(0, TAU),
-    turn: rand(0.6, 1.1), state: "in", t: 0, squash: 0, flash: 0, lastSpray: -99,
-    face, flip: face, walk: rand(0, TAU), claimed: null,
+    turn: rand(0.6, 1.1), state: inside ? "in" : "live", t: 0, squash: 0, flash: 0, lastSpray: -99, lastLaser: -99,
+    face, flip: face, walk: rand(0, TAU), claimed: null, entered: !!inside, pull: null, suck: 1,
   });
 }
 function aliveCount() { let n = 0; for (const b of balls) if (b.state !== "die") n++; return n; }
@@ -1074,11 +1175,18 @@ function spawnStep(dt) {
   if (alive >= target) { spawnClock = Math.max(spawnClock, 0.2); return; }
   spawnClock -= dt;
   if (spawnClock <= 0) {
-    spawnBall();
+    spawnBall(false);
     const f = FX.crowdSpawn(save.up.crowd);
     spawnClock = (target - alive - 1 > 4 ? SPAWN.fastDelay : rand(SPAWN.delayMin, SPAWN.delayMax)) * f;
   }
 }
+// Al empezar, para no ver el campo vacío: unos cuantos aparecen adentro
+function populate() {
+  const n = Math.ceil(Math.min(baseTarget, perfCap) * 0.6);
+  for (let i = 0; i < n; i++) later(i * 0.07, () => spawnBall(true));
+  spawnClock = n * 0.07 + 0.3;
+}
+const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 function updateBalls(dt) {
   const slow = FX.calmSpeed(save.up.calm);
@@ -1086,37 +1194,40 @@ function updateBalls(dt) {
     const b = balls[i];
     b.t += dt;
     if (b.state === "die") { if (b.t >= DIE) balls.splice(i, 1); continue; }
+    b.squash = Math.max(0, b.squash - dt / 0.24);
+    b.flash = Math.max(0, b.flash - dt / 0.18);
+    if (b.pull) continue; // lo está jalando un agujero negro (updateVortices lo mueve)
     if (b.state === "in" && b.t >= 0.45) b.state = "live";
     // Rumbo que serpentea con dos ondas lentas: trayectorias orgánicas, nunca iguales
     const wob = Math.sin(time * b.f1 + b.p1) + 0.6 * Math.sin(time * b.f2 + b.p2);
-    b.heading += wob * b.turn * dt;
+    b.heading += wob * b.turn * SPAWN.wander * dt;
+    // Mientras va entrando, sigue hacia el centro para no darse la vuelta en la orilla
+    if (!b.entered) b.heading += angDiff(b.goal, b.heading) * Math.min(1, dt * 2);
     const sp = b.speed * slow * (0.82 + 0.18 * Math.sin(time * b.f3 + b.p3));
     const k = Math.min(1, dt * 2.5);
     b.vx += (Math.cos(b.heading) * sp - b.vx) * k;
     b.vy += (Math.sin(b.heading) * sp - b.vy) * k;
     b.x += b.vx * dt; b.y += b.vy * dt;
-    // Rebote contra los bordes del área
-    const T = b.T;
-    let bounced = false;
-    if (b.x < T.side) { b.x = T.side; b.vx = Math.abs(b.vx); bounced = true; }
-    else if (b.x > W - T.side) { b.x = W - T.side; b.vx = -Math.abs(b.vx); bounced = true; }
-    if (b.y < T.top) { b.y = T.top; b.vy = Math.abs(b.vy); bounced = true; }
-    else if (b.y > H - T.bottom) { b.y = H - T.bottom; b.vy = -Math.abs(b.vy); bounced = true; }
-    if (bounced) b.heading = Math.atan2(b.vy, b.vx);
+    // Sin paredes: si sale de la pantalla, se escapó
+    if (!b.entered && isInside(b)) b.entered = true;
+    if (isOut(b) && (b.entered || b.t > 4)) {
+      balls.splice(i, 1);
+      if (b.claimed) b.claimed.target = null;
+      if (b.entered) { save.escaped++; markSave(); }
+      continue;
+    }
     // Voltean solo a la izquierda o a la derecha (con un margen para no temblar si van casi vertical)
     if (b.vx > 6) b.face = 1; else if (b.vx < -6) b.face = -1;
     b.flip += (b.face - b.flip) * Math.min(1, dt * 14);
     // Pasitos: el paso va más rápido si caminan más rápido
     b.walk += dt * (5 + Math.hypot(b.vx, b.vy) * 0.09);
-    b.squash = Math.max(0, b.squash - dt / 0.24);
-    b.flash = Math.max(0, b.flash - dt / 0.18);
   }
   // Separación suave para que no se encimen
   const push = Math.min(1, dt * 8);
   for (let i = 0; i < balls.length; i++) {
-    const a = balls[i]; if (a.state === "die") continue;
+    const a = balls[i]; if (a.state === "die" || a.pull) continue;
     for (let j = i + 1; j < balls.length; j++) {
-      const b = balls[j]; if (b.state === "die") continue;
+      const b = balls[j]; if (b.state === "die" || b.pull) continue;
       const dx = b.x - a.x, dy = b.y - a.y, min = a.r + b.r + 4, d2 = dx * dx + dy * dy;
       if (d2 >= min * min || d2 < 0.01) continue;
       const d = Math.sqrt(d2), o = (min - d) * 0.5 * push, nx = dx / d, ny = dy / d;
@@ -1217,6 +1328,47 @@ function smush(b, auto) {
   if (!save.hinted && !auto) { save.hinted = true; $("#hint").classList.remove("on"); }
 }
 
+// Pisotón: todos los marcianitos dentro del círculo reciben daño
+function stompAt(x, y, R, dmg, auto) {
+  ring(x, y, R * 0.35, R, 0.42, PAL.text, 2.5, auto ? 0.2 : 0.28, auto ? 0.05 : 0.07);
+  for (let i = 0; i < 6; i++) { const a = rand(0, TAU); part(x + Math.cos(a) * R * 0.5, y + Math.sin(a) * R * 0.25, Math.cos(a) * 60, -rand(20, 60), rand(2, 3.5), 0.45, PAL.mist, "mist", 4, 0, 0.35); }
+  Sound.stomp(auto ? 0.45 : 1);
+  if (!auto) buzz(16);
+  balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - x, b.y - y) < R + b.r * 0.5).forEach((b, i) => hit(b, dmg, x, y, i > 0 || auto, auto));
+}
+// Rayo en cadena: pega en el primero y salta a los vecinos, uno tras otro
+function zapChain(x, y, first, chains, range, dmg, auto) {
+  const chain = [first];
+  let cur = first;
+  for (let i = 0; i < chains; i++) {
+    let best = null, bd = Infinity;
+    for (const c of balls) {
+      if (c.state === "die" || c.pull || !c.entered || chain.includes(c)) continue;
+      const d = Math.hypot(c.x - cur.x, c.y - cur.y);
+      if (d < range + c.r && d < bd) { bd = d; best = c; }
+    }
+    if (!best) break;
+    chain.push(best); cur = best;
+  }
+  Sound.zap(auto);
+  let px = x, py = y;
+  chain.forEach((c, i) => {
+    later(i * TOOLS.bolt.hop, () => {
+      const tx = c.x, ty = c.y;
+      bolts.push({ pts: jag(px, py, tx, ty), t: 0, dur: 0.24 });
+      sparks(tx, ty, 4);
+      hit(c, dmg, px, py, true, auto);
+      px = tx; py = ty;
+    });
+  });
+}
+
+// Herramientas con espera (agujero negro y meteoritos)
+const cdEnd = {}, cdLen = {};
+const cdLeft = (id) => Math.max(0, (cdEnd[id] || 0) - time);
+function startCd(id, s) { cdEnd[id] = time + s; cdLen[id] = s; }
+function notReady(x, y) { ring(x, y, 4, 20, 0.35, PAL.text, 1.5, 0.25); Sound.nope(); }
+
 function useTool(x, y) {
   const id = save.tool, L = lvlOf(id) - 1;
   if (id === "finger") {
@@ -1224,40 +1376,28 @@ function useTool(x, y) {
     if (b) hit(b, TOOLS.finger.damage[L], x, y);
     else { ring(x, y, 3, 16, 0.3, PAL.text, 1.5, 0.2); Sound.miss(); }
   } else if (id === "boot") {
-    const R = TOOLS.boot.radius[L];
-    ring(x, y, R * 0.35, R, 0.42, PAL.text, 2.5, 0.28, 0.07);
-    Sound.stomp(); buzz(16);
-    const hits = balls.filter((b) => b.state !== "die" && Math.hypot(b.x - x, b.y - y) < R + b.r * 0.5);
-    hits.forEach((b, i) => hit(b, 1, x, y, i > 0));
-  } else if (id === "spray") {
-    // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick)
+    stompAt(x, y, TOOLS.boot.radius[L], 1, false);
+  } else if (id === "spray" || id === "laser") {
+    // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick / laserTick)
   } else if (id === "bolt") {
     const b = pick(x, y, 16);
     if (!b) { ring(x, y, 3, 18, 0.3, PAL.text, 1.5, 0.2); sparks(x, y, 3); Sound.miss(); return; }
-    Sound.zap(); buzz([8, 30, 8]);
-    const chain = [b], range = TOOLS.bolt.range[L];
-    let cur = b;
-    for (let i = 0; i < TOOLS.bolt.chains[L]; i++) {
-      let best = null, bd = Infinity;
-      for (const c of balls) {
-        if (c.state === "die" || chain.includes(c)) continue;
-        const d = Math.hypot(c.x - cur.x, c.y - cur.y);
-        if (d < range + c.r && d < bd) { bd = d; best = c; }
-      }
-      if (!best) break;
-      chain.push(best); cur = best;
+    buzz([8, 30, 8]);
+    zapChain(x, y, b, TOOLS.bolt.chains[L], TOOLS.bolt.range[L], 1, false);
+  } else if (id === "vortex") {
+    if (cdLeft(id) > 0) { notReady(x, y); return; }
+    startCd(id, TOOLS.vortex.cooldown[L]);
+    vortices.push({ x, y, R: TOOLS.vortex.radius[L], t: 0, life: TOOLS.vortex.life, eaten: 0 });
+    Sound.vortex(); buzz([10, 50, 14, 50, 20]);
+  } else if (id === "meteor") {
+    if (cdLeft(id) > 0) { notReady(x, y); return; }
+    startCd(id, TOOLS.meteor.cooldown[L]);
+    const M = TOOLS.meteor, n = M.count[L];
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, TAU), d = i ? Math.sqrt(Math.random()) * M.spread : 0;
+      meteors.push({ x: clamp(x + Math.cos(a) * d, 0, W), y: clamp(y + Math.sin(a) * d * 0.8, 0, H), t: -i * 0.11 - rand(0, 0.05), dur: 0.34, dx: rand(0.35, 0.7), hit: false });
     }
-    // Cada salto llega un instante después del anterior: se ve la electricidad recorrer a los marcianitos
-    let px = x, py = y;
-    chain.forEach((c, i) => {
-      later(i * TOOLS.bolt.hop, () => {
-        const tx = c.x, ty = c.y;
-        bolts.push({ pts: jag(px, py, tx, ty), t: 0, dur: 0.24 });
-        sparks(tx, ty, 4);
-        hit(c, 1, px, py, true);
-        px = tx; py = ty;
-      });
-    });
+    Sound.whoosh();
   }
 }
 function sparks(x, y, n) {
@@ -1273,36 +1413,117 @@ function sprayTick(p, dt) {
     part(p.x + Math.cos(a) * rand(0, R * 0.25), p.y + Math.sin(a) * rand(0, R * 0.25), Math.cos(a) * s, Math.sin(a) * s, rand(2.5, 5), rand(0.4, 0.65), PAL.mist, "mist", 4.2, -12, 0.26);
   }
   for (const b of balls) {
-    if (b.state === "die" || time - b.lastSpray < iv) continue;
+    if (b.state === "die" || b.pull || time - b.lastSpray < iv) continue;
     if (Math.hypot(b.x - p.x, b.y - p.y) < R + b.r * 0.5) { b.lastSpray = time; hit(b, 1, p.x, p.y); }
   }
   p.hiss = (p.hiss || 0) - dt;
   if (p.hiss <= 0) { Sound.hiss(); p.hiss = 0.16; buzz(4); }
 }
-
-/* ---------- 10. Dedos ayudantes: trabajan solos (y también mientras no estás) ---------- */
-const helpers = [];
-function syncHelpers() {
-  const n = save.up.hire;
-  while (helpers.length < n) {
-    const a = rand(0, TAU);
-    helpers.push({ x: W / 2 + Math.cos(a) * W * 0.3, y: H / 2 + Math.sin(a) * H * 0.3, target: null, timer: rand(0.3, 1.2), press: 0, lift: 1, home: { x: rand(0.15, 0.85), y: rand(0.15, 0.85) }, tilt: rand(-0.15, 0.15), born: 0 });
-  }
-  while (helpers.length > n) { const h = helpers.pop(); if (h.target) h.target.claimed = null; }
+// Láser: el rayo sigue al dedo; todo lo que cruza su camino recibe daño
+const beam = []; // puntos recientes del rayo (para dibujar la estela)
+function distToSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
+  const u = l2 ? clamp(((px - x1) * dx + (py - y1) * dy) / l2, 0, 1) : 0;
+  return Math.hypot(px - (x1 + dx * u), py - (y1 + dy * u));
 }
+function laserTick(p) {
+  const L = lvlOf("laser") - 1, T = TOOLS.laser, w = T.width[L];
+  const x1 = p.lx == null ? p.x : p.lx, y1 = p.ly == null ? p.y : p.ly;
+  beam.push({ x: p.x, y: p.y, t: time, id: p.id, w });
+  for (const b of balls) {
+    if (b.state === "die" || b.pull || time - b.lastLaser < T.tick) continue;
+    if (distToSeg(b.x, b.y, x1, y1, p.x, p.y) < w / 2 + b.r * 0.6) { b.lastLaser = time; hit(b, T.damage[L], p.x, p.y, true); }
+  }
+  const moved = Math.hypot(p.x - x1, p.y - y1);
+  p.hum = (p.hum || 0) - (moved > 1 ? 1 / 60 : 0);
+  if (moved > 1 && p.hum <= 0) { Sound.laser(); p.hum = 0.12; buzz(4); }
+  p.lx = p.x; p.ly = p.y;
+}
+// Agujero negro: jala a los cercanos en espiral y se los traga
+const vortices = [], meteors = [];
+function updateVortices(dt) {
+  for (let i = vortices.length - 1; i >= 0; i--) {
+    const v = vortices[i];
+    v.t += dt;
+    const live = v.t < v.life;
+    for (const b of balls) {
+      if (b.state === "die") continue;
+      if (b.pull && b.pull !== v) continue;
+      const dx = v.x - b.x, dy = v.y - b.y, d = Math.hypot(dx, dy) || 0.01;
+      if (!b.pull) { if (!live || d > v.R) continue; b.pull = v; if (b.claimed) { b.claimed.target = null; b.claimed = null; } }
+      if (!live) { b.pull = null; b.suck = 1; continue; }
+      // Entre más cerca, más rápido; un giro de lado hace la espiral
+      const pullSp = 70 + (1 - d / v.R) * 380, swirl = 0.9;
+      b.x += ((dx / d) * pullSp + (-dy / d) * pullSp * swirl * 0.6) * dt;
+      b.y += ((dy / d) * pullSp + (dx / d) * pullSp * swirl * 0.6) * dt;
+      b.suck = clamp(d / (v.R * 0.55), 0.2, 1);
+      b.walk += dt * 18;
+      if (d < 10) { b.suck = 1; v.eaten++; hit(b, 999, v.x, v.y, true); }
+    }
+    if (!live && v.t >= v.life + 0.35) vortices.splice(i, 1);
+    else if (!live && !v.closed) { v.closed = true; ring(v.x, v.y, 6, v.R * 0.6, 0.35, "#7C5CE0", 2.5, 0.45); Sound.hit(); }
+  }
+}
+// Meteoritos: caen en diagonal y al tocar el piso aplastan todo alrededor
+function updateMeteors(dt) {
+  const M = TOOLS.meteor;
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    const m = meteors[i];
+    m.t += dt;
+    if (!m.hit && m.t >= m.dur) {
+      m.hit = true;
+      ring(m.x, m.y, 8, M.radius * 1.15, 0.5, "#E8894A", 3, 0.5, 0.12);
+      for (let k = 0; k < 10; k++) { const a = rand(Math.PI, TAU), s = rand(80, 220); part(m.x, m.y, Math.cos(a) * s, Math.sin(a) * s, rand(1.8, 3.4), rand(0.4, 0.7), k % 2 ? "#FFB067" : "#FFE2B8", "dot", 4, 300); }
+      for (let k = 0; k < 6; k++) { const a = rand(0, TAU); part(m.x + Math.cos(a) * 20, m.y + Math.sin(a) * 8, Math.cos(a) * 50, -rand(10, 40), rand(4, 7), 0.8, PAL.mist, "mist", 3, 0, 0.3); }
+      splats.push({ x: m.x, y: m.y, rx: M.radius * 0.7, color: "#8A7462", t: 0, dur: 2.2, seed: Math.random() * 10 });
+      Sound.meteor(); buzz(14);
+      balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - m.x, b.y - m.y) < M.radius + b.r * 0.5).forEach((b) => hit(b, M.damage, m.x, m.y, true));
+    }
+    if (m.t > m.dur + 0.05) meteors.splice(i, 1);
+  }
+}
+
+/* ---------- 10. Ayudantes: dedos (guantes), botas y nubes de rayos. Trabajan solos, también si no estás ---------- */
+const helpers = [];
+const helperImg = {};
+// Cuántos de cada tipo: las botas y nubes son dedos convertidos
+function helperKinds() {
+  const u = save.up, out = [];
+  for (let i = 0; i < u.boltH; i++) out.push("bolt");
+  for (let i = 0; i < u.bootH - u.boltH; i++) out.push("boot");
+  for (let i = 0; i < u.hire - u.bootH; i++) out.push("finger");
+  return out;
+}
+function syncHelpers() {
+  const kinds = helperKinds();
+  while (helpers.length < kinds.length) {
+    const a = rand(0, TAU);
+    helpers.push({ kind: null, x: W / 2 + Math.cos(a) * W * 0.3, y: H / 2 + Math.sin(a) * H * 0.3, target: null, timer: rand(0.3, 1.2), press: 0, wind: 0, home: { x: rand(0.15, 0.85), y: rand(0.2, 0.85) }, born: 0, bob: rand(0, TAU) });
+  }
+  while (helpers.length > kinds.length) { const h = helpers.pop(); if (h.target) h.target.claimed = null; }
+  helpers.forEach((h, i) => {
+    if (h.kind === kinds[i]) return;
+    if (h.kind) { ring(h.x, h.y, 6, 34, 0.5, "#F1C84D", 2.5, 0.6); for (let k = 0; k < 8; k++) { const a = rand(0, TAU); part(h.x, h.y - 20, Math.cos(a) * 90, Math.sin(a) * 90, rand(1.4, 2.4), 0.6, "#FFF3C4", "star", 3, 0); } }
+    h.kind = kinds[i]; h.born = 0;
+  });
+}
+// Altura a la que flota cada tipo (px sobre el piso)
+const HOVER = { finger: 10, boot: 24, bolt: 70 };
 function updateHelpers(dt) {
   if (!helpers.length) return;
-  const iv = FX.helperInterval(save.up.speed), dmg = FX.helperDamage(save.up.power);
+  const iv0 = FX.helperInterval(save.up.speed), dmg = FX.helperDamage(save.up.power);
   for (const h of helpers) {
+    const K = HELPER_KIND[h.kind];
     h.born = Math.min(1, h.born + dt * 2.5);
+    h.bob += dt * 2.2;
     h.timer -= dt;
-    h.press = Math.max(0, h.press - dt / 0.16);
-    if (h.target && (h.target.state === "die" || h.target.claimed !== h)) h.target = null;
-    // Elige al marcianito libre más cercano
+    h.press = Math.max(0, h.press - dt / (h.kind === "boot" ? 0.3 : 0.18));
+    if (h.target && (h.target.state === "die" || h.target.claimed !== h || h.target.pull || isOut(h.target))) { if (h.target.claimed === h) h.target.claimed = null; h.target = null; }
+    // Elige al marcianito libre más cercano que ya esté en la pantalla
     if (!h.target && playing) {
       let best = null, bd = Infinity;
       for (const b of balls) {
-        if (b.state === "die" || b.claimed || b.t < 0.3) continue;
+        if (b.state === "die" || b.claimed || b.pull || !b.entered || b.t < 0.3) continue;
         const d = (b.x - h.x) ** 2 + (b.y - h.y) ** 2;
         if (d < bd) { bd = d; best = b; }
       }
@@ -1311,34 +1532,45 @@ function updateHelpers(dt) {
     const tx = h.target ? h.target.x : h.home.x * W, ty = h.target ? h.target.y : h.home.y * H;
     const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy);
     // Se desliza con suavidad (rápido de lejos, lento al llegar)
-    if (d > 0.5) { const step = Math.min(d, (140 + d * 4.5) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
-    const near = h.target && d < 8;
-    h.lift += ((near ? 0.35 : 1) - h.lift) * Math.min(1, dt * 8);
+    if (d > 0.5) { const step = Math.min(d, (150 + d * 4.5) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
+    const near = h.target && d < (h.kind === "bolt" ? 26 : 9);
+    // La bota se levanta un poco antes de pisar
+    h.wind += ((near && h.kind === "boot" && h.timer < 0.25 ? 1 : 0) - h.wind) * Math.min(1, dt * 10);
     if (near && h.timer <= 0) {
-      h.press = 1; h.timer = iv * rand(0.9, 1.1);
-      ring(h.x, h.y, 3, 14, 0.28, PAL.text, 1.4, 0.18);
+      h.press = 1; h.timer = iv0 * K.every * rand(0.9, 1.1);
       const t = h.target;
-      if (hit(t, dmg, h.x, h.y - 10, false, true)) h.target = null;
+      if (h.kind === "finger") {
+        ring(h.x, h.y, 3, 14, 0.28, PAL.text, 1.4, 0.18);
+        if (hit(t, dmg, h.x, h.y - 10, false, true)) h.target = null;
+      } else if (h.kind === "boot") {
+        stompAt(h.x, h.y, K.radius, dmg, true);
+      } else {
+        zapChain(h.x, h.y - HOVER.bolt + 6, t, K.chains, K.range, dmg, true);
+      }
+      if (h.target && h.target.state === "die") h.target = null;
     }
   }
 }
-// Un dedo índice suave visto desde arriba: la yema es el punto que toca
 function drawHelper(h) {
-  const press = Math.sin(h.press * Math.PI), lift = h.lift * 9 + 3 - press * 3;
-  ctx.globalAlpha = h.born;
-  // Sombra en el piso (más chica y nítida cuando toca)
+  const A = HELPER_ART[h.kind], img = helperSpr[h.kind];
+  if (!A || !img) return;
+  const press = h.press;
+  let height = HOVER[h.kind];
+  if (h.kind === "finger") height = height - Math.sin(press * Math.PI) * 8;
+  else if (h.kind === "boot") height = press > 0 ? height * (1 - press) * 0.9 : height + h.wind * 12; // pisa de golpe y vuelve a subir
+  else height += Math.sin(h.bob) * 3;
+  const s = A.size / A.h, w = A.w * s, hh = A.h * s;
+  // Sombra en el piso: más chica y nítida entre más cerca está
+  const k = clamp(1 - height / 90, 0.35, 1);
+  ctx.globalAlpha = h.born * (0.35 + 0.65 * k);
   ctx.fillStyle = PAL.shadow;
-  ctx.beginPath(); ctx.ellipse(h.x + lift * 0.5, h.y + lift * 0.6, 7 + lift * 0.25, 4 + lift * 0.12, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(h.x, h.y, w * 0.32 * (1.3 - k * 0.3), w * 0.09 * (1.3 - k * 0.3), 0, 0, TAU); ctx.fill();
+  ctx.globalAlpha = h.born;
+  const sc = 0.7 + 0.3 * h.born;
   ctx.save();
-  ctx.translate(h.x, h.y - lift * 0.7);
-  ctx.rotate(-0.5 + h.tilt);
-  const s = 1 - press * 0.06; ctx.scale(s, s);
-  ctx.fillStyle = PAL.finger; ctx.strokeStyle = PAL.fingerEdge; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.roundRect(-8, -3, 16, 48, 8); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = PAL.nail;
-  ctx.beginPath(); ctx.roundRect(-5, 0.5, 10, 11, [5, 5, 3, 3]); ctx.fill();
-  ctx.strokeStyle = PAL.fingerEdge; ctx.lineWidth = 1.1;
-  ctx.beginPath(); ctx.moveTo(-4, 21); ctx.quadraticCurveTo(0, 23, 4, 21); ctx.moveTo(-4, 24.5); ctx.quadraticCurveTo(0, 26.5, 4, 24.5); ctx.stroke();
+  ctx.translate(h.x, h.y - height);
+  ctx.scale(sc, sc * (h.kind === "boot" && press > 0.85 ? 0.9 : 1));
+  ctx.drawImage(img, -A.ax * s, -A.ay * s, w, hh);
   ctx.restore();
   ctx.globalAlpha = 1;
 }
@@ -1349,9 +1581,10 @@ function coinsPerTap(dmg) {
   return (coins / taps) * FX.valueMult(save.up.value);
 }
 function helperRate() {
-  const n = save.up.hire;
-  if (!n) return 0;
-  return (n / FX.helperInterval(save.up.speed)) * coinsPerTap(FX.helperDamage(save.up.power));
+  const iv0 = FX.helperInterval(save.up.speed);
+  let taps = 0;
+  for (const k of helperKinds()) taps += HELPER_KIND[k].targets / (iv0 * HELPER_KIND[k].every);
+  return taps * coinsPerTap(FX.helperDamage(save.up.power));
 }
 function avgReward() {
   let c = 0, w = 0;
@@ -1415,6 +1648,12 @@ function upPrice(k) {
   if (l >= u.max) return null;
   return typeof u.cost === "function" ? u.cost(l) : u.cost[l];
 }
+// Las conversiones necesitan algo que convertir: un dedo para hacer una bota, una bota para hacer una nube
+function upReady(k) {
+  if (k === "bootH") return save.up.hire - save.up.bootH > 0;
+  if (k === "boltH") return save.up.bootH - save.up.boltH > 0;
+  return true;
+}
 function afterBuy(was, card) {
   Sound.buy(was); buzz([10, 60, 18]);
   writeSave();
@@ -1434,10 +1673,10 @@ function buyTool(id) {
 function buyUp(k) {
   const price = upPrice(k);
   if (price == null) return;
-  if (save.coins < price) { Sound.nope(); return; }
+  if (save.coins < price || !upReady(k)) { Sound.nope(); return; }
   const was = save.up[k];
   save.coins -= price; save.up[k] = was + 1;
-  if (k === "hire") syncHelpers();
+  if (k === "hire" || k === "bootH" || k === "boltH") syncHelpers();
   if (k === "crowd") updateTarget();
   afterBuy(Math.min(was, 2), k);
 }
@@ -1446,7 +1685,7 @@ function buyUp(k) {
 const coinsEl = $("#coins"), smushedEl = $("#smushed"), shopCoinsEl = $("#shop-coins");
 let coinBump = false, bumpAnim = null, shopTab = "tools";
 const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p; };
-const canUp = (k) => { const p = upPrice(k); return p != null && save.coins >= p; };
+const canUp = (k) => { const p = upPrice(k); return p != null && save.coins >= p && upReady(k); };
 function updateUI() {
   uiDirty = false;
   coinsEl.textContent = fmt(save.coins);
@@ -1466,25 +1705,48 @@ function updateUI() {
   document.querySelectorAll("#shop-tabs button").forEach((b) => b.querySelector(".badge").classList.toggle("on", tabs[b.dataset.tab] && b.dataset.tab !== shopTab));
   document.querySelectorAll(".tool").forEach((el) => { const p = priceOf(el.dataset.id); el.classList.toggle("can", p != null && save.coins >= p); });
   document.querySelectorAll(".buy[data-key]").forEach((el) => {
-    const p = el.dataset.kind === "tool" ? priceOf(el.dataset.key) : upPrice(el.dataset.key);
-    if (p != null) el.disabled = save.coins < p;
+    const k = el.dataset.key, p = el.dataset.kind === "tool" ? priceOf(k) : upPrice(k);
+    if (p != null) el.disabled = save.coins < p || (el.dataset.kind !== "tool" && !upReady(k));
   });
   if (!$("#sheet-menu").hidden) renderRecords();
 }
 const pips = (n, max = 3) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
 
+// Precio corto para la barra (12K en vez de 12,000)
+const fmtShort = (n) => (n >= 10000 ? new Intl.NumberFormat(loc(), { notation: "compact", maximumFractionDigits: 1 }).format(n) : fmt(n));
+const toolEls = {};
 function renderToolbar() {
-  $("#tools").innerHTML = TOOL_ORDER.map((id) => {
+  const vis = TOOL_ORDER.filter((id) => save.tools[id] > 0);
+  const next = TOOL_ORDER.find((id) => !save.tools[id]);
+  if (next) vis.push(next);
+  const bar = $("#tools");
+  bar.style.setProperty("--n", vis.length);
+  bar.classList.toggle("compact", vis.length >= 6);
+  bar.innerHTML = vis.map((id) => {
     const l = save.tools[id], locked = l === 0;
-    return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}" type="button" data-id="${id}" aria-pressed="${save.tool === id}">
+    return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}${PREMIUM.has(id) ? " premium" : ""}" type="button" data-id="${id}" aria-pressed="${save.tool === id}" aria-label="${tx(id)}">
       ${ICONS[id]}<span class="name">${tx(id)}</span><span class="pips">${pips(l)}</span>
-      <span class="price"><span class="coin"></span>${fmt(TOOLS[id].price)}</span></button>`;
+      <span class="price"><span class="coin"></span>${fmtShort(TOOLS[id].price)}</span><i class="cd"></i></button>`;
   }).join("");
+  for (const k in toolEls) delete toolEls[k];
+  bar.querySelectorAll(".tool").forEach((el) => { toolEls[el.dataset.id] = el; });
   updateCursor();
 }
-function buyButton(kind, key, price, label) {
+// La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
+const cdShown = {};
+function updateCooldownUI() {
+  for (const id of ["vortex", "meteor"]) {
+    const el = toolEls[id]; if (!el) continue;
+    const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
+    if (cdShown[id] === p) continue;
+    cdShown[id] = p;
+    el.classList.toggle("cooling", p > 0);
+    el.style.setProperty("--p", p);
+  }
+}
+function buyButton(kind, key, price, label, blocked) {
   if (price == null) return `<button class="buy max" type="button" disabled>${tx("max")}</button>`;
-  return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}"${save.coins < price ? " disabled" : ""}>
+  return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}"${save.coins < price || blocked ? " disabled" : ""}>
     <span class="what">${label}</span><span class="cost">${price ? '<span class="coin"></span>' + fmt(price) : ""}</span></button>`;
 }
 function renderShop() {
@@ -1496,17 +1758,20 @@ function renderShop() {
       const l = save.tools[id], price = priceOf(id);
       const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span>→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
       const btn = buyButton("tool", id, price, l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1));
-      return `<div class="item" data-key="${id}"><div class="ic">${ICONS[id]}</div>
-        <div><h3>${tx(id)}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
+      const pro = PREMIUM.has(id);
+      return `<div class="item${pro ? " premium" : ""}" data-key="${id}"><div class="ic">${ICONS[id]}</div>
+        <div><h3>${tx(id)}${pro ? `<span class="pro">${tx("premium")}</span>` : ""}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
     }).join("");
   } else {
     html = UP_ORDER.filter((k) => UP[k].tab === shopTab).map((k) => {
       const l = save.up[k], u = UP[k], price = upPrice(k);
+      const conv = k === "bootH" || k === "boltH", ready = upReady(k);
       const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span>→ ${upText(k, l + 1, true)}</span>`;
-      const label = k === "hire" ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1);
-      const lv = u.max <= 5 ? `<span class="pips">${pips(l, u.max)}</span>` : `<span class="lv">${l}/${u.max}</span>`;
-      return `<div class="item" data-key="${k}"><div class="ic">${ICONS[k]}</div>
-        <div><h3>${tx(k)}${lv}</h3><p>${tx(k + "D")}</p><div class="stat">${stat}</div></div>${buyButton("up", k, price, label)}</div>`;
+      const label = !ready ? tx(k === "bootH" ? "needFinger" : "needBoot") : k === "hire" ? tx("hireBtn") : conv ? tx("convert") : l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1);
+      const lv = conv ? "" : u.max <= 5 ? `<span class="pips">${pips(l, u.max)}</span>` : `<span class="lv">${l}/${u.max}</span>`;
+      const icon = conv && helperSpr[k === "bootH" ? "boot" : "bolt"] ? `<img alt="" src="${helperSpr[k === "bootH" ? "boot" : "bolt"].toDataURL()}">` : k === "hire" && helperSpr.finger ? `<img alt="" src="${helperSpr.finger.toDataURL()}">` : ICONS[k];
+      return `<div class="item${conv ? " convert" : ""}" data-key="${k}"><div class="ic">${icon}</div>
+        <div><h3>${tx(k)}${lv}</h3><p>${tx(k + "D")}</p><div class="stat">${stat}</div></div>${buyButton("up", k, price, label, !ready)}</div>`;
     }).join("");
   }
   $("#shop-list").innerHTML = html;
@@ -1516,6 +1781,7 @@ function renderRecords() {
   const rows = [
     `<div class="row"><span>${tx("totalSmushed")}</span><span class="val">${fmt(save.smushed)}</span></div>`,
     `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.earned)}</span></div>`,
+    `<div class="row"><span>${tx("escaped")}</span><span class="val">${fmt(save.escaped)}</span></div>`,
     `<div class="row"><span>${tx("awayEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.awayEarned)}</span></div>`,
     ...TYPE_ORDER.map((k) => `<div class="row"><span><i class="dot" style="background:${BALL_TYPES[k].color}"></i>${tx(k)}</span><span class="val">${fmt(save.byType[k])}</span></div>`),
   ];
@@ -1608,8 +1874,10 @@ confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]
 $("#btn-reset-yes").addEventListener("click", () => {
   save = freshSave(); writeSave();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; timers.length = 0;
-  helpers.length = 0;
-  spawnClock = 0; lastYellow = -99; shopTab = "tools";
+  helpers.length = 0; vortices.length = 0; meteors.length = 0; beam.length = 0;
+  for (const k in cdEnd) delete cdEnd[k];
+  lastYellow = -99; shopTab = "tools";
+  populate();
   updateTarget(); renderToolbar(); renderShop(); renderRecords(); uiDirty = true;
   $("#hint").classList.add("on");
   closeConfirm(); closeSheet($("#sheet-menu"));
@@ -1625,7 +1893,7 @@ document.addEventListener("keydown", (e) => {
   }
   if (!playing || document.querySelector(".sheet.open, .dialog.open")) return;
   const n = parseInt(e.key, 10);
-  if (n >= 1 && n <= 4) selectTool(TOOL_ORDER[n - 1]);
+  if (n >= 1 && n <= TOOL_ORDER.length) selectTool(TOOL_ORDER[n - 1]);
   else if (e.key.toLowerCase() === "s") openSheet($("#sheet-shop"));
 });
 
@@ -1638,10 +1906,11 @@ cv.addEventListener("pointerdown", (e) => {
   if (!playing) return;
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
   const p = localPos(e);
-  pointers.set(e.pointerId, { x: p.x, y: p.y, emit: 0, hiss: 0 });
+  pointers.set(e.pointerId, { id: e.pointerId, x: p.x, y: p.y, lx: null, ly: null, emit: 0, hiss: 0 });
   if (e.pointerType === "mouse") hover = p;
   useTool(p.x, p.y);
   if (save.tool === "spray") sprayTick(pointers.get(e.pointerId), 0);
+  if (save.tool === "laser") laserTick(pointers.get(e.pointerId));
 });
 cv.addEventListener("pointermove", (e) => {
   const p = localPos(e);
@@ -1665,6 +1934,51 @@ function updateCursor() { cv.style.cursor = matchMedia("(pointer: fine)").matche
 
 /* ---------- 13. Dibujo y bucle principal (requestAnimationFrame) ---------- */
 const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const easeIn = (x) => x * x;
+// Agujero negro: un disco oscuro con brazos en espiral que giran; nace, jala y se cierra
+function drawVortex(v) {
+  const grow = easeOut(Math.min(1, v.t / 0.2)), close = v.t > v.life ? 1 - Math.min(1, (v.t - v.life) / 0.3) : 1;
+  const k = grow * close, R = v.R;
+  if (k <= 0) return;
+  ctx.globalAlpha = 0.18 * k; ctx.strokeStyle = "#7C5CE0"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 7]);
+  ctx.beginPath(); ctx.arc(v.x, v.y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+  const core = R * 0.42 * k, g = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, core);
+  g.addColorStop(0, "rgba(20,12,40,0.95)"); g.addColorStop(0.55, "rgba(60,36,120,0.7)"); g.addColorStop(1, "rgba(124,92,224,0)");
+  ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(v.x, v.y, core, 0, TAU); ctx.fill();
+  ctx.lineCap = "round";
+  for (let i = 0; i < 4; i++) {
+    const a0 = -v.t * 5 + (i * TAU) / 4;
+    ctx.globalAlpha = 0.5 * k; ctx.strokeStyle = i % 2 ? "#A584E8" : "#7C5CE0"; ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let s = 0; s <= 14; s++) { const u = s / 14, r = core * 0.25 + u * R * 0.75 * k, a = a0 + u * 2.4; s ? ctx.lineTo(v.x + Math.cos(a) * r, v.y + Math.sin(a) * r * 0.85) : ctx.moveTo(v.x + Math.cos(a) * r, v.y + Math.sin(a) * r * 0.85); }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawBeam() {
+  if (beam.length < 1) return;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  // Un solo trazo por dedo (así no se ven "cuentas" donde se enciman los segmentos)
+  for (const [w, col, al] of [[1, "#FF6B8A", 0.32], [0.2, "#FFFFFF", 0.95]]) {
+    let open = false, prev = null;
+    ctx.globalAlpha = al; ctx.strokeStyle = col;
+    for (const p of beam) {
+      if (!prev || prev.id !== p.id) { if (open) ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineWidth = Math.max(1.5, p.w * w); open = true; }
+      else ctx.lineTo(p.x, p.y);
+      prev = p;
+    }
+    if (open) ctx.stroke();
+  }
+  // Punta del láser donde está el dedo
+  for (const p of pointers.values()) {
+    if (save.tool !== "laser") break;
+    const w = TOOLS.laser.width[lvlOf("laser") - 1];
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
+    g.addColorStop(0, "rgba(255,255,255,0.95)"); g.addColorStop(0.4, "rgba(255,107,138,0.6)"); g.addColorStop(1, "rgba(255,107,138,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, w, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
 function drawAlien(b) {
   const T = b.T, S = T.spr;
   if (!S || !S.img) return;
@@ -1692,6 +2006,7 @@ function drawAlien(b) {
   ctx.globalAlpha = alpha;
   ctx.save();
   ctx.translate(b.x, gy - lift);
+  if (b.pull) { ctx.translate(0, -T.bottom); ctx.rotate(b.walk * 0.4); ctx.scale(b.suck, b.suck); ctx.translate(0, T.bottom); }
   ctx.rotate(tilt);
   // Se voltea a la izquierda o a la derecha con un giro rápido (nunca se ve como una rayita)
   const fx = Math.sign(b.flip || 1) * Math.max(0.45, Math.abs(b.flip));
@@ -1718,9 +2033,19 @@ function render() {
     ctx.fillStyle = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill();
   }
+  // Agujeros negros (en el piso, debajo de todo)
+  for (const v of vortices) drawVortex(v);
+  // Sombra donde va a caer cada meteorito
+  for (const m of meteors) {
+    if (m.t < 0 || m.hit) continue;
+    const u = m.t / m.dur;
+    ctx.globalAlpha = 0.25 * u; ctx.fillStyle = PAL.shadow;
+    ctx.beginPath(); ctx.ellipse(m.x, m.y, 10 + u * 14, 4 + u * 5, 0, 0, TAU); ctx.fill();
+  }
   // Sombras en el piso
   ctx.fillStyle = PAL.shadow;
   for (const b of balls) {
+    if (b.pull) continue;
     const T = b.T;
     let a = 1, w = 1;
     if (b.state === "in") a = Math.min(1, b.t / 0.45);
@@ -1770,8 +2095,23 @@ function render() {
       ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
     }
   }
-  // Dedos ayudantes (encima de todo lo del piso)
-  for (const h of helpers) drawHelper(h);
+  // Estela del láser: un brillo rosado y un hilo blanco
+  drawBeam();
+  // Meteoritos cayendo
+  for (const m of meteors) {
+    if (m.t < 0 || m.hit) continue;
+    const u = easeIn(m.t / m.dur), sx = m.x + 220 * m.dx * (1 - u), sy = m.y - 300 * (1 - u);
+    const ang = Math.atan2(m.y - sy, m.x - sx) + Math.PI;
+    const tail = 70;
+    const g = ctx.createLinearGradient(sx, sy, sx + Math.cos(ang) * tail, sy + Math.sin(ang) * tail);
+    g.addColorStop(0, "rgba(255,190,120,0.85)"); g.addColorStop(1, "rgba(255,190,120,0)");
+    ctx.globalAlpha = 1; ctx.strokeStyle = g; ctx.lineWidth = 9; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + Math.cos(ang) * tail, sy + Math.sin(ang) * tail); ctx.stroke();
+    ctx.fillStyle = "#FFE2B8"; ctx.beginPath(); ctx.arc(sx, sy, 6.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#E8894A"; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(sx, sy, 9, 0, TAU); ctx.fill();
+  }
+  // Ayudantes (encima de todo lo del piso), los más lejanos primero
+  for (const h of helpers.slice().sort((a, b) => a.y - b.y)) drawHelper(h);
   // Monedas que flotan hacia arriba, con su monedita
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
   for (const tt of texts) {
@@ -1795,11 +2135,15 @@ function drawCursor(x, y) {
   if (id === "finger") {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
-  } else if (id === "boot" || id === "spray") {
-    const R = id === "boot" ? TOOLS.boot.radius[L] : TOOLS.spray.radius[L];
+  } else if (id === "boot" || id === "spray" || id === "vortex" || id === "meteor") {
+    const R = id === "boot" ? TOOLS.boot.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "vortex" ? TOOLS.vortex.radius[L] : TOOLS.meteor.spread;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "boot" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
+  } else if (id === "laser") {
+    const w = TOOLS.laser.width[L] / 2;
+    ctx.globalAlpha = 0.45; ctx.strokeStyle = "#FF6B8A"; ctx.beginPath(); ctx.arc(x, y, w, 0, TAU); ctx.stroke();
+    ctx.globalAlpha = 0.8; ctx.fillStyle = "#FF6B8A"; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else {
     ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x + 1.5, y - 5); ctx.lineTo(x - 2.5, y + 0.8); ctx.lineTo(x + 2.5, y - 0.8); ctx.lineTo(x - 1.5, y + 5); ctx.stroke();
@@ -1829,10 +2173,15 @@ function loop(now) {
   for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= time) { const f = timers[i].fn; timers.splice(i, 1); f(); }
   if (playing) spawnStep(dt);
   updateBalls(dt);
+  updateVortices(dt);
+  updateMeteors(dt);
   updateHelpers(dt);
   if (playing && save.tool === "spray") for (const p of pointers.values()) sprayTick(p, dt);
+  if (playing && save.tool === "laser") for (const p of pointers.values()) laserTick(p);
+  while (beam.length && time - beam[0].t > 0.3) beam.shift();
   updateFx(dt);
   render();
+  updateCooldownUI();
   if (uiDirty) updateUI();
 }
 function startLoop() { if (!raf && !document.hidden) { last = 0; raf = requestAnimationFrame(loop); } }
@@ -1945,7 +2294,7 @@ function playSplash(done) {
 
 function startGame() {
   playing = true;
-  spawnClock = 0;
+  populate();
   if (!save.hinted) $("#hint").classList.add("on");
   if (save.pending) setTimeout(showWelcome, 500);
 }
@@ -1958,7 +2307,7 @@ function startGame() {
   syncHelpers();
   checkAway(save.lastSeen);
   writeSave();
-  loadAliens().then(() => { buildSprites(); });
+  loadArt().then(() => { buildSprites(); });
   startLoop();
   const studio = $("#studio");
   // La intro del estudio arranca sola. Si el navegador ya deja sonar, suena desde el inicio;
