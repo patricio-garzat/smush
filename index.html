@@ -510,7 +510,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -632,7 +632,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const TAU = Math.PI * 2;
 
 const freshSave = () => ({
-  coins: 0, earned: 0, smushed: 0, awayEarned: 0, escaped: 0,
+  coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, boot: 0, spray: 0, bolt: 0 }, // 0 = sin comprar; 1–3 = nivel
   up: { hire: 0, bootH: 0, boltH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, calm: 0, night: 0 },
@@ -646,6 +646,8 @@ function loadSave() {
     if (!s || typeof s !== "object") return d;
     const num = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
     d.coins = num(s.coins); d.earned = num(s.earned); d.smushed = Math.floor(num(s.smushed)); d.awayEarned = num(s.awayEarned); d.escaped = Math.floor(num(s.escaped));
+    // Partidas guardadas antes de contar lo gastado: lo gastado es lo ganado menos lo que hay ahora
+    d.spent = Number.isFinite(s.spent) ? num(s.spent) : Math.max(0, d.earned - d.coins);
     TYPE_ORDER.forEach((k) => { d.byType[k] = Math.floor(num(s.byType && s.byType[k])); });
     TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(Math.floor(num(s.tools && s.tools[k])), k === "finger" ? 1 : 0, 3); });
     UP_ORDER.forEach((k) => { d.up[k] = clamp(Math.floor(num(s.up && s.up[k])), 0, UP[k].max); });
@@ -687,7 +689,9 @@ const STR = {
   language: ["Language", "Idioma"],
   records: ["Records", "Récords"],
   totalSmushed: ["Aliens smushed", "Marcianitos aplastados"],
-  coinsEarned: ["Coins earned", "Monedas ganadas"],
+  coinsEarned: ["Coins earned (all time)", "Monedas ganadas (en total)"],
+  coinsSpent: ["Coins spent", "Monedas gastadas"],
+  coinsNow: ["Coins you have now", "Monedas que tienes ahora"],
   awayEarned: ["Earned while away", "Ganadas mientras no estabas"],
   howTo: ["How to play", "Cómo jugar"],
   how1: ["Tap the aliens to smush them and earn coins.", "Toca los marcianitos para aplastarlos y ganar monedas."],
@@ -1781,7 +1785,7 @@ function buyTool(id) {
   if (price == null) return;
   if (save.coins < price) { Sound.nope(); return; }
   const was = save.tools[id];
-  save.coins -= price; save.tools[id] = was + 1;
+  save.coins -= price; save.spent += price; save.tools[id] = was + 1;
   if (was === 0) save.tool = id; // la herramienta nueva queda seleccionada
   afterBuy(was, id);
 }
@@ -1790,7 +1794,7 @@ function buyUp(k) {
   if (price == null) return;
   if (save.coins < price || !upReady(k)) { Sound.nope(); return; }
   const was = save.up[k];
-  save.coins -= price; save.up[k] = was + 1;
+  save.coins -= price; save.spent += price; save.up[k] = was + 1;
   if (k === "hire" || k === "bootH" || k === "boltH") syncHelpers();
   if (k === "crowd") updateTarget();
   afterBuy(Math.min(was, 2), k);
@@ -1896,6 +1900,8 @@ function renderRecords() {
   const rows = [
     `<div class="row"><span>${tx("totalSmushed")}</span><span class="val">${fmt(save.smushed)}</span></div>`,
     `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.earned)}</span></div>`,
+    `<div class="row"><span>${tx("coinsSpent")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.spent)}</span></div>`,
+    `<div class="row"><span>${tx("coinsNow")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.coins)}</span></div>`,
     `<div class="row"><span>${tx("escaped")}</span><span class="val">${fmt(save.escaped)}</span></div>`,
     `<div class="row"><span>${tx("awayEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.awayEarned)}</span></div>`,
     ...TYPE_ORDER.map((k) => `<div class="row"><span><i class="dot" style="background:${BALL_TYPES[k].color}"></i>${tx(k)}</span><span class="val">${fmt(save.byType[k])}</span></div>`),
