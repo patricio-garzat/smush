@@ -510,7 +510,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.4.1";
+const VERSION = "0.5.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -538,30 +538,30 @@ const SPAWN = {
 
 // Herramientas. price = compra; upgrades = precio de nivel 2 y nivel 3; los arreglos son [nivel 1, 2, 3]
 const TOOLS = {
-  finger: { price: 0,    upgrades: [60, 400],     damage: [1, 2, 3], slop: 10 },
-  boot:   { price: 100,  upgrades: [350, 1200],   radius: [45, 65, 85] },
-  spray:  { price: 500,  upgrades: [1500, 4000],  radius: [50, 60, 72], interval: [0.45, 0.36, 0.28] },
-  bolt:   { price: 1500, upgrades: [4000, 10000], chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
+  finger: { price: 0,    upgrades: [50, 200],     damage: [1, 2, 3], slop: 10 },
+  boot:   { price: 100,  upgrades: [200, 600],    radius: [45, 65, 85] },
+  spray:  { price: 400,  upgrades: [800, 2000],   radius: [50, 60, 72], interval: [0.45, 0.36, 0.28] },
+  bolt:   { price: 1200, upgrades: [2500, 6000],  chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
   // Herramientas premium: mucho más caras, mucho más poderosas
-  laser:  { price: 5000,  upgrades: [12000, 30000],  width: [18, 24, 32], damage: [2, 2, 3], tick: 0.2 },        // arrastra el dedo
-  vortex: { price: 12000, upgrades: [28000, 60000],  radius: [110, 140, 170], cooldown: [2.4, 1.9, 1.4], life: 1.5 }, // se los traga
-  meteor: { price: 30000, upgrades: [70000, 150000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
+  laser:  { price: 4000,  upgrades: [8000, 16000],  width: [18, 24, 32], damage: [2, 2, 3], tick: 0.2 },        // arrastra el dedo
+  vortex: { price: 8000,  upgrades: [15000, 30000], radius: [110, 140, 170], cooldown: [2.4, 1.9, 1.4], life: 1.5 }, // se los traga
+  meteor: { price: 15000, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
 };
 const TOOL_ORDER = ["finger", "boot", "spray", "bolt", "laser", "vortex", "meteor"];
 const PREMIUM = new Set(["laser", "vortex", "meteor"]);
 
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
 const UP = {
-  hire:  { tab: "helpers", max: 12, cost: (l) => Math.round(75 * 1.6 ** l) },   // un dedo ayudante más
-  bootH: { tab: "helpers", max: 12, cost: (l) => Math.round(600 * 1.45 ** l) },  // convierte un dedo en bota
-  boltH: { tab: "helpers", max: 12, cost: (l) => Math.round(3000 * 1.5 ** l) },  // convierte una bota en nube de rayos
-  speed: { tab: "helpers", max: 5,  cost: [250, 800, 2400, 7000, 18000] },     // tocan más seguido
-  power: { tab: "helpers", max: 2,  cost: [3000, 15000] },                     // pegan más fuerte
-  value: { tab: "boosts",  max: 8,  cost: [120, 300, 750, 1800, 4200, 9500, 21000, 45000] }, // más monedas
-  crowd: { tab: "boosts",  max: 4,  cost: [250, 900, 3000, 9000] },            // más marcianitos y más rápido
-  luck:  { tab: "boosts",  max: 4,  cost: [400, 1400, 4500, 12000] },          // más dorados
-  calm:  { tab: "boosts",  max: 3,  cost: [300, 1500, 6000] },                 // caminan más lento
-  night: { tab: "boosts",  max: 4,  cost: [600, 2500, 8000, 20000] },          // más horas fuera
+  hire:  { tab: "helpers", max: 12, cost: (l) => Math.round(60 * 1.35 ** l) },   // un dedo ayudante más
+  bootH: { tab: "helpers", max: 12, cost: (l) => Math.round(400 * 1.3 ** l) },  // convierte un dedo en bota
+  boltH: { tab: "helpers", max: 12, cost: (l) => Math.round(1500 * 1.35 ** l) },  // convierte una bota en nube de rayos
+  speed: { tab: "helpers", max: 5,  cost: [150, 350, 700, 1300, 2200] },     // tocan más seguido
+  power: { tab: "helpers", max: 2,  cost: [1200, 4000] },                     // pegan más fuerte
+  value: { tab: "boosts",  max: 8,  cost: [80, 140, 230, 360, 550, 820, 1200, 1750] }, // más monedas
+  crowd: { tab: "boosts",  max: 4,  cost: [150, 350, 700, 1300] },            // más marcianitos y más rápido
+  luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
+  calm:  { tab: "boosts",  max: 3,  cost: [150, 400, 900] },                 // caminan más lento
+  night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
 };
 const UP_ORDER = ["hire", "bootH", "boltH", "speed", "power", "value", "crowd", "luck", "calm", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
