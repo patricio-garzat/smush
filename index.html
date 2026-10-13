@@ -1,0 +1,1609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>SMUSH! · BluBer Games</title>
+<meta name="description" content="SMUSH! A calm, satisfying little game by BluBer Games: smush colorful dots, earn coins and unlock new tools.">
+<meta name="theme-color" content="#F6F5F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191918" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-title" content="SMUSH!">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ECEBE6'/%3E%3Ccircle cx='22' cy='22' r='9' fill='%236BCB9B'/%3E%3Ccircle cx='43' cy='21' r='6' fill='%23FF9E55'/%3E%3Ccircle cx='40' cy='42' r='12' fill='%23A584E8'/%3E%3Ccircle cx='19' cy='44' r='7' fill='%23F1C84D'/%3E%3C/svg%3E">
+<script>
+  // Antes de pintar nada: el tema guardado decide el fondo de <html> (y con eso el color de las barras de Safari)
+  (function () {
+    var t = "auto";
+    try { t = (JSON.parse(localStorage.getItem("smush-settings-v1") || "{}").theme) || "auto"; } catch (e) {}
+    var dark = t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+    var root = document.documentElement;
+    if (t !== "auto") root.dataset.theme = t;
+    // Dentro de la app de iOS (Capacitor) la intro de BluBer arranca en blanco desde la pantalla de carga
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      root.classList.add("native", "studio-paper");
+      root.style.backgroundColor = "#FFFFFF";
+      return;
+    }
+    root.style.backgroundColor = dark ? "#191918" : "#F6F5F1";
+    var m = document.createElement("meta");
+    m.name = "apple-mobile-web-app-status-bar-style";
+    m.content = dark ? "black-translucent" : "default";
+    document.head.appendChild(m);
+  })();
+</script>
+<style>
+/* ============================================================
+   Tema: paleta de SMUSH! (clara por defecto, oscura opcional)
+   ============================================================ */
+:root {
+  --bg: #F6F5F1;
+  --field: #ECEBE6;
+  --text: #242521;
+  --muted: #8A8982;
+  --card: #FFFFFF;
+  --line: rgba(36, 37, 33, 0.08);
+  --line-strong: rgba(36, 37, 33, 0.16);
+  --shadow: 0 1px 2px rgba(36, 37, 33, 0.05), 0 6px 18px rgba(36, 37, 33, 0.06);
+  --accent: #242521;
+  --on-accent: #F6F5F1;
+  --mist: #9AA49F;
+  --danger: #D2564B;
+  --on: #6BCB9B;
+  --scrim: rgba(28, 28, 26, 0.16);
+  --is-dark: 0;
+  --font: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #191918; --field: #242422; --text: #EEEDE8; --muted: #8F8E88; --card: #2D2D2A;
+    --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+    --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
+    --is-dark: 1; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #191918; --field: #242422; --text: #EEEDE8; --muted: #8F8E88; --card: #2D2D2A;
+  --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+  --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
+  --is-dark: 1; color-scheme: dark;
+}
+
+/* ============================================================
+   Base: sin zoom, sin selección, sin scroll de la página
+   ============================================================ */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+  font-family: var(--font); -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%;
+}
+body { position: relative; }
+button { font: inherit; color: inherit; cursor: pointer; -webkit-user-select: none; user-select: none; }
+button:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
+a { color: inherit; }
+.coin {
+  display: inline-block; flex: none; width: 1em; height: 1em; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #FCEBB4 0%, #F1C84D 52%, #D6A92F 100%);
+  box-shadow: inset 0 0 0 0.08em rgba(120, 86, 0, 0.12);
+}
+
+/* ============================================================
+   Layout: encabezado · área de juego · barra de herramientas
+   ============================================================ */
+#app { position: absolute; inset: 0; height: 100dvh; display: flex; flex-direction: column; }
+#top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; max-width: 1100px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 18px) 12px calc(env(safe-area-inset-left) + 18px);
+}
+.wallet { min-width: 0; }
+.coins { display: flex; align-items: center; gap: 9px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.coins .coin { font-size: 20px; }
+#coins { display: inline-block; transform-origin: left center; }
+.sub { margin-top: 5px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.actions { display: flex; align-items: center; gap: 8px; }
+.pill, .icon-btn {
+  position: relative; height: 42px; border: 0; background: var(--card); box-shadow: var(--shadow);
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  transition: transform 0.14s ease, background-color 0.25s ease;
+}
+.pill { padding: 0 16px 0 13px; border-radius: 21px; font-size: 15px; font-weight: 700; }
+.icon-btn { width: 42px; border-radius: 50%; }
+.pill svg, .icon-btn svg { width: 20px; height: 20px; }
+.pill:active, .icon-btn:active, .tool:active, .buy:active:not(:disabled), .row-btn:active { transform: scale(0.96); }
+.badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #FF9E55; box-shadow: 0 0 0 2px var(--card); opacity: 0; transform: scale(0.4); transition: opacity 0.3s, transform 0.3s; }
+.badge.on { opacity: 1; transform: none; }
+
+#field {
+  position: relative; flex: 1; min-height: 0; overflow: hidden;
+  width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 1076px;
+  margin: 0 auto; border-radius: 28px; background: var(--field);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#hint {
+  position: absolute; left: 0; right: 0; bottom: 20px; text-align: center; pointer-events: none;
+  font-size: 14px; font-weight: 650; color: var(--muted); opacity: 0; transition: opacity 0.8s ease;
+}
+#hint.on { opacity: 1; }
+
+#tools {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 560px; margin: 0 auto;
+  padding: 12px calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 12px);
+}
+.tool {
+  position: relative; height: 76px; border: 0; border-radius: 20px; background: var(--card); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.14s ease;
+}
+.tool svg { width: 26px; height: 26px; transition: opacity 0.25s; }
+.tool .name { font-size: 12px; font-weight: 700; }
+.tool .pips { display: flex; gap: 3px; height: 5px; }
+.pips i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.18; transition: opacity 0.3s; }
+.pips i.on { opacity: 0.85; }
+.tool .price { display: none; align-items: center; gap: 3px; font-size: 11px; font-weight: 750; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tool .price .coin { font-size: 9px; }
+.tool.locked svg { opacity: 0.32; }
+.tool.locked .pips { display: none; }
+.tool.locked .price { display: flex; }
+.tool.locked.can .price { color: var(--text); }
+.tool.sel { background: var(--accent); color: var(--on-accent); }
+
+/* ============================================================
+   Hojas (Tienda y Ajustes): suben desde abajo sin salir del juego
+   ============================================================ */
+.sheet { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+.sheet[hidden] { display: none; }
+.scrim { position: absolute; inset: 0; background: var(--scrim); opacity: 0; transition: opacity 0.32s ease; }
+.sheet.open .scrim { opacity: 1; }
+.panel {
+  position: relative; width: 100%; max-width: 520px; max-height: min(80dvh, 760px);
+  display: flex; flex-direction: column; background: var(--bg); border-radius: 28px 28px 0 0;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12); transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+.sheet.open .panel { transform: none; }
+@media (min-width: 720px) and (min-height: 620px) {
+  .sheet { align-items: center; }
+  .panel { border-radius: 28px; opacity: 0; transform: translateY(18px) scale(0.985); transition: transform 0.34s cubic-bezier(0.22, 0.8, 0.24, 1), opacity 0.26s ease; }
+  .sheet.open .panel { opacity: 1; transform: none; }
+  .grab { display: none; }
+}
+.grab { width: 38px; height: 5px; border-radius: 3px; background: var(--line-strong); margin: 8px auto 0; flex: none; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px 10px; flex: none; }
+.panel-head h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.panel-head .coins { font-size: 18px; gap: 6px; }
+.panel-head .coins .coin { font-size: 14px; }
+.close { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--field); display: grid; place-items: center; transition: transform 0.14s; }
+.close svg { width: 14px; height: 14px; }
+.panel-body {
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y;
+  padding: 2px 16px calc(env(safe-area-inset-bottom) + 20px);
+}
+.note { margin: 0 4px 12px; font-size: 13px; font-weight: 550; color: var(--muted); }
+
+/* Tienda */
+.item {
+  display: grid; grid-template-columns: 50px 1fr auto; gap: 12px; align-items: center;
+  padding: 14px; margin-bottom: 10px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow);
+  transition: box-shadow 0.4s ease;
+}
+.item.flash { box-shadow: var(--shadow), 0 0 0 2px var(--on); }
+.item .pips { display: inline-flex; gap: 3px; }
+.item .ic { width: 50px; height: 50px; border-radius: 15px; background: var(--field); display: grid; place-items: center; }
+.item .ic svg { width: 26px; height: 26px; }
+.item h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; }
+.item p { margin: 2px 0 0; font-size: 13px; font-weight: 550; color: var(--muted); }
+.item .stat { margin-top: 5px; font-size: 12.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.item .stat span { color: var(--muted); font-weight: 650; }
+.buy {
+  min-width: 96px; height: 40px; padding: 0 14px; border: 0; border-radius: 20px;
+  background: var(--accent); color: var(--on-accent); display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  line-height: 1.1; transition: transform 0.14s, background-color 0.25s, color 0.25s;
+}
+.buy .what { font-size: 11px; font-weight: 700; opacity: 0.7; }
+.buy .cost { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.buy .cost .coin { font-size: 11px; }
+.buy:disabled { background: var(--field); color: var(--muted); cursor: default; }
+.buy.max { background: transparent; color: var(--muted); }
+
+/* Ajustes: lista estilo iOS */
+.group-title { margin: 6px 6px 8px; font-size: 12.5px; font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.group { margin-bottom: 18px; border-radius: 18px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
+.row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 8px 16px;
+  font-size: 16px; font-weight: 600; border-top: 1px solid var(--line);
+}
+.row:first-child { border-top: 0; }
+.row .val { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px; }
+.row .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 10px; }
+.row-btn { width: 100%; border: 0; background: transparent; text-align: left; transition: transform 0.14s; }
+.row-btn.danger { color: var(--danger); }
+a.row { text-decoration: none; }
+.row .ext { width: 14px; height: 14px; opacity: 0.5; }
+.how { margin: 0; padding: 14px 16px 14px 34px; font-size: 14.5px; line-height: 1.45; font-weight: 550; }
+.how li + li { margin-top: 6px; }
+.switch { position: relative; width: 51px; height: 31px; flex: none; border: 0; border-radius: 16px; background: var(--line-strong); padding: 0; transition: background-color 0.25s ease; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18); transition: transform 0.25s cubic-bezier(0.3, 0.7, 0.3, 1); }
+.switch[aria-checked="true"] { background: var(--on); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.seg { display: flex; flex: none; padding: 2px; border-radius: 10px; background: var(--field); }
+.seg button { border: 0; background: transparent; padding: 6px 11px; border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--muted); transition: background-color 0.2s, color 0.2s; }
+.seg button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.foot { margin: 6px 0 4px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+
+/* Diálogo de confirmación */
+.dialog { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 24px; }
+.dialog[hidden] { display: none; }
+.dialog .card {
+  position: relative; width: 100%; max-width: 320px; padding: 22px 20px 16px; border-radius: 24px; background: var(--card);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); text-align: center; opacity: 0; transform: scale(0.96);
+  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+.dialog.open .card { opacity: 1; transform: none; }
+.dialog h3 { margin: 0 0 6px; font-size: 18px; font-weight: 800; }
+.dialog p { margin: 0 0 18px; font-size: 14px; line-height: 1.4; font-weight: 550; color: var(--muted); }
+.dialog .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dialog .btns button { height: 44px; border: 0; border-radius: 14px; font-size: 15px; font-weight: 750; background: var(--field); transition: transform 0.14s; }
+.dialog .btns .danger { background: var(--danger); color: #FFFFFF; }
+
+/* ============================================================
+   Intro del juego (después de la de BluBer)
+   ============================================================ */
+#splash { position: absolute; inset: 0; z-index: 200; display: grid; place-items: center; background: var(--bg); }
+#splash .mark { display: flex; flex-direction: column; align-items: center; gap: 16px; transform: translateY(-4vh); }
+#splash .drops { display: flex; align-items: flex-end; gap: 12px; height: 34px; }
+#splash .drops i { display: block; border-radius: 50%; opacity: 0; }
+#splash .word { font-size: clamp(48px, 15vw, 76px); font-weight: 900; letter-spacing: -0.035em; line-height: 1; opacity: 0; }
+
+/* ============================================================
+   Intro del estudio (BluBer Games): copiada de Cube Swipe, sin cambios al logo
+   ============================================================ */
+#studio { position: absolute; inset: 0; z-index: 210; display: grid; place-items: center; background: var(--bg); padding: 16px; box-sizing: border-box; overflow: hidden; transition: background-color 0.45s ease; }
+#studio.paper { background: #FFFFFF; }
+#studio { box-shadow: 0 50vh 0 0 var(--bg); transition: background-color 0.45s ease, box-shadow 0.45s ease; }
+#studio.paper { box-shadow: 0 50vh 0 0 #FFFFFF; }
+html.studio-paper .fixed-off { visibility: hidden !important; }
+html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; transition: none; }
+#studio svg { position: absolute; left: 50%; top: 50dvh; transform: translate(-50%, -50%); width: min(56vw, 34vh, 300px); height: auto; overflow: visible; }
+#studio:not(.go) svg { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel, .dialog .card, .scrim { transition-duration: 0.01s !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header id="top">
+    <div class="wallet">
+      <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
+      <div class="sub"><span id="smushed">0</span> <span data-i18n="smushed">smushed</span></div>
+    </div>
+    <div class="actions">
+      <button id="btn-shop" class="pill" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
+        <span data-i18n="shop">Shop</span><i class="badge" id="shop-badge"></i>
+      </button>
+      <button id="btn-menu" class="icon-btn" type="button" aria-label="Settings" data-i18n-aria="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="field">
+    <canvas id="cv" aria-label="Game area"></canvas>
+    <div id="hint" data-i18n="hint">Tap the dots to smush them</div>
+  </main>
+  <nav id="tools" aria-label="Tools"></nav>
+</div>
+
+<!-- Tienda -->
+<div id="sheet-shop" class="sheet" hidden>
+  <div class="scrim" data-close></div>
+  <section class="panel" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+    <div class="grab"></div>
+    <div class="panel-head">
+      <h2 id="shop-title" data-i18n="shop">Shop</h2>
+      <div class="actions">
+        <div class="coins"><span class="coin"></span><span id="shop-coins">0</span></div>
+        <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <p class="note" data-i18n="shopSub">Tools stay unlocked forever.</p>
+      <div id="shop-list"></div>
+    </div>
+  </section>
+</div>
+
+<!-- Ajustes -->
+<div id="sheet-menu" class="sheet" hidden>
+  <div class="scrim" data-close></div>
+  <section class="panel" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+    <div class="grab"></div>
+    <div class="panel-head">
+      <h2 id="menu-title" data-i18n="settings">Settings</h2>
+      <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </div>
+    <div class="panel-body">
+      <div class="group">
+        <div class="row"><span data-i18n="sound">Sound</span><button class="switch" id="sw-sound" role="switch" type="button" aria-checked="true" aria-label="Sound"></button></div>
+        <div class="row"><span data-i18n="vibration">Vibration</span><button class="switch" id="sw-vibe" role="switch" type="button" aria-checked="true" aria-label="Vibration"></button></div>
+        <div class="row"><span data-i18n="theme">Theme</span>
+          <div class="seg" id="seg-theme"><button type="button" data-v="auto" data-i18n="auto">Auto</button><button type="button" data-v="light" data-i18n="light">Light</button><button type="button" data-v="dark" data-i18n="dark">Dark</button></div>
+        </div>
+        <div class="row"><span data-i18n="language">Language</span>
+          <div class="seg" id="seg-lang"><button type="button" data-v="en">English</button><button type="button" data-v="es">Español</button></div>
+        </div>
+      </div>
+
+      <div class="group-title" data-i18n="records">Records</div>
+      <div class="group" id="records"></div>
+
+      <div class="group-title" data-i18n="howTo">How to play</div>
+      <div class="group">
+        <ul class="how"><li data-i18n="how1"></li><li data-i18n="how2"></li><li data-i18n="how3"></li><li data-i18n="how4"></li></ul>
+      </div>
+
+      <div class="group-title" data-i18n="data">Data</div>
+      <div class="group"><button class="row row-btn danger" id="btn-reset" type="button" data-i18n="reset">Reset progress</button></div>
+
+      <div class="group-title" data-i18n="about">About</div>
+      <div class="group">
+        <div class="row"><span data-i18n="version">Version</span><span class="val" id="version"></span></div>
+        <a class="row" href="https://blubergames.com" target="_blank" rel="noopener"><span data-i18n="website">Website</span><span class="val">blubergames.com <svg class="ext" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 2h7v7M12 2 3 11"/></svg></span></a>
+        <a class="row" href="https://blubergames.com/support/" target="_blank" rel="noopener"><span data-i18n="support">Support</span><span class="val"><svg class="ext" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 2h7v7M12 2 3 11"/></svg></span></a>
+      </div>
+      <p class="foot">SMUSH! · <span data-i18n="by">by BluBer Games</span></p>
+    </div>
+  </section>
+</div>
+
+<!-- Confirmación para reiniciar -->
+<div id="confirm" class="dialog" hidden>
+  <div class="scrim" data-cancel style="opacity:1"></div>
+  <div class="card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <h3 id="confirm-title" data-i18n="resetQ">Reset progress?</h3>
+    <p data-i18n="resetMsg"></p>
+    <div class="btns"><button type="button" data-cancel data-i18n="cancel">Cancel</button><button type="button" class="danger" id="btn-reset-yes" data-i18n="resetBtn">Reset</button></div>
+  </div>
+</div>
+
+<!-- Intro del juego -->
+<div id="splash" aria-hidden="true">
+  <div class="mark"><div class="drops"></div><div class="word">SMUSH!</div></div>
+</div>
+
+<!-- Intro del estudio: logo oficial de BluBer (copiado de Cube Swipe, sin modificar) -->
+<div id="studio" role="img" aria-label="BluBer Games">
+  <svg id="bb-logo" viewBox="286.5 335.9 1449.5 1247.3" aria-hidden="true">
+    <!-- Logo oficial de BluBer (brand/source/BluBer Games.ai), sin modificar: solo agrupado para animarlo -->
+    <defs>
+      <clipPath id="bb-above-base"><rect x="0" y="900" width="2000" height="431"/></clipPath>
+      <clipPath id="bb-word-shape"></clipPath>
+      <linearGradient id="bb-shine" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+        <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.6"/>
+        <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <g id="bb-all">
+      <g id="bb-bear">
+        <path fill="#8AC7ED" d="M 1459.187 411.070 C 1455.218 406.531 1447.273 405.394 1437.058 405.394 C 1421.738 405.394 1399.609 405.960 1374.078 396.882 C 1341.167 385.535 1299.746 388.941 1256.058 400.289 C 1255.660 400.402 1255.207 400.515 1254.808 400.628 C 1224.964 381.566 1189.5 382.300 1176.054 395.183 C 1167.144 403.523 1161.527 424.460 1158.125 440.234 C 1115.113 464.574 1066.375 497.371 1005.265 526.820 C 976.328 533.062 947.390 543.843 919.019 559.164 C 859.441 590.937 802.699 640.867 754.472 704.984 C 752.203 707.824 750.5 710.093 748.230 712.929 C 706.242 770.804 670.496 840.027 645.527 916.628 C 638.152 938.757 631.910 961.453 626.804 983.582 L 749.933 983.582 C 759.578 967.695 771.492 952.941 784.542 939.890 C 795.890 928.542 807.808 918.332 821.425 909.820 C 829.480 904.429 837.539 899.605 846.105 895.238 C 846.164 904.089 846.277 915.664 845.257 923.437 C 842.988 944.429 837.312 965.425 829.937 984.714 L 932.070 984.714 C 936.890 962.191 947.730 938.417 958.511 918.613 C 964.128 941.367 971.390 963.550 980.867 983.582 L 1115.339 983.582 C 1108.531 962.585 1103.425 940.457 1100.589 917.761 C 1097.75 899.039 1096.617 880.312 1096.617 861.023 L 1096.617 845.871 C 1129.414 860.113 1158.917 883.660 1183.429 913.222 C 1200.453 933.648 1215.203 957.480 1227.121 983.582 L 1359.324 983.582 C 1357.054 959.75 1352.515 935.351 1346.273 910.953 C 1345.707 909.25 1345.140 908.117 1345.140 906.414 C 1344.003 901.308 1342.871 896.769 1341.167 891.664 C 1337.765 879.746 1333.792 867.261 1329.253 855.914 C 1315.636 819.601 1298.613 786.691 1278.753 757.187 L 1278.753 743 C 1278.753 718.035 1282.726 694.203 1289.535 671.507 C 1294.640 656.187 1300.882 641.437 1308.257 627.820 C 1316.203 613.066 1325.847 599.449 1336.628 586.964 C 1349.679 571.644 1363.863 558.593 1379.753 547.246 C 1383.722 544.410 1387.695 542.140 1391.667 539.304 C 1408.121 527.386 1428.945 504.238 1428.945 504.238 C 1429.910 502.875 1430.703 501.742 1431.328 500.718 L 1431.386 500.718 C 1445.968 482.335 1453.855 464.460 1457.484 449.085 C 1461.460 431.496 1460.890 417.878 1459.187 411.070 "/>
+        <path fill="#8AC7ED" d="M 847.527 894.5 L 862.992 859.714 L 973.058 847.832 L 958.507 918.613 "/>
+        <path fill="#57ADE1" d="M 958.507 918.613 C 947.730 938.414 936.890 962.191 932.070 984.718 L 829.937 984.718 C 837.312 965.425 842.988 944.429 845.253 923.437 C 846.277 915.664 846.164 904.089 846.105 895.238 C 846.562 895.011 847.070 894.726 847.527 894.5 C 860.007 888.257 873.058 883.152 886.675 879.179 C 906.535 872.937 928.097 869.531 950.226 869.531 C 951.929 885.988 954.765 901.875 958.167 917.195 C 958.281 917.648 958.398 918.160 958.507 918.613 "/>
+        <path fill="#57ADE1" d="M 1431.328 500.718 C 1430.707 501.742 1429.910 502.875 1428.945 504.238 C 1428.945 504.238 1408.121 527.386 1391.667 539.300 C 1387.695 542.140 1383.722 544.410 1379.753 547.246 C 1363.863 558.593 1349.679 571.644 1336.628 586.964 C 1325.847 599.449 1316.203 613.066 1308.257 627.820 C 1300.882 641.437 1294.640 656.187 1289.535 671.507 C 1282.726 694.203 1278.753 718.035 1278.753 743 L 1278.753 757.187 C 1298.613 786.691 1315.636 819.601 1329.253 855.914 C 1333.792 867.261 1337.765 879.746 1341.167 891.664 C 1342.871 896.769 1344.003 901.308 1345.140 906.414 C 1345.140 908.117 1345.707 909.25 1346.273 910.953 C 1352.515 935.351 1357.054 959.75 1359.324 983.582 L 1227.121 983.582 C 1215.203 957.480 1200.453 933.648 1183.429 913.222 C 1158.917 883.660 1129.414 860.113 1096.617 845.871 L 1096.617 844.566 C 1096.617 830.382 1098.320 816.765 1100.589 802.578 C 1109.097 743 1130.660 688.531 1161.867 642.570 C 1161.867 642.570 1162.433 641.437 1163.003 640.867 C 1175.484 623.281 1189.105 606.824 1203.855 591.503 C 1208.394 586.964 1213.503 582.425 1218.042 577.886 C 1235.062 563.132 1253.218 550.082 1272.511 538.734 C 1315.636 514.335 1364.433 500.718 1416.066 500.718 Z M 1431.328 500.718 "/>
+        <path fill="#57ADE1" d="M 1254.808 400.628 C 1242.156 403.976 1228.937 408.402 1215.773 412.773 C 1197.046 419.582 1178.324 428.660 1158.464 440.007 C 1158.351 440.062 1158.234 440.121 1158.125 440.234 C 1161.527 424.460 1167.144 403.523 1176.054 395.183 C 1189.5 382.300 1224.964 381.562 1254.808 400.628 "/>
+        <path fill="#093A5B" d="M 1457.488 449.085 C 1457.488 449.085 1439.328 445.679 1433.089 436.035 C 1425.710 424.687 1429.117 413.906 1437.058 405.394 C 1447.273 405.394 1455.214 406.531 1459.191 411.070 C 1460.890 417.878 1461.457 431.496 1457.488 449.085 "/>
+        <path fill="#8AC7ED" d="M 1305.421 438.871 C 1302.015 410.503 1354.785 422.984 1354.785 422.984 C 1354.785 422.984 1308.828 467.242 1305.421 438.871 M 1433.089 436.035 C 1425.710 424.687 1429.117 413.906 1437.058 405.394 C 1421.738 405.394 1399.609 405.960 1374.078 396.882 C 1341.167 385.535 1299.75 388.941 1256.058 400.289 C 1255.660 400.402 1255.207 400.515 1254.808 400.628 C 1242.156 403.976 1228.937 408.402 1215.773 412.773 C 1197.046 419.582 1178.324 428.660 1158.464 440.007 C 1158.351 440.062 1158.238 440.121 1158.125 440.234 C 1115.113 464.574 1066.375 497.371 1005.265 526.820 C 976.328 533.062 947.386 543.843 919.019 559.164 C 859.441 590.937 802.699 640.867 754.472 704.984 C 752.203 707.824 750.5 710.093 748.230 712.929 C 706.242 770.804 670.496 840.027 645.527 916.628 C 638.152 938.757 631.910 961.453 626.804 983.582 L 749.933 983.582 C 759.578 967.695 771.492 952.941 784.542 939.890 C 795.890 928.542 807.808 918.332 821.425 909.820 C 829.480 904.429 837.539 899.605 846.105 895.238 C 846.558 895.007 847.070 894.726 847.523 894.5 C 860.007 888.257 873.058 883.152 886.675 879.179 C 906.535 872.937 928.097 869.535 950.226 869.535 C 951.929 885.988 954.765 901.875 958.167 917.195 C 958.281 917.648 958.398 918.160 958.507 918.613 C 964.128 941.367 971.390 963.550 980.867 983.582 L 1115.339 983.582 C 1108.531 962.585 1103.425 940.457 1100.589 917.761 C 1097.75 899.039 1096.617 880.312 1096.617 861.023 L 1096.617 844.566 C 1096.617 830.382 1098.320 816.765 1100.589 802.578 C 1109.097 743 1130.660 688.531 1161.867 642.570 C 1161.867 642.570 1162.433 641.437 1163.003 640.867 C 1175.484 623.281 1189.105 606.824 1203.855 591.503 C 1208.394 586.964 1213.503 582.425 1218.042 577.886 C 1235.062 563.132 1253.218 550.082 1272.511 538.734 C 1315.636 514.335 1364.433 500.718 1416.066 500.718 L 1431.386 500.718 C 1445.968 482.335 1453.855 464.460 1457.484 449.085 C 1457.484 449.085 1439.328 445.679 1433.089 436.035 "/>
+        <path id="bb-eye" fill="#093A5B" d="M 1354.785 422.984 C 1354.785 422.984 1308.824 467.242 1305.421 438.871 C 1302.015 410.503 1354.785 422.984 1354.785 422.984 "/>
+      </g>
+      <g clip-path="url(#bb-above-base)">
+        <g id="bb-word">
+          <path class="ltr" fill="#093A5B" d="M 522.710 1239.203 C 522.710 1216.269 505.222 1205.386 472.574 1205.386 L 399.113 1205.386 L 399.113 1272.628 L 472.574 1272.628 C 505.222 1272.628 522.710 1262.519 522.710 1239.203 M 399.113 1095.390 L 399.113 1159.523 L 461.691 1159.523 C 492.394 1159.523 509.109 1148.640 509.109 1127.261 C 509.109 1105.886 492.394 1095.390 461.691 1095.390 Z M 586.066 1245.808 C 586.066 1292.839 548.753 1320.046 477.238 1320.046 L 336.539 1320.046 L 336.539 1047.972 L 469.464 1047.972 C 537.480 1047.972 572.460 1076.347 572.460 1118.714 C 572.460 1145.921 558.468 1166.906 536.316 1178.566 C 566.632 1188.285 586.066 1211.605 586.066 1245.808 "/>
+          <path class="ltr" fill="#093A5B" d="M 629.597 1031.648 L 690.230 1031.648 L 690.230 1320.046 L 629.597 1320.046 Z M 629.597 1031.648 "/>
+          <path class="ltr" fill="#093A5B" d="M 957.246 1110.941 L 957.246 1320.042 L 899.722 1320.042 L 899.722 1295.167 C 883.785 1313.437 860.464 1323.156 834.812 1323.156 C 782.343 1323.156 745.417 1293.617 745.417 1229.093 L 745.417 1110.941 L 806.050 1110.941 L 806.050 1220.156 C 806.050 1255.136 821.597 1270.683 848.417 1270.683 C 876.402 1270.683 896.613 1252.804 896.613 1214.328 L 896.613 1110.941 Z M 957.246 1110.941 "/>
+          <path class="ltr" fill="#093A5B" d="M 1204.050 1239.203 C 1204.050 1216.269 1186.562 1205.386 1153.914 1205.386 L 1080.453 1205.386 L 1080.453 1272.628 L 1153.914 1272.628 C 1186.562 1272.628 1204.050 1262.519 1204.050 1239.203 M 1080.453 1095.390 L 1080.453 1159.523 L 1143.031 1159.523 C 1173.734 1159.523 1190.449 1148.640 1190.449 1127.261 C 1190.449 1105.886 1173.734 1095.390 1143.031 1095.390 Z M 1267.406 1245.808 C 1267.406 1292.839 1230.093 1320.046 1158.578 1320.046 L 1017.878 1320.046 L 1017.878 1047.972 L 1150.804 1047.972 C 1218.820 1047.972 1253.800 1076.347 1253.800 1118.714 C 1253.800 1145.921 1239.808 1166.906 1217.656 1178.566 C 1247.972 1188.285 1267.406 1211.605 1267.406 1245.808 "/>
+          <path class="ltr" fill="#093A5B" d="M 1355.632 1197.222 L 1458.632 1197.222 C 1454.355 1170.792 1434.535 1153.695 1407.328 1153.695 C 1379.730 1153.695 1359.910 1170.406 1355.632 1197.222 M 1514.601 1232.593 L 1356.410 1232.593 C 1362.242 1258.632 1384.394 1274.570 1416.265 1274.570 C 1438.421 1274.570 1454.355 1267.960 1468.738 1254.359 L 1500.996 1289.339 C 1481.562 1311.496 1452.414 1323.156 1414.710 1323.156 C 1342.417 1323.156 1295.390 1277.679 1295.390 1215.492 C 1295.390 1152.914 1343.195 1107.828 1406.937 1107.828 C 1468.347 1107.828 1515.765 1149.031 1515.765 1216.269 C 1515.765 1220.933 1514.988 1227.539 1514.601 1232.593 "/>
+          <path class="ltr" fill="#093A5B" d="M 1686.003 1107.832 L 1686.003 1163.800 C 1680.953 1163.410 1677.066 1163.019 1672.402 1163.019 C 1638.976 1163.019 1616.820 1181.289 1616.820 1221.320 L 1616.820 1320.046 L 1556.187 1320.046 L 1556.187 1110.937 L 1614.101 1110.937 L 1614.101 1138.535 C 1628.871 1118.324 1653.746 1107.832 1686.003 1107.832 "/>
+        </g>
+      </g>
+      <g clip-path="url(#bb-word-shape)"><rect id="bb-sweep" x="-300" y="990" width="285" height="370" fill="url(#bb-shine)"/></g>
+      <g id="bb-games">
+        <path class="gm" fill="#57ADE1" d="M 633.066 1515.843 L 633.066 1473.031 L 653.167 1473.031 L 653.167 1518.621 Z M 608.390 1533.164 C 599.457 1533.164 591.257 1531.718 583.796 1528.835 C 576.335 1525.949 569.824 1521.867 564.269 1516.578 C 558.714 1511.296 554.410 1505.058 551.359 1497.867 C 548.308 1490.679 546.785 1482.835 546.785 1474.335 C 546.785 1465.839 548.308 1457.996 551.359 1450.804 C 554.410 1443.617 558.738 1437.378 564.351 1432.093 C 569.960 1426.812 576.527 1422.726 584.042 1419.839 C 591.558 1416.953 599.785 1415.507 608.718 1415.507 C 618.414 1415.507 627.156 1417.089 634.945 1420.246 C 642.734 1423.410 649.296 1428.039 654.636 1434.136 L 641.238 1447.210 C 636.769 1442.746 631.949 1439.449 626.773 1437.324 C 621.601 1435.199 615.910 1434.136 609.699 1434.136 C 603.707 1434.136 598.148 1435.117 593.031 1437.078 C 587.910 1439.039 583.496 1441.820 579.792 1445.414 C 576.089 1449.007 573.230 1453.257 571.214 1458.160 C 569.199 1463.062 568.191 1468.453 568.191 1474.335 C 568.191 1480.113 569.199 1485.449 571.214 1490.351 C 573.230 1495.253 576.089 1499.531 579.792 1503.179 C 583.496 1506.832 587.855 1509.632 592.867 1511.593 C 597.875 1513.554 603.433 1514.535 609.535 1514.535 C 615.199 1514.535 620.671 1513.636 625.957 1511.839 C 631.242 1510.042 636.277 1507.019 641.074 1502.769 L 653.167 1518.621 C 647.175 1523.417 640.230 1527.039 632.332 1529.488 C 624.433 1531.941 616.453 1533.164 608.390 1533.164 "/>
+        <path class="gm" fill="#57ADE1" d="M 770.332 1505.058 L 776.050 1488.390 L 837.820 1488.390 L 843.539 1505.058 Z M 746.636 1531.531 L 798.113 1417.144 L 819.027 1417.144 L 870.667 1531.531 L 848.441 1531.531 L 804.156 1428.417 L 812.656 1428.417 L 768.535 1531.531 Z M 746.636 1531.531 "/>
+        <path class="gm" fill="#57ADE1" d="M 966.914 1531.531 L 966.914 1417.144 L 984.402 1417.144 L 1034.406 1500.648 L 1025.253 1500.648 L 1074.441 1417.144 L 1091.925 1417.144 L 1092.089 1531.531 L 1071.992 1531.531 L 1071.828 1448.679 L 1076.074 1448.679 L 1034.242 1518.457 L 1024.765 1518.457 L 982.277 1448.679 L 987.179 1448.679 L 987.179 1531.531 Z M 966.914 1531.531 "/>
+        <path class="gm" fill="#57ADE1" d="M 1224.289 1464.695 L 1281.156 1464.695 L 1281.156 1482.179 L 1224.289 1482.179 Z M 1225.921 1513.718 L 1290.472 1513.718 L 1290.472 1531.531 L 1204.679 1531.531 L 1204.679 1417.144 L 1288.183 1417.144 L 1288.183 1434.953 L 1225.921 1434.953 Z M 1225.921 1513.718 "/>
+        <path class="gm" fill="#57ADE1" d="M 1431.332 1533.164 C 1422.398 1533.164 1413.847 1531.882 1405.679 1529.324 C 1397.507 1526.769 1391.023 1523.472 1386.230 1519.437 L 1393.585 1502.933 C 1398.160 1506.531 1403.824 1509.527 1410.578 1511.921 C 1417.332 1514.320 1424.25 1515.519 1431.332 1515.519 C 1437.324 1515.519 1442.171 1514.863 1445.878 1513.558 C 1449.578 1512.25 1452.304 1510.480 1454.046 1508.246 C 1455.789 1506.015 1456.660 1503.480 1456.660 1500.648 C 1456.660 1497.160 1455.406 1494.355 1452.902 1492.230 C 1450.394 1490.105 1447.156 1488.417 1443.179 1487.164 C 1439.203 1485.914 1434.789 1484.742 1429.945 1483.652 C 1425.097 1482.562 1420.246 1481.281 1415.398 1479.812 C 1410.550 1478.339 1406.140 1476.437 1402.164 1474.093 C 1398.187 1471.75 1394.945 1468.617 1392.441 1464.695 C 1389.933 1460.773 1388.683 1455.765 1388.683 1449.660 C 1388.683 1443.453 1390.343 1437.761 1393.664 1432.585 C 1396.988 1427.414 1402.054 1423.269 1408.863 1420.164 C 1415.671 1417.062 1424.308 1415.507 1434.765 1415.507 C 1441.628 1415.507 1448.437 1416.382 1455.191 1418.125 C 1461.945 1419.867 1467.828 1422.371 1472.839 1425.640 L 1466.140 1442.144 C 1461.019 1439.097 1455.734 1436.835 1450.289 1435.363 C 1444.839 1433.894 1439.609 1433.156 1434.601 1433.156 C 1428.718 1433.156 1423.949 1433.867 1420.304 1435.281 C 1416.652 1436.699 1413.984 1438.550 1412.296 1440.835 C 1410.605 1443.125 1409.761 1445.738 1409.761 1448.683 C 1409.761 1452.167 1410.988 1454.972 1413.437 1457.097 C 1415.890 1459.222 1419.101 1460.882 1423.082 1462.082 C 1427.058 1463.281 1431.496 1464.449 1436.398 1465.593 C 1441.300 1466.738 1446.175 1468.019 1451.023 1469.437 C 1455.871 1470.851 1460.281 1472.703 1464.261 1474.992 C 1468.234 1477.277 1471.449 1480.382 1473.902 1484.304 C 1476.355 1488.226 1477.578 1493.187 1477.578 1499.175 C 1477.578 1505.277 1475.917 1510.917 1472.593 1516.089 C 1469.269 1521.265 1464.179 1525.402 1457.316 1528.507 C 1450.453 1531.613 1441.792 1533.164 1431.332 1533.164 "/>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   SMUSH! · BluBer Games
+   Módulos (en orden): configuración · guardado · idioma · sonido · vibración
+   · campo y sprites · bolitas · efectos · herramientas · economía · interfaz
+   · bucle principal · intros
+   ===================================================================== */
+
+/* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
+const VERSION = "0.1.0";
+const SAVE_KEY = "smush-save-v1";
+const SETTINGS_KEY = "smush-settings-v1";
+
+// Bolitas. r = radio en px; speed = px/s; hp = puntos de daño; weight = probabilidad relativa de aparecer
+const BALL_TYPES = {
+  green:  { color: "#6BCB9B", r: 22, speed: 34, hp: 1, reward: 1,  weight: 58, pitch: 330 },
+  orange: { color: "#FF9E55", r: 15, speed: 92, hp: 1, reward: 3,  weight: 26, pitch: 440 },
+  purple: { color: "#A584E8", r: 32, speed: 26, hp: 3, reward: 10, weight: 13, pitch: 230 },
+  yellow: { color: "#F1C84D", r: 22, speed: 58, hp: 1, reward: 25, weight: 3,  pitch: 392 },
+};
+const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
+
+// Aparición: entre 12 y 20 bolitas según el tamaño del área y el rendimiento del equipo
+const SPAWN = {
+  min: 12, max: 20,
+  areaPerBall: 15000,     // px² de área de juego por bolita
+  delayMin: 0.25, delayMax: 0.6, // pausa normal entre una bolita y la siguiente (s)
+  fastDelay: 0.1,         // pausa cuando faltan muchas
+  yellowGap: 9,           // segundos mínimos entre doradas (y nunca dos a la vez)
+  edge: 6,                // margen contra los bordes del área
+};
+
+// Herramientas. price = compra; upgrades = precio de nivel 2 y nivel 3; los arreglos son [nivel 1, 2, 3]
+const TOOLS = {
+  finger: { price: 0,    upgrades: [60, 400],     damage: [1, 2, 3], slop: 10 },
+  boot:   { price: 100,  upgrades: [350, 1200],   radius: [45, 65, 85] },
+  spray:  { price: 500,  upgrades: [1500, 4000],  radius: [50, 60, 72], interval: [0.45, 0.36, 0.28] },
+  bolt:   { price: 1500, upgrades: [4000, 10000], chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
+};
+const TOOL_ORDER = ["finger", "boot", "spray", "bolt"];
+
+// Íconos de las herramientas (trazo, toman el color del texto)
+const ICONS = {
+  finger: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M6.5 7.6a7 7 0 0 0 0 8.8M17.5 7.6a7 7 0 0 1 0 8.8"/><path d="M3.6 5.3a10.6 10.6 0 0 0 0 13.4M20.4 5.3a10.6 10.6 0 0 1 0 13.4" opacity=".45"/></svg>',
+  boot:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14M13 7h-3M13 10h-3"/></svg>',
+  spray:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="9" width="9" height="12" rx="2.4"/><path d="M6.8 9V6.2h4.4V9M9 6.2V4h3"/><circle cx="17.2" cy="4.6" r=".6" fill="currentColor"/><circle cx="19.6" cy="7.4" r=".6" fill="currentColor"/><circle cx="16.6" cy="9" r=".6" fill="currentColor"/><circle cx="19.8" cy="11.4" r=".6" fill="currentColor"/></svg>',
+  bolt:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6.2L10 21.5l9-11.6h-6.3z"/></svg>',
+};
+
+/* ---------- 2. Guardado automático (localStorage) ---------- */
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const TAU = Math.PI * 2;
+
+const freshSave = () => ({
+  coins: 0, earned: 0, smushed: 0,
+  byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
+  tools: { finger: 1, boot: 0, spray: 0, bolt: 0 }, // 0 = sin comprar; 1–3 = nivel
+  tool: "finger", hinted: false,
+});
+function loadSave() {
+  const d = freshSave();
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    if (!s || typeof s !== "object") return d;
+    const num = (v) => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+    d.coins = num(s.coins); d.earned = num(s.earned); d.smushed = num(s.smushed);
+    TYPE_ORDER.forEach((k) => { d.byType[k] = num(s.byType && s.byType[k]); });
+    TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(num(s.tools && s.tools[k]), k === "finger" ? 1 : 0, 3); });
+    if (TOOLS[s.tool] && d.tools[s.tool] > 0) d.tool = s.tool;
+    d.hinted = !!s.hinted;
+  } catch (e) {}
+  return d;
+}
+let save = loadSave();
+let saveTimer = 0;
+function writeSave() {
+  clearTimeout(saveTimer); saveTimer = 0;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+}
+function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
+
+const settings = { sound: true, vibe: true, theme: "auto", lang: "en" };
+try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); } catch (e) {}
+const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} };
+
+/* ---------- 3. Idioma: inglés por defecto, español en Ajustes ---------- */
+const STR = {
+  smushed: ["smushed", "aplastadas"],
+  shop: ["Shop", "Tienda"],
+  settings: ["Settings", "Ajustes"],
+  sound: ["Sound", "Sonido"],
+  vibration: ["Vibration", "Vibración"],
+  theme: ["Theme", "Tema"],
+  auto: ["Auto", "Auto"], light: ["Light", "Claro"], dark: ["Dark", "Oscuro"],
+  language: ["Language", "Idioma"],
+  records: ["Records", "Récords"],
+  totalSmushed: ["Dots smushed", "Bolitas aplastadas"],
+  coinsEarned: ["Coins earned", "Monedas ganadas"],
+  howTo: ["How to play", "Cómo jugar"],
+  how1: ["Tap the dots to smush them and earn coins.", "Toca las bolitas para aplastarlas y ganar monedas."],
+  how2: ["Spend coins in the Shop on new tools and upgrades.", "Usa tus monedas en la Tienda para comprar herramientas y mejoras."],
+  how3: ["Switch tools anytime from the bar below. Hold to use the Spray.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado para usar el Spray."],
+  how4: ["Purple dots need 3 hits. Golden ones are rare and worth 25.", "Las moradas necesitan 3 golpes. Las doradas son raras y valen 25."],
+  data: ["Data", "Datos"],
+  reset: ["Reset progress", "Reiniciar progreso"],
+  resetQ: ["Reset progress?", "¿Reiniciar el progreso?"],
+  resetMsg: ["Your coins, tools and records will be erased. This can't be undone.", "Se borrarán tus monedas, herramientas y récords. No se puede deshacer."],
+  cancel: ["Cancel", "Cancelar"],
+  resetBtn: ["Reset", "Reiniciar"],
+  about: ["About", "Acerca de"],
+  version: ["Version", "Versión"],
+  website: ["Website", "Sitio web"],
+  support: ["Support", "Soporte"],
+  hint: ["Tap the dots to smush them", "Toca las bolitas para aplastarlas"],
+  buy: ["Buy", "Comprar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
+  finger: ["Finger", "Dedo"], boot: ["Boot", "Bota"], spray: ["Spray", "Spray"], bolt: ["Bolt", "Rayo"],
+  fingerD: ["Tap a dot to smush it.", "Toca una bolita para aplastarla."],
+  bootD: ["Stomps every dot in a circle.", "Aplasta todas las bolitas de un círculo."],
+  sprayD: ["Hold to mist an area.", "Mantén presionado para rociar un área."],
+  boltD: ["Zaps a dot and arcs to its neighbors.", "Electrocuta una bolita y salta a las cercanas."],
+  green: ["Green", "Verdes"], orange: ["Orange", "Naranjas"], purple: ["Purple", "Moradas"], yellow: ["Golden", "Doradas"],
+  by: ["by BluBer Games", "por BluBer Games"],
+  shopSub: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
+};
+let LANG = settings.lang === "es" ? "es" : "en";
+const tx = (k) => (STR[k] ? STR[k][LANG === "es" ? 1 : 0] : k);
+const fmt = (n) => {
+  const loc = LANG === "es" ? "es-MX" : "en-US";
+  if (n < 100000) return Math.floor(n).toLocaleString(loc);
+  return new Intl.NumberFormat(loc, { notation: "compact", maximumFractionDigits: 1 }).format(n);
+};
+// Texto de la estadística de cada herramienta en un nivel (1–3)
+function statText(id, lvl) {
+  const i = lvl - 1, es = LANG === "es";
+  if (id === "finger") { const d = TOOLS.finger.damage[i]; return es ? `${d} de daño por toque` : `${d} damage per tap`; }
+  if (id === "boot") { const r = TOOLS.boot.radius[i]; return es ? `Radio de ${r} px` : `${r} px radius`; }
+  if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · hits every ${v}s`; }
+  const n = TOOLS.bolt.chains[i]; return es ? `+${n} bolitas en cadena` : `+${n} chained dots`;
+}
+// Versión corta, para la flecha "→ siguiente nivel" de la Tienda
+function statShort(id, lvl) {
+  const i = lvl - 1;
+  if (id === "finger") return String(TOOLS.finger.damage[i]);
+  if (id === "boot") return `${TOOLS.boot.radius[i]} px`;
+  if (id === "spray") return `${TOOLS.spray.radius[i]} px · ${TOOLS.spray.interval[i]}${LANG === "es" ? " s" : "s"}`;
+  return `+${TOOLS.bolt.chains[i]}`;
+}
+
+/* ---------- 4. Sonido (Web Audio, sin archivos): cálido, suave, tipo ASMR ---------- */
+const Sound = (() => {
+  let ctx = null, master = null, noiseBuf = null, unlocked = false;
+  // Cadena de salida cálida: filtro que quita lo agudo, compresor suave y una reverberación corta
+  function build(c) {
+    ctx = c;
+    master = ctx.createGain(); master.gain.value = 0.5;
+    const warm = ctx.createBiquadFilter(); warm.type = "lowpass"; warm.frequency.value = 3400; warm.Q.value = 0.4;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -20; comp.knee.value = 18; comp.ratio.value = 3; comp.attack.value = 0.004; comp.release.value = 0.25;
+    master.connect(warm).connect(comp).connect(ctx.destination);
+    try {
+      const len = Math.floor(ctx.sampleRate * 1.4), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = ir.getChannelData(ch); let lp = 0;
+        for (let i = 0; i < len; i++) { lp += (Math.random() * 2 - 1 - lp) * 0.35; d[i] = lp * Math.pow(1 - i / len, 3.4); }
+      }
+      const verb = ctx.createConvolver(); verb.buffer = ir;
+      const wet = ctx.createGain(); wet.gain.value = 0.22;
+      master.connect(verb).connect(wet).connect(comp);
+    } catch (e) {}
+  }
+  function ensure() {
+    if (!settings.sound || !unlocked) return null;
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { build(new AC()); watch(ctx); } catch (e) { return null; }
+    }
+    if (ctx.state !== "running") ctx.resume().catch(() => {});
+    return ctx;
+  }
+  // iPhone: tras una interrupción el AudioContext puede quedar "zombi" (dice que suena pero no avanza).
+  // En cada toque se revisa y, si hace falta, se arma uno nuevo.
+  let stale = false, lastT = -1, lastWall = 0;
+  function healthy() {
+    if (!ctx) return true;
+    if (stale || ctx.state === "closed" || ctx.state !== "running") return false;
+    const now = performance.now(), t = ctx.currentTime;
+    const frozen = lastWall && now - lastWall > 600 && t === lastT;
+    lastT = t; lastWall = now;
+    return !frozen;
+  }
+  function rebuild() {
+    const old = ctx;
+    ctx = null; master = null; noiseBuf = null; stale = false; lastT = -1; lastWall = 0;
+    try { old && old.close && old.close(); } catch (e) {}
+  }
+  function watch(c) {
+    try { c.addEventListener("statechange", () => { if (c === ctx && c.state !== "running") stale = c.state === "interrupted" || c.state === "closed" || stale; }); } catch (e) {}
+  }
+  const isNativeApp = () => document.documentElement.classList.contains("native");
+  // Safari: un sonido mudo durante un toque pone la sesión en "reproducción" (se oye con el interruptor de silencio)
+  const SILENT = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
+  let primed = false;
+  function primeMedia() {
+    if (primed) return;
+    primed = true;
+    try {
+      const a = new Audio(SILENT); a.setAttribute("playsinline", "");
+      const p = a.play(); if (p && p.catch) p.catch(() => { primed = false; });
+    } catch (e) { primed = false; }
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !ctx) return;
+    lastT = -1; lastWall = 0;
+    if (ctx.state !== "running") ctx.resume().catch(() => { stale = true; });
+  });
+  function tone(freq, o = {}) {
+    const c = ensure(); if (!c) return;
+    const { t = 0, dur = 0.15, type = "sine", vol = 0.3, slide = 0, attack = 0.008 } = o;
+    const t0 = c.currentTime + Math.max(0, t), osc = c.createOscillator(), g = c.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t0);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(master); osc.start(t0); osc.stop(t0 + dur + 0.03);
+  }
+  function noise(o = {}) {
+    const c = ensure(); if (!c) return;
+    const { t = 0, dur = 0.12, vol = 0.2, freq = 2000, q = 1, sweep = 0, attack = 0.01, kind = "bandpass" } = o;
+    if (!noiseBuf) {
+      noiseBuf = c.createBuffer(1, Math.floor(c.sampleRate * 0.5), c.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t0 = c.currentTime + Math.max(0, t), src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = noiseBuf; f.type = kind; f.Q.value = q;
+    f.frequency.setValueAtTime(freq, t0);
+    if (sweep) f.frequency.exponentialRampToValueAtTime(freq * sweep, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f).connect(g).connect(master); src.loop = true; src.start(t0, Math.random() * 0.4); src.stop(t0 + dur + 0.03);
+  }
+  const vary = (x, amt = 0.03) => x * (1 + (Math.random() * 2 - 1) * amt);
+  // Nota tipo kalimba, en tonos medios (solo para premios)
+  function pluck(f, o = {}) {
+    const { t = 0, vol = 0.1, dur = 1.1 } = o;
+    f = vary(f, 0.004);
+    tone(f, { t, dur, vol, attack: 0.01 });
+    tone(f * 2, { t, dur: dur * 0.35, vol: vol * 0.12, attack: 0.006 });
+  }
+  // Golpecito sordo, sin nota
+  function thump(o = {}) {
+    const { t = 0, vol = 0.2 } = o;
+    const f = vary(210, 0.08);
+    tone(f, { t, dur: 0.07, vol, slide: 0.55, attack: 0.002 });
+    noise({ t, dur: 0.05, vol: vol * 0.55, freq: vary(520, 0.12), q: 0.5, attack: 0.002, kind: "lowpass" });
+  }
+  function breath(o = {}) {
+    const { t = 0, dur = 0.26, vol = 0.04, from = 700, to = 1500 } = o;
+    noise({ t, dur, vol, freq: vary(from, 0.08), sweep: to / from, q: 0.6, attack: dur * 0.45 });
+  }
+  let lastPop = 0, popsInRow = 0;
+  return {
+    get on() { return settings.sound; },
+    set(v) { settings.sound = v; saveSettings(); if (v) this.unlock(); },
+    unlock() {
+      unlocked = true;
+      const type = isNativeApp() ? "ambient" : "playback";
+      try { if (navigator.audioSession && navigator.audioSession.type !== type) navigator.audioSession.type = type; } catch (e) {}
+      if (settings.sound && ctx && !healthy()) rebuild();
+      if (settings.sound && !isNativeApp()) primeMedia();
+      ensure();
+    },
+    whenRunning(cb) {
+      const c = ensure(); if (!c) return;
+      if (c.state === "running") { cb(); return; }
+      c.resume().then(() => { if (c.state === "running") cb(); }).catch(() => {});
+    },
+    // ¿El navegador deja sonar sin que la persona toque primero?
+    probe() {
+      if (!settings.sound) return false;
+      if (isNativeApp()) { try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch (e) {} }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      try {
+        const c = new AC();
+        if (c.state === "running") { build(c); watch(c); unlocked = true; return true; }
+        c.close && c.close();
+      } catch (e) {}
+      return false;
+    },
+    // Pop suave al aplastar: una burbujita que sube y un golpecito sordo. Si caen muchas juntas, se agrupan.
+    pop(type) {
+      const c = ensure(); if (!c) return;
+      const now = c.currentTime;
+      if (now - lastPop < 0.028) return;
+      popsInRow = now - lastPop < 0.25 ? Math.min(popsInRow + 1, 6) : 0;
+      lastPop = now;
+      const f = vary(BALL_TYPES[type].pitch * (1 + popsInRow * 0.035), 0.04);
+      tone(f * 0.72, { dur: 0.075, vol: 0.15, slide: 1.85, attack: 0.002 });
+      tone(f * 0.5, { dur: 0.06, vol: 0.08, slide: 0.6, attack: 0.002 });
+      noise({ dur: 0.04, vol: 0.07, freq: vary(800, 0.1), q: 0.6, attack: 0.002, kind: "lowpass" });
+      if (type === "purple") thump({ vol: 0.12 });
+      // La dorada es un premio: campanita
+      if (type === "yellow") { pluck(659.25, { t: 0.05, vol: 0.075, dur: 1.3 }); pluck(987.77, { t: 0.13, vol: 0.04, dur: 1.3 }); }
+    },
+    hit() { thump({ vol: 0.11 }); },
+    stomp() { tone(120, { dur: 0.16, vol: 0.2, slide: 0.6, attack: 0.003 }); noise({ dur: 0.14, vol: 0.1, freq: 320, q: 0.5, attack: 0.003, kind: "lowpass" }); },
+    hiss() { noise({ dur: 0.2, vol: 0.022, freq: vary(2300, 0.08), q: 0.8, attack: 0.06 }); },
+    zap() {
+      noise({ dur: 0.16, vol: 0.05, freq: 1500, q: 2.5, sweep: 0.45, attack: 0.004 });
+      tone(180, { dur: 0.12, vol: 0.05, slide: 0.6, type: "triangle", attack: 0.003 });
+    },
+    miss() { noise({ dur: 0.03, vol: 0.03, freq: 700, q: 0.7, attack: 0.002, kind: "lowpass" }); },
+    tick() { noise({ dur: 0.035, vol: 0.09, freq: 1000, q: 0.7, attack: 0.002, kind: "lowpass" }); },
+    nope() { thump({ vol: 0.1 }); thump({ t: 0.09, vol: 0.07 }); },
+    toggle(onNow) { pluck(onNow ? 392 : 329.63, { vol: 0.06, dur: 0.6 }); pluck(onNow ? 523.25 : 261.63, { t: 0.09, vol: 0.045, dur: 0.7 }); },
+    // Compra: arpegio corto que sube un poco más con cada nivel
+    buy(level) {
+      const notes = [[392, 523.25, 659.25], [440, 587.33, 739.99], [523.25, 659.25, 783.99, 1046.5]][clamp(level, 0, 2)];
+      notes.forEach((f, i) => pluck(f, { t: i * 0.09, vol: 0.08, dur: 1.4 }));
+    },
+    drop(i) { thump({ vol: 0.13 }); },
+    // Intro del estudio: el oso aparece con un soplo y una nota grave, golpecitos suaves por letra
+    studio(from = 0) {
+      const c = ensure(); if (!c) return;
+      const at = (o) => Object.assign({}, o, { t: o.t - from });
+      const P = (f, o) => { if (o.t >= from) pluck(f, at(o)); };
+      const H = (o) => { if (o.t >= from) thump(at(o)); };
+      const B = (o) => { if (o.t >= from) breath(at(o)); };
+      B({ t: 0.25, dur: 1.1, vol: 0.022, from: 300, to: 800 });
+      P(293.66, { t: 0.35, vol: 0.055, dur: 2 });
+      P(440, { t: 0.5, vol: 0.03, dur: 1.8 });
+      for (let i = 0; i < 6; i++) H({ t: 1.25 + i * 0.07, vol: 0.05 });
+      P(392, { t: 1.95, vol: 0.045, dur: 1.8 });
+      P(587.33, { t: 2.07, vol: 0.03, dur: 1.8 });
+      B({ t: 2.8, dur: 0.9, vol: 0.012, from: 1800, to: 3200 });
+    },
+  };
+})();
+
+/* ---------- 5. Vibración: plugin Haptics en la app; navigator.vibrate donde exista ---------- */
+const isNative = () => document.documentElement.classList.contains("native");
+const nativePlugin = (name) => { try { return isNative() ? window.Capacitor.Plugins[name] : null; } catch (e) { return null; } };
+let lastBuzz = 0;
+function buzz(ms) {
+  if (!settings.vibe) return;
+  const now = performance.now();
+  if (!Array.isArray(ms) && ms < 12 && now - lastBuzz < 40) return; // los toques chiquitos no se amontonan
+  lastBuzz = now;
+  const H = nativePlugin("Haptics");
+  if (H) {
+    const p = Array.isArray(ms) ? ms : [ms];
+    let at = 0;
+    p.forEach((d, i) => {
+      if (i % 2 === 0) setTimeout(() => { try { H.impact({ style: d >= 30 ? "HEAVY" : d >= 15 ? "MEDIUM" : "LIGHT" }); } catch (e) {} }, at);
+      at += d;
+    });
+    return;
+  }
+  // El navegador solo deja vibrar después del primer toque
+  if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) { try { navigator.vibrate(ms); } catch (e) {} }
+}
+// App de iOS: toque háptico ligero en todos los botones
+if (isNative()) {
+  document.addEventListener("pointerdown", (e) => {
+    if (!settings.vibe) return;
+    const b = e.target.closest("button, a[href]");
+    if (!b || b.disabled) return;
+    const H = nativePlugin("Haptics");
+    if (H) { try { H.impact({ style: "LIGHT" }); } catch (err) {} }
+  }, { capture: true, passive: true });
+}
+
+/* ---------- 6. Campo de juego, colores y sprites pre-dibujados ---------- */
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const field = $("#field"), cv = $("#cv"), ctx = cv.getContext("2d");
+let W = 0, H = 0, DPR = 1;
+const PAL = {};
+
+function hexRgb(h) { h = h.replace("#", ""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
+function mix(hex, to, k) { const a = hexRgb(hex), b = hexRgb(to); return "rgb(" + a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(",") + ")"; }
+
+function readPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n) => cs.getPropertyValue(n).trim();
+  PAL.dark = v("--is-dark") === "1";
+  PAL.text = v("--text"); PAL.mist = v("--mist");
+  PAL.boltCore = PAL.dark ? "rgba(255,255,255," : "rgba(84,116,214,";
+  PAL.boltGlow = PAL.dark ? "rgba(150,178,255," : "rgba(126,160,242,";
+  for (const k of TYPE_ORDER) {
+    const T = BALL_TYPES[k];
+    T.light = mix(T.color, "#FFFFFF", 0.4);
+    T.label = PAL.dark ? mix(T.color, "#FFFFFF", 0.2) : mix(T.color, "#000000", 0.32);
+  }
+}
+
+// Cada tipo de bolita se dibuja una vez (degradado, brillo y sombra) y luego solo se copia: rápido en móviles
+const sprites = {};
+function buildSprites() {
+  for (const k of TYPE_ORDER) {
+    const T = BALL_TYPES[k], r = T.r, pad = Math.ceil(r * 0.55), size = (r + pad) * 2;
+    const c = document.createElement("canvas");
+    c.width = c.height = Math.ceil(size * DPR);
+    const g = c.getContext("2d");
+    g.scale(DPR, DPR);
+    const cx = size / 2, cy = size / 2;
+    g.save();
+    g.shadowColor = PAL.dark ? "rgba(0,0,0,0.42)" : "rgba(70,60,30,0.16)";
+    g.shadowBlur = r * 0.55; g.shadowOffsetY = r * 0.2;
+    g.fillStyle = T.color; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
+    g.restore();
+    const body = g.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.05, cx, cy, r);
+    body.addColorStop(0, mix(T.color, "#FFFFFF", 0.3)); body.addColorStop(0.62, T.color); body.addColorStop(1, mix(T.color, "#000000", 0.07));
+    g.fillStyle = body; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
+    const hx = cx - r * 0.36, hy = cy - r * 0.42, hl = g.createRadialGradient(hx, hy, 0, hx, hy, r * 0.5);
+    hl.addColorStop(0, "rgba(255,255,255,0.55)"); hl.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = hl; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
+    sprites[k] = { c, size };
+  }
+  // Halo de la dorada
+  const r = BALL_TYPES.yellow.r * 2, c = document.createElement("canvas");
+  c.width = c.height = Math.ceil(r * 2 * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR);
+  const gr = g.createRadialGradient(r, r, 0, r, r, r);
+  gr.addColorStop(0, "rgba(241,200,77,0.55)"); gr.addColorStop(0.45, "rgba(241,200,77,0.18)"); gr.addColorStop(1, "rgba(241,200,77,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, r * 2, r * 2);
+  sprites.halo = { c, size: r * 2 };
+}
+
+let baseTarget = SPAWN.min;
+function resize() {
+  const r = field.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2); // más de 2× no se nota y cuesta batería
+  const changedDpr = dpr !== DPR;
+  W = r.width; H = r.height; DPR = dpr;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (changedDpr || !sprites.green) buildSprites();
+  for (const b of balls) { b.x = clamp(b.x, b.r, Math.max(b.r, W - b.r)); b.y = clamp(b.y, b.r, Math.max(b.r, H - b.r)); }
+  baseTarget = clamp(Math.round((W * H) / SPAWN.areaPerBall), SPAWN.min, SPAWN.max);
+}
+
+/* ---------- 7. Bolitas: aparición, movimiento orgánico y rebotes suaves ---------- */
+const balls = [];
+const DIE = 0.22; // duración de la animación de aplastado (s)
+let time = 0, playing = false, spawnClock = 0, lastYellow = -99;
+
+function pickType() {
+  let total = 0;
+  for (const k of TYPE_ORDER) total += BALL_TYPES[k].weight;
+  let x = Math.random() * total;
+  let type = "green";
+  for (const k of TYPE_ORDER) { x -= BALL_TYPES[k].weight; if (x <= 0) { type = k; break; } }
+  if (type === "yellow" && (time - lastYellow < SPAWN.yellowGap || balls.some((b) => b.type === "yellow" && b.state !== "die"))) type = "green";
+  return type;
+}
+function spawnBall() {
+  const type = pickType(), T = BALL_TYPES[type], m = T.r + SPAWN.edge;
+  if (W < m * 2 || H < m * 2) return;
+  let x = 0, y = 0;
+  // Busca un lugar libre, lejos de otras bolitas y del dedo
+  for (let i = 0; i < 16; i++) {
+    x = rand(m, W - m); y = rand(m, H - m);
+    let ok = true;
+    for (const b of balls) { const d = T.r + b.r + 12; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
+    for (const p of pointers.values()) { if ((p.x - x) ** 2 + (p.y - y) ** 2 < (T.r + 40) ** 2) { ok = false; break; } }
+    if (ok) break;
+  }
+  if (type === "yellow") lastYellow = time;
+  const a = Math.random() * TAU, sp = T.speed * rand(0.85, 1.15);
+  balls.push({
+    type, T, x, y, r: T.r, hp: T.hp, heading: a, speed: sp, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+    f1: rand(0.3, 0.8), f2: rand(0.9, 1.7), f3: rand(0.2, 0.5), p1: rand(0, TAU), p2: rand(0, TAU), p3: rand(0, TAU),
+    turn: rand(0.6, 1.1), state: "in", t: 0, squash: 0, flash: 0, lastSpray: -99,
+  });
+}
+function aliveCount() { let n = 0; for (const b of balls) if (b.state !== "die") n++; return n; }
+
+function spawnStep(dt) {
+  const target = Math.min(baseTarget, perfCap);
+  const alive = aliveCount();
+  if (alive >= target) { spawnClock = Math.max(spawnClock, 0.2); return; }
+  spawnClock -= dt;
+  if (spawnClock <= 0) {
+    spawnBall();
+    spawnClock = target - alive - 1 > 4 ? SPAWN.fastDelay : rand(SPAWN.delayMin, SPAWN.delayMax);
+  }
+}
+
+function updateBalls(dt) {
+  for (let i = balls.length - 1; i >= 0; i--) {
+    const b = balls[i];
+    b.t += dt;
+    if (b.state === "die") { if (b.t >= DIE) balls.splice(i, 1); continue; }
+    if (b.state === "in" && b.t >= 0.4) b.state = "live";
+    // Rumbo que serpentea con dos ondas lentas: trayectorias orgánicas, nunca iguales
+    const wob = Math.sin(time * b.f1 + b.p1) + 0.6 * Math.sin(time * b.f2 + b.p2);
+    b.heading += wob * b.turn * dt;
+    const sp = b.speed * (0.82 + 0.18 * Math.sin(time * b.f3 + b.p3));
+    const k = Math.min(1, dt * 2.5);
+    b.vx += (Math.cos(b.heading) * sp - b.vx) * k;
+    b.vy += (Math.sin(b.heading) * sp - b.vy) * k;
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    // Rebote contra los bordes del área
+    const r = b.r;
+    let bounced = false;
+    if (b.x < r) { b.x = r; b.vx = Math.abs(b.vx); bounced = true; }
+    else if (b.x > W - r) { b.x = W - r; b.vx = -Math.abs(b.vx); bounced = true; }
+    if (b.y < r) { b.y = r; b.vy = Math.abs(b.vy); bounced = true; }
+    else if (b.y > H - r) { b.y = H - r; b.vy = -Math.abs(b.vy); bounced = true; }
+    if (bounced) b.heading = Math.atan2(b.vy, b.vx);
+    b.squash = Math.max(0, b.squash - dt / 0.22);
+    b.flash = Math.max(0, b.flash - dt / 0.18);
+  }
+  // Separación suave para que no se encimen
+  const push = Math.min(1, dt * 8);
+  for (let i = 0; i < balls.length; i++) {
+    const a = balls[i]; if (a.state === "die") continue;
+    for (let j = i + 1; j < balls.length; j++) {
+      const b = balls[j]; if (b.state === "die") continue;
+      const dx = b.x - a.x, dy = b.y - a.y, min = a.r + b.r + 2, d2 = dx * dx + dy * dy;
+      if (d2 >= min * min || d2 < 0.01) continue;
+      const d = Math.sqrt(d2), o = (min - d) * 0.5 * push, nx = dx / d, ny = dy / d;
+      a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o;
+    }
+  }
+}
+
+/* ---------- 8. Efectos: partículas, anillos, textos flotantes, rayos (con reciclaje) ---------- */
+const parts = [], pool = [], rings = [], texts = [], bolts = [];
+const MAX_PARTS = 360;
+let lowFx = false;
+function part(x, y, vx, vy, r, life, color, kind = "dot", drag = 4, g = 0, a = 1) {
+  if (parts.length >= MAX_PARTS) return;
+  const p = pool.pop() || {};
+  p.x = x; p.y = y; p.vx = vx; p.vy = vy; p.r = r; p.life = life; p.t = 0; p.color = color; p.kind = kind; p.drag = drag; p.g = g; p.a = a;
+  parts.push(p);
+}
+function ring(x, y, r0, r1, dur, color, width, alpha = 0.5, fill = 0) { rings.push({ x, y, r0, r1, dur, color, width, alpha, fill, t: 0 }); }
+function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, size, t: 0, dur: 0.85, dx: rand(-6, 6) }); }
+
+// Explosión al aplastar: anillo que se expande y partículas del mismo color
+function burst(b) {
+  const T = b.T, n = (lowFx ? 0.6 : 1) * (b.type === "purple" || b.type === "yellow" ? 14 : b.type === "orange" ? 8 : 10);
+  for (let i = 0; i < n; i++) {
+    const a = rand(0, TAU), s = rand(70, 210) * (b.r / 22) ** 0.5;
+    part(b.x + Math.cos(a) * b.r * 0.4, b.y + Math.sin(a) * b.r * 0.4, Math.cos(a) * s, Math.sin(a) * s, rand(2, 4.2) * (b.r / 22) ** 0.6, rand(0.4, 0.65), i % 3 ? T.color : T.light, "dot", 5, 50);
+  }
+  ring(b.x, b.y, b.r * 0.8, b.r * 1.9, 0.38, T.color, 3, 0.45);
+  if (b.type === "yellow") ring(b.x, b.y, b.r, b.r * 2.8, 0.6, T.color, 2, 0.35);
+}
+function jag(x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, n = Math.max(3, Math.round(d / 14));
+  const nx = -dy / d, ny = dx / d, amp = Math.min(9, d * 0.09), pts = [[x1, y1]];
+  for (let i = 1; i < n; i++) { const u = i / n, o = (Math.random() * 2 - 1) * amp * Math.sin(u * Math.PI); pts.push([x1 + dx * u + nx * o, y1 + dy * u + ny * o]); }
+  pts.push([x2, y2]);
+  return pts;
+}
+function updateFx(dt) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.t += dt;
+    if (p.t >= p.life) { parts[i] = parts[parts.length - 1]; parts.pop(); pool.push(p); continue; }
+    const dr = Math.exp(-p.drag * dt);
+    p.vx *= dr; p.vy = p.vy * dr + p.g * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+  }
+  for (const arr of [rings, texts, bolts]) for (let i = arr.length - 1; i >= 0; i--) { arr[i].t += dt; if (arr[i].t >= arr[i].dur) arr.splice(i, 1); }
+}
+
+/* ---------- 9. Herramientas ---------- */
+const pointers = new Map(); // dedos o mouse presionados
+let hover = null;           // posición del mouse (para el cursor dibujado)
+const timers = [];          // acciones programadas en tiempo de juego (cadena del rayo)
+const later = (d, fn) => timers.push({ at: time + d, fn });
+const lvlOf = (id) => save.tools[id];
+
+// La bolita bajo el punto (con un poco de margen para dedos)
+function pick(x, y, slop) {
+  let best = null, bs = Infinity;
+  for (const b of balls) {
+    if (b.state === "die") continue;
+    const d = Math.hypot(b.x - x, b.y - y);
+    if (d < b.r + slop) { const s = d / b.r; if (s < bs) { bs = s; best = b; } }
+  }
+  return best;
+}
+// Daño a una bolita. Devuelve true si la aplastó.
+function hit(b, dmg, fromX, fromY, quiet) {
+  if (!b || b.state === "die") return false;
+  b.hp -= dmg;
+  if (b.hp <= 0) { smush(b); return true; }
+  b.squash = 1; b.flash = 1;
+  // Un empujoncito lejos del golpe
+  const dx = b.x - fromX, dy = b.y - fromY, d = Math.hypot(dx, dy) || 1;
+  b.vx += (dx / d) * 40; b.vy += (dy / d) * 40;
+  for (let i = 0; i < 4; i++) { const a = rand(0, TAU), s = rand(40, 100); part(b.x + Math.cos(a) * b.r, b.y + Math.sin(a) * b.r, Math.cos(a) * s, Math.sin(a) * s, rand(1.6, 2.8), 0.35, b.T.light, "dot", 6, 0); }
+  if (!quiet) Sound.hit();
+  buzz(6);
+  return false;
+}
+function smush(b) {
+  b.state = "die"; b.t = 0;
+  addCoins(b.T.reward, b.x, b.y - b.r * 0.4, b.T);
+  save.smushed++; save.byType[b.type]++;
+  burst(b);
+  Sound.pop(b.type);
+  buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
+  if (!save.hinted) { save.hinted = true; $("#hint").classList.remove("on"); }
+}
+
+function useTool(x, y) {
+  const id = save.tool, L = lvlOf(id) - 1;
+  if (id === "finger") {
+    const b = pick(x, y, TOOLS.finger.slop);
+    if (b) hit(b, TOOLS.finger.damage[L], x, y);
+    else { ring(x, y, 3, 16, 0.3, PAL.text, 1.5, 0.2); Sound.miss(); }
+  } else if (id === "boot") {
+    const R = TOOLS.boot.radius[L];
+    ring(x, y, R * 0.35, R, 0.42, PAL.text, 2.5, 0.28, 0.07);
+    Sound.stomp(); buzz(16);
+    const hits = balls.filter((b) => b.state !== "die" && Math.hypot(b.x - x, b.y - y) < R + b.r * 0.5);
+    hits.forEach((b, i) => hit(b, 1, x, y, i > 0));
+  } else if (id === "spray") {
+    // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick)
+  } else if (id === "bolt") {
+    const b = pick(x, y, 16);
+    if (!b) { ring(x, y, 3, 18, 0.3, PAL.text, 1.5, 0.2); sparks(x, y, 3); Sound.miss(); return; }
+    Sound.zap(); buzz([8, 30, 8]);
+    const chain = [b], range = TOOLS.bolt.range[L];
+    let cur = b;
+    for (let i = 0; i < TOOLS.bolt.chains[L]; i++) {
+      let best = null, bd = Infinity;
+      for (const c of balls) {
+        if (c.state === "die" || chain.includes(c)) continue;
+        const d = Math.hypot(c.x - cur.x, c.y - cur.y);
+        if (d < range + c.r && d < bd) { bd = d; best = c; }
+      }
+      if (!best) break;
+      chain.push(best); cur = best;
+    }
+    // Cada salto llega un instante después del anterior: se ve la electricidad recorrer las bolitas
+    let px = x, py = y;
+    chain.forEach((c, i) => {
+      later(i * TOOLS.bolt.hop, () => {
+        const tx = c.x, ty = c.y;
+        bolts.push({ pts: jag(px, py, tx, ty), t: 0, dur: 0.24 });
+        sparks(tx, ty, 4);
+        hit(c, 1, px, py, true);
+        px = tx; py = ty;
+      });
+    });
+  }
+}
+function sparks(x, y, n) {
+  for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 160); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2), 0.25, PAL.dark ? "#FFFFFF" : "#7EA0F2", "dot", 7, 0); }
+}
+// Spray: mientras se mantiene presionado, niebla suave y daño a intervalos controlados (por bolita)
+function sprayTick(p, dt) {
+  const L = lvlOf("spray") - 1, R = TOOLS.spray.radius[L], iv = TOOLS.spray.interval[L];
+  p.emit = (p.emit || 0) + dt * (lowFx ? 45 : 85);
+  while (p.emit >= 1) {
+    p.emit--;
+    const a = rand(0, TAU), s = rand(R * 0.6, R * 2.1);
+    part(p.x + Math.cos(a) * rand(0, R * 0.25), p.y + Math.sin(a) * rand(0, R * 0.25), Math.cos(a) * s, Math.sin(a) * s, rand(2.5, 5), rand(0.4, 0.65), PAL.mist, "mist", 4.2, -12, 0.26);
+  }
+  for (const b of balls) {
+    if (b.state === "die" || time - b.lastSpray < iv) continue;
+    if (Math.hypot(b.x - p.x, b.y - p.y) < R + b.r * 0.5) { b.lastSpray = time; hit(b, 1, p.x, p.y); }
+  }
+  p.hiss = (p.hiss || 0) - dt;
+  if (p.hiss <= 0) { Sound.hiss(); p.hiss = 0.16; buzz(4); }
+}
+
+/* ---------- 10. Economía: monedas, compras ---------- */
+let uiDirty = true;
+function addCoins(n, x, y, T) {
+  save.coins += n; save.earned += n;
+  floatText(x, y, "+" + n, T.label, n >= 25 ? 22 : n >= 10 ? 18 : 15);
+  uiDirty = true; coinBump = true;
+  markSave();
+}
+function priceOf(id) {
+  const l = save.tools[id], T = TOOLS[id];
+  if (l === 0) return T.price;
+  if (l >= 3) return null;
+  return T.upgrades[l - 1];
+}
+function buy(id) {
+  const price = priceOf(id);
+  if (price == null) return;
+  if (save.coins < price) { Sound.nope(); return; }
+  const was = save.tools[id];
+  save.coins -= price;
+  save.tools[id] = was + 1;
+  if (was === 0) save.tool = id; // la herramienta nueva queda seleccionada
+  Sound.buy(was); buzz([10, 60, 18]);
+  writeSave();
+  renderShop(); renderToolbar(); uiDirty = true;
+  const card = document.querySelector(`.item[data-id="${id}"]`);
+  if (card) { card.classList.add("flash"); setTimeout(() => card.classList.remove("flash"), 600); }
+}
+
+/* ---------- 11. Interfaz: encabezado, barra, tienda, ajustes ---------- */
+const coinsEl = $("#coins"), smushedEl = $("#smushed"), shopCoinsEl = $("#shop-coins");
+let coinBump = false, bumpAnim = null;
+function updateUI() {
+  uiDirty = false;
+  coinsEl.textContent = fmt(save.coins);
+  shopCoinsEl.textContent = fmt(save.coins);
+  smushedEl.textContent = fmt(save.smushed);
+  if (coinBump && !reduceMotion && (!bumpAnim || bumpAnim.playState === "finished")) {
+    bumpAnim = coinsEl.animate([{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
+  }
+  coinBump = false;
+  // ¿Alcanza para algo? Punto en la Tienda y precios activos
+  let any = false;
+  for (const id of TOOL_ORDER) { const p = priceOf(id); if (p != null && p > 0 && save.coins >= p) any = true; }
+  $("#shop-badge").classList.toggle("on", any);
+  document.querySelectorAll(".tool").forEach((el) => { const p = priceOf(el.dataset.id); el.classList.toggle("can", p != null && save.coins >= p); });
+  document.querySelectorAll(".buy[data-id]").forEach((el) => { const p = priceOf(el.dataset.id); if (p != null) el.disabled = save.coins < p; });
+  if (!$("#sheet-menu").hidden) renderRecords();
+}
+const pips = (n) => [1, 2, 3].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
+
+function renderToolbar() {
+  $("#tools").innerHTML = TOOL_ORDER.map((id) => {
+    const l = save.tools[id], locked = l === 0;
+    return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}" type="button" data-id="${id}" aria-pressed="${save.tool === id}">
+      ${ICONS[id]}<span class="name">${tx(id)}</span><span class="pips">${pips(l)}</span>
+      <span class="price"><span class="coin"></span>${fmt(TOOLS[id].price)}</span></button>`;
+  }).join("");
+  updateCursor();
+}
+function renderShop() {
+  $("#shop-list").innerHTML = TOOL_ORDER.map((id) => {
+    const l = save.tools[id], price = priceOf(id);
+    const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span>→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
+    const btn = price == null
+      ? `<button class="buy max" type="button" disabled>${tx("max")}</button>`
+      : `<button class="buy" type="button" data-id="${id}"${save.coins < price ? " disabled" : ""}>
+           <span class="what">${l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1)}</span>
+           <span class="cost">${price ? '<span class="coin"></span>' + fmt(price) : ""}</span></button>`;
+    return `<div class="item" data-id="${id}"><div class="ic">${ICONS[id]}</div>
+      <div><h3>${tx(id)}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
+  }).join("");
+}
+function renderRecords() {
+  const rows = [
+    `<div class="row"><span data-i18n="totalSmushed">${tx("totalSmushed")}</span><span class="val">${fmt(save.smushed)}</span></div>`,
+    `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.earned)}</span></div>`,
+    ...TYPE_ORDER.map((k) => `<div class="row"><span><i class="dot" style="background:${BALL_TYPES[k].color}"></i>${tx(k)}</span><span class="val">${fmt(save.byType[k])}</span></div>`),
+  ];
+  $("#records").innerHTML = rows.join("");
+}
+function selectTool(id) {
+  if (!save.tools[id]) { openSheet($("#sheet-shop")); focusItem(id); return; }
+  if (save.tool === id) return;
+  save.tool = id; markSave();
+  Sound.tick(); buzz(6);
+  document.querySelectorAll(".tool").forEach((el) => { const on = el.dataset.id === id; el.classList.toggle("sel", on); el.setAttribute("aria-pressed", on); });
+  updateCursor();
+}
+function focusItem(id) {
+  const card = document.querySelector(`.item[data-id="${id}"]`);
+  if (!card) return;
+  setTimeout(() => { card.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" }); card.classList.add("flash"); setTimeout(() => card.classList.remove("flash"), 900); }, 250);
+}
+
+// Hojas que suben desde abajo; el juego sigue moviéndose detrás
+function openSheet(el) {
+  if (!el.hidden && el.classList.contains("open")) return;
+  pointers.clear();
+  if (el.id === "sheet-menu") { renderRecords(); syncSettingsUI(); }
+  if (el.id === "sheet-shop") renderShop();
+  el.hidden = false;
+  void el.offsetWidth;
+  el.classList.add("open");
+  Sound.tick();
+}
+function closeSheet(el) {
+  el.classList.remove("open");
+  setTimeout(() => { if (!el.classList.contains("open")) el.hidden = true; }, 400);
+}
+function syncSettingsUI() {
+  $("#sw-sound").setAttribute("aria-checked", settings.sound);
+  $("#sw-vibe").setAttribute("aria-checked", settings.vibe);
+  document.querySelectorAll("#seg-theme button").forEach((b) => b.classList.toggle("on", b.dataset.v === settings.theme));
+  document.querySelectorAll("#seg-lang button").forEach((b) => b.classList.toggle("on", b.dataset.v === LANG));
+  $("#version").textContent = VERSION;
+}
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = tx(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", tx(el.dataset.i18nAria)));
+  renderToolbar(); renderShop(); renderRecords(); uiDirty = true;
+}
+// Tema: Auto / Claro / Oscuro. Las barras del teléfono toman el color del fondo.
+function applyTheme() {
+  const root = document.documentElement;
+  if (settings.theme === "auto") delete root.dataset.theme; else root.dataset.theme = settings.theme;
+  readPalette(); if (DPR && W) buildSprites();
+  syncThemeColor();
+}
+function nativeBar() {
+  const SB = nativePlugin("StatusBar");
+  if (!SB) return;
+  const dark = !document.documentElement.classList.contains("studio-paper") && PAL.dark;
+  try { SB.setStyle({ style: dark ? "DARK" : "LIGHT" }); } catch (e) {}
+}
+function syncThemeColor() {
+  nativeBar();
+  const root = document.documentElement;
+  if (root.classList.contains("studio-paper")) return;
+  root.style.backgroundColor = "";
+  const col = getComputedStyle(root).getPropertyValue("--bg").trim();
+  root.style.backgroundColor = col; // cambiar el fondo de <html> hace que Safari recalcule sus barras
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => { m.removeAttribute("media"); m.setAttribute("content", col); });
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (settings.theme === "auto") applyTheme(); });
+
+// Eventos de la interfaz
+$("#tools").addEventListener("click", (e) => { const b = e.target.closest(".tool"); if (b) selectTool(b.dataset.id); });
+$("#btn-shop").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-shop")); });
+$("#btn-menu").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-menu")); });
+document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) { Sound.tick(); closeSheet(s); } }));
+$("#shop-list").addEventListener("click", (e) => { const b = e.target.closest(".buy[data-id]"); if (b && !b.disabled) buy(b.dataset.id); });
+$("#sw-sound").addEventListener("click", () => { Sound.set(!settings.sound); syncSettingsUI(); Sound.toggle(true); });
+$("#sw-vibe").addEventListener("click", () => { settings.vibe = !settings.vibe; saveSettings(); syncSettingsUI(); Sound.toggle(settings.vibe); buzz(12); });
+$("#seg-theme").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; settings.theme = b.dataset.v; saveSettings(); applyTheme(); syncSettingsUI(); Sound.tick(); });
+$("#seg-lang").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; LANG = settings.lang = b.dataset.v; saveSettings(); applyLang(); syncSettingsUI(); Sound.tick(); });
+const confirmEl = $("#confirm");
+$("#btn-reset").addEventListener("click", () => { confirmEl.hidden = false; void confirmEl.offsetWidth; confirmEl.classList.add("open"); Sound.tick(); });
+const closeConfirm = () => { confirmEl.classList.remove("open"); setTimeout(() => { if (!confirmEl.classList.contains("open")) confirmEl.hidden = true; }, 250); };
+confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]")) { Sound.tick(); closeConfirm(); } });
+$("#btn-reset-yes").addEventListener("click", () => {
+  save = freshSave(); writeSave();
+  balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; timers.length = 0;
+  spawnClock = 0; lastYellow = -99;
+  renderToolbar(); renderShop(); renderRecords(); uiDirty = true;
+  $("#hint").classList.add("on");
+  closeConfirm(); closeSheet($("#sheet-menu"));
+  Sound.nope(); buzz(20);
+});
+// Teclado en computadora: 1–4 herramientas, S tienda, Esc cerrar
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "Escape") {
+    if (!confirmEl.hidden) closeConfirm();
+    else document.querySelectorAll(".sheet.open").forEach(closeSheet);
+    return;
+  }
+  if (!playing || document.querySelector(".sheet.open")) return;
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= 4) selectTool(TOOL_ORDER[n - 1]);
+  else if (e.key.toLowerCase() === "s") openSheet($("#sheet-shop"));
+});
+
+/* ---------- Entrada en el área de juego: toque, clic y mantener presionado ---------- */
+function localPos(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+cv.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  Sound.unlock();
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (!playing) return;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  const p = localPos(e);
+  pointers.set(e.pointerId, { x: p.x, y: p.y, emit: 0, hiss: 0 });
+  if (e.pointerType === "mouse") hover = p;
+  useTool(p.x, p.y);
+  if (save.tool === "spray") sprayTick(pointers.get(e.pointerId), 0);
+});
+cv.addEventListener("pointermove", (e) => {
+  const p = localPos(e);
+  if (e.pointerType === "mouse") hover = p;
+  const q = pointers.get(e.pointerId);
+  if (q) { q.x = p.x; q.y = p.y; }
+});
+const release = (e) => { pointers.delete(e.pointerId); };
+cv.addEventListener("pointerup", release);
+cv.addEventListener("pointercancel", release);
+cv.addEventListener("lostpointercapture", release);
+cv.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hover = null; });
+cv.addEventListener("contextmenu", (e) => e.preventDefault());
+// Nada de zoom, selección ni scroll de la página (sí se puede desplazar dentro de las hojas)
+document.addEventListener("touchmove", (e) => { if (!e.target.closest(".panel-body")) e.preventDefault(); }, { passive: false });
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+document.addEventListener("dblclick", (e) => e.preventDefault());
+let lastTouchEnd = 0;
+document.addEventListener("touchend", (e) => { const now = Date.now(); if (now - lastTouchEnd < 320 && e.target === cv) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
+// Cursor: el del sistema se esconde en el área y se dibuja uno según la herramienta
+function updateCursor() { cv.style.cursor = matchMedia("(pointer: fine)").matches ? "none" : "default"; }
+
+/* ---------- 12. Dibujo y bucle principal (requestAnimationFrame) ---------- */
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  // Niebla del spray (detrás de las bolitas)
+  for (const p of parts) {
+    if (p.kind !== "mist") continue;
+    const u = p.t / p.life;
+    ctx.globalAlpha = p.a * (1 - u) * Math.min(1, u * 6);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Bolitas
+  for (const b of balls) {
+    const sp = sprites[b.type]; if (!sp) continue;
+    let sx = 1, sy = 1, alpha = 1;
+    if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.4)); sx = sy = 0.3 + 0.7 * k; alpha = k; }
+    else if (b.state === "die") {
+      // 1) se comprime rápido  2) se desvanece mientras se encoge
+      const u = b.t / DIE;
+      if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.34 * k; sy = 1 - 0.44 * k; }
+      else { const k = (u - 0.35) / 0.65; sx = 1.34 * (1 - 0.5 * k); sy = 0.56 * (1 - 0.7 * k); alpha = 1 - k; }
+    }
+    if (b.squash > 0) { const e = Math.sin(b.squash * Math.PI) * 0.5 + b.squash * 0.5; sx *= 1 + 0.16 * e; sy *= 1 - 0.16 * e; }
+    const hpScale = b.T.hp > 1 ? 0.84 + 0.16 * Math.max(0, b.hp) / b.T.hp : 1;
+    if (b.type === "yellow" && b.state !== "die") {
+      const h = sprites.halo;
+      ctx.globalAlpha = alpha * (0.55 + 0.3 * Math.sin(time * 3.2));
+      ctx.drawImage(h.c, b.x - h.size / 2, b.y - h.size / 2, h.size, h.size);
+    }
+    ctx.globalAlpha = alpha;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.scale(sx * hpScale, sy * hpScale);
+    ctx.drawImage(sp.c, -sp.size / 2, -sp.size / 2, sp.size, sp.size);
+    if (b.flash > 0) { ctx.globalAlpha = alpha * b.flash * 0.45; ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); ctx.arc(0, 0, b.r, 0, TAU); ctx.fill(); }
+    ctx.restore();
+    // Moradas: arquitos que muestran los golpes que les quedan
+    if (b.T.hp > 1 && b.state !== "die") {
+      const R = b.r * hpScale + 5, seg = TAU / b.T.hp, rot = time * 0.5 - Math.PI / 2;
+      ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.strokeStyle = b.T.color;
+      for (let i = 0; i < b.T.hp; i++) {
+        ctx.globalAlpha = alpha * (i < b.hp ? 0.55 : 0.12);
+        ctx.beginPath(); ctx.arc(b.x, b.y, R, rot + i * seg + 0.28, rot + (i + 1) * seg - 0.28); ctx.stroke();
+      }
+    }
+  }
+  // Anillos (pisotón, aplastado, toque al aire)
+  for (const g of rings) {
+    const u = g.t / g.dur, k = easeOut(u), r = g.r0 + (g.r1 - g.r0) * k;
+    if (g.fill) { ctx.globalAlpha = g.fill * (1 - u); ctx.fillStyle = g.color; ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, TAU); ctx.fill(); }
+    ctx.globalAlpha = g.alpha * (1 - u);
+    ctx.strokeStyle = g.color; ctx.lineWidth = g.width * (1 - u * 0.6);
+    ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, TAU); ctx.stroke();
+  }
+  // Partículas
+  for (const p of parts) {
+    if (p.kind === "mist") continue;
+    const u = p.t / p.life;
+    ctx.globalAlpha = p.a * (1 - u * u);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 - u * 0.5), 0, TAU); ctx.fill();
+  }
+  // Rayos: brillo suave y un hilo central
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  for (const bo of bolts) {
+    const a = 1 - bo.t / bo.dur;
+    if (bo.t > bo.dur * 0.45 && !bo.re) { bo.re = true; const s = bo.pts[0], e = bo.pts[bo.pts.length - 1]; bo.pts = jag(s[0], s[1], e[0], e[1]); }
+    ctx.globalAlpha = 1;
+    for (const [w, col, al] of [[7, PAL.boltGlow, 0.32], [2, PAL.boltCore, 0.95]]) {
+      ctx.strokeStyle = col + (al * a) + ")"; ctx.lineWidth = w;
+      ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+    }
+  }
+  // Monedas que flotan hacia arriba
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (const tt of texts) {
+    const u = tt.t / tt.dur;
+    ctx.globalAlpha = u < 0.15 ? u / 0.15 : 1 - Math.pow((u - 0.15) / 0.85, 2);
+    ctx.font = `800 ${tt.size}px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif`;
+    ctx.fillStyle = tt.color;
+    ctx.fillText(tt.text, tt.x + tt.dx * u, tt.y - 34 * easeOut(u));
+  }
+  // Cursor dibujado (solo con mouse)
+  if (hover && playing) drawCursor(hover.x, hover.y);
+  ctx.globalAlpha = 1;
+}
+function drawCursor(x, y) {
+  const id = save.tool, L = lvlOf(id) - 1, down = pointers.size > 0;
+  ctx.strokeStyle = PAL.text; ctx.fillStyle = PAL.text; ctx.lineWidth = 1.5;
+  if (id === "finger") {
+    ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
+    ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
+  } else if (id === "boot" || id === "spray") {
+    const R = id === "boot" ? TOOLS.boot.radius[L] : TOOLS.spray.radius[L];
+    ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.3; ctx.setLineDash(id === "boot" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
+  } else {
+    ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + 1.5, y - 5); ctx.lineTo(x - 2.5, y + 0.8); ctx.lineTo(x + 2.5, y - 0.8); ctx.lineTo(x - 1.5, y + 5); ctx.stroke();
+  }
+}
+
+// Rendimiento: si el equipo no alcanza ~48 fps se reducen bolitas (mínimo 12) y partículas
+let frameEMA = 1 / 60, perfCap = SPAWN.max, perfClock = 0;
+function perf(raw, dt) {
+  if (raw < 0.25) frameEMA = frameEMA * 0.95 + raw * 0.05;
+  perfClock += dt;
+  if (perfClock < 2) return;
+  perfClock = 0;
+  if (frameEMA > 1 / 48 && perfCap > SPAWN.min) perfCap--;
+  else if (frameEMA < 1 / 57 && perfCap < SPAWN.max) perfCap++;
+  lowFx = frameEMA > 1 / 45;
+}
+
+let raf = 0, last = 0;
+function loop(now) {
+  raf = requestAnimationFrame(loop);
+  const raw = last ? (now - last) / 1000 : 1 / 60;
+  last = now;
+  const dt = Math.min(raw, 1 / 30);
+  time += dt;
+  perf(raw, dt);
+  for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= time) { const f = timers[i].fn; timers.splice(i, 1); f(); }
+  if (playing) spawnStep(dt);
+  updateBalls(dt);
+  if (playing && save.tool === "spray") for (const p of pointers.values()) sprayTick(p, dt);
+  updateFx(dt);
+  render();
+  if (uiDirty) updateUI();
+}
+function startLoop() { if (!raf && !document.hidden) { last = 0; raf = requestAnimationFrame(loop); } }
+// Pausa total cuando la pestaña o la app no se ven
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { cancelAnimationFrame(raf); raf = 0; pointers.clear(); writeSave(); }
+  else startLoop();
+});
+window.addEventListener("pagehide", writeSave);
+new ResizeObserver(resize).observe(field);
+window.addEventListener("resize", resize);
+
+/* ---------- 13. Intros: BluBer (4 s, sobre blanco) y luego la de SMUSH! ---------- */
+// Intro del estudio, copiada de Cube Swipe: el oso aparece, "BluBer" sube letra por letra, "GAMES" se abre, brillo y parpadeo
+function playStudio(el, next, onStart) {
+  const q = (id) => document.getElementById(id);
+  const easeOutC = "cubic-bezier(.16,1,.3,1)", inOut = "cubic-bezier(.65,0,.35,1)";
+  const tl = (node, frames, delay, duration, easing = easeOutC, fill = "both") => {
+    node.style.transformBox = "fill-box";
+    return node.animate(frames, { delay, duration, easing, fill });
+  };
+  const finish = () => {
+    document.documentElement.classList.remove("studio-paper");
+    document.querySelectorAll(".fixed-off").forEach((n) => n.classList.remove("fixed-off"));
+    setBarColor("");
+    nativeBar();
+    next();
+    const out = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+    out.onfinish = () => el.remove();
+  };
+  const setBarColor = (col) => {
+    const root = document.documentElement;
+    const c = col || getComputedStyle(root).getPropertyValue("--bg").trim();
+    root.style.backgroundColor = c;
+    document.body.style.backgroundColor = col;
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => { m.removeAttribute("media"); m.setAttribute("content", c); });
+  };
+  let begun = false;
+  const begin = () => {
+    if (begun) return;
+    begun = true;
+    el.classList.add("paper");
+    if (isNative()) { setTimeout(run, 200); return; }
+    document.documentElement.classList.add("studio-paper");
+    document.querySelectorAll("body *").forEach((n) => { if (n !== el && getComputedStyle(n).position === "fixed") n.classList.add("fixed-off"); });
+    setBarColor("#FFFFFF");
+    setTimeout(run, 450);
+  };
+  if (document.readyState === "complete") setTimeout(begin, 250);
+  else window.addEventListener("load", () => setTimeout(begin, 250), { once: true });
+  setTimeout(begin, 2500);
+  function run() {
+    if (onStart) onStart();
+    if (reduceMotion || !el.animate) { el.classList.add("go"); setTimeout(finish, 1600); return; }
+    const ws = q("bb-word-shape");
+    el.querySelectorAll("#bb-word path").forEach((l) => ws.appendChild(l.cloneNode()));
+    const all = q("bb-all"); all.style.transformOrigin = "center";
+    tl(all, [{ transform: "scale(0.955)" }, { transform: "scale(1)" }], 0, 4000, "cubic-bezier(.22,.6,.2,1)");
+    const bear = q("bb-bear"); bear.style.transformOrigin = "50% 100%";
+    tl(bear, [{ transform: "translateY(19px) scale(0.965)", opacity: 0 }, { transform: "none", opacity: 1 }], 250, 1000, "cubic-bezier(.25,.1,.25,1)");
+    el.querySelectorAll("#bb-word path").forEach((l, i) => tl(l, [{ transform: "translateY(340px)" }, { transform: "translateY(0)" }], 1200 + i * 70, 760));
+    const gm = [...el.querySelectorAll("#bb-games path")], boxes = gm.map((g) => g.getBBox());
+    const cx = (boxes[0].x + boxes[4].x + boxes[4].width) / 2;
+    gm.forEach((g, i) => {
+      const dx = (cx - (boxes[i].x + boxes[i].width / 2)) * 0.75;
+      tl(g, [{ transform: `translateX(${dx}px)`, opacity: 0 }, { transform: "translateX(0)", opacity: 1 }], 1950 + Math.abs(i - 2) * 70, 800);
+    });
+    tl(q("bb-sweep"), [{ transform: "translateX(0) skewX(-18deg)" }, { transform: "translateX(2230px) skewX(-18deg)" }], 2800, 900, inOut);
+    tl(bear, [{ transform: "rotate(0deg)" }, { transform: "rotate(-2.6deg)", offset: 0.45 }, { transform: "rotate(-2.6deg)", offset: 0.65 }, { transform: "rotate(0deg)" }], 2700, 1000, inOut, "none");
+    const eye = q("bb-eye"); eye.style.transformOrigin = "center";
+    tl(eye, [{ transform: "scaleY(1)" }, { transform: "scaleY(0.12)", offset: 0.5 }, { transform: "scaleY(1)" }], 3250, 200, "ease-in-out", "none");
+    el.classList.add("go");
+    setTimeout(finish, 4000);
+  }
+}
+
+// Intro de SMUSH!: cuatro bolitas caen (thump + vibración), aparece el nombre y se aplastan una por una
+function playSplash(done) {
+  const sp = $("#splash"), drops = sp.querySelector(".drops"), word = sp.querySelector(".word");
+  const sizes = { green: 22, orange: 16, purple: 30, yellow: 22 };
+  drops.innerHTML = TYPE_ORDER.map((k) => {
+    const c = BALL_TYPES[k].color, s = sizes[k];
+    return `<i style="width:${s}px;height:${s}px;background:radial-gradient(circle at 34% 30%, ${mix(c, "#FFFFFF", 0.3)}, ${c} 62%, ${mix(c, "#000000", 0.07)})"></i>`;
+  }).join("");
+  const dots = [...drops.children];
+  const end = () => {
+    const out = sp.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: "ease", fill: "forwards" });
+    out.onfinish = () => sp.remove();
+    done();
+  };
+  if (reduceMotion || !sp.animate) {
+    dots.forEach((d) => (d.style.opacity = 1)); word.style.opacity = 1;
+    setTimeout(end, 1100); return;
+  }
+  dots.forEach((d, i) => {
+    const at = 150 + i * 120;
+    d.animate([{ transform: "translateY(-46vh)", opacity: 0 }, { transform: "translateY(-46vh)", opacity: 1, offset: 0.01 }, { transform: "translateY(0)", opacity: 1 }],
+      { delay: at, duration: 520, easing: "cubic-bezier(.55,0,.85,.35)", fill: "both" });
+    // Al tocar el piso se asienta un poco (sin rebote)
+    d.animate([{ transform: "scale(1.18, .78)" }, { transform: "scale(1)" }], { delay: at + 520, duration: 260, easing: "cubic-bezier(.2,.8,.3,1)" });
+    setTimeout(() => { Sound.drop(i); buzz(9); }, at + 520);
+    // Más tarde, cada una se aplasta con su pop
+    const popAt = 1500 + i * 95;
+    d.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(1.4, .5)", opacity: 1, offset: 0.35 }, { transform: "scale(.2, .1)", opacity: 0 }],
+      { delay: popAt, duration: 240, easing: "cubic-bezier(.3,.7,.3,1)", fill: "forwards" });
+    setTimeout(() => { Sound.pop(TYPE_ORDER[i]); buzz(7); }, popAt + 60);
+  });
+  word.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { delay: 700, duration: 600, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
+  word.animate([{ transform: "scale(1)" }, { transform: "scale(1.03, .96)" }, { transform: "scale(1)" }], { delay: 1880, duration: 280, easing: "ease-out" });
+  setTimeout(end, 2450);
+}
+
+function startGame() {
+  playing = true;
+  spawnClock = 0;
+  if (!save.hinted) $("#hint").classList.add("on");
+}
+
+(function boot() {
+  readPalette();
+  applyTheme();
+  applyLang();
+  resize();
+  startLoop();
+  const studio = $("#studio");
+  const STUDIO = reduceMotion ? 1.6 : 4;
+  // La intro del estudio arranca sola. Si el navegador ya deja sonar, suena desde el inicio;
+  // si pide un toque primero, el sonido entra en cuanto la persona toca.
+  let t0 = null, pending = false, sounding = false;
+  const onStart = () => { t0 = performance.now(); if (pending) { pending = false; Sound.studio(0); } };
+  const afterStudio = () => playSplash(startGame);
+  if (studio) playStudio(studio, afterStudio, onStart); else { onStart(); afterStudio(); }
+  if (!settings.sound) return;
+  if (Sound.probe()) { if (t0 === null) pending = true; else Sound.studio(0); return; }
+  const late = () => {
+    if (sounding) return;
+    Sound.unlock();
+    Sound.whenRunning(() => {
+      if (sounding) return;
+      sounding = true;
+      ["pointerdown", "touchend", "click", "keydown"].forEach((ev) => document.removeEventListener(ev, late, true));
+      if (!studio || !studio.isConnected) return;
+      if (t0 === null) pending = true; else Sound.studio((performance.now() - t0) / 1000);
+    });
+  };
+  ["pointerdown", "touchend", "click", "keydown"].forEach((ev) => document.addEventListener(ev, late, true));
+})();
+</script>
+</body>
+</html>
