@@ -494,7 +494,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -508,7 +508,7 @@ const BALL_TYPES = {
 const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
 
 // Aparición: entre 12 y 20 marcianitos según el tamaño del área y el rendimiento (más con "Planeta lleno").
-// Entran caminando por las orillas y, si nadie los aplasta, se van y se pierden.
+// La mayoría aparece en medio (como antes) y otros entran caminando por las orillas; si nadie los aplasta, se van.
 const SPAWN = {
   min: 12, max: 20,
   areaPerBall: 15000,     // px² de área de juego por marcianito
@@ -517,6 +517,7 @@ const SPAWN = {
   yellowGap: 9,           // segundos mínimos entre dorados (y nunca dos a la vez)
   edge: 4,                // margen contra los bordes del área
   wander: 0.75,           // qué tanto serpentean al caminar (0 = en línea recta)
+  insideChance: 0.7,      // probabilidad de aparecer en medio (el resto entra por una orilla)
 };
 
 // Herramientas. price = compra; upgrades = precio de nivel 2 y nivel 3; los arreglos son [nivel 1, 2, 3]
@@ -592,9 +593,9 @@ const ICONS = {
 
 // Ayudantes: guante, bota y nube (dibujos vectoriales). ax, ay = el punto que toca el piso; size = alto en px
 const HELPER_ART = {
-  finger: { svg: "<svg width=\"100\" height=\"140\" viewBox=\"0 0 100 140\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"gw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#E4E0D8\"/></linearGradient> <linearGradient id=\"gc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F7F4EE\"/><stop offset=\"1\" stop-color=\"#DCD7CD\"/></linearGradient> </defs> <g stroke=\"#4A4540\" stroke-opacity=\".5\" stroke-width=\"2.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"> <rect x=\"25\" y=\"5\" width=\"54\" height=\"22\" rx=\"9\" fill=\"url(#gc)\"/> <rect x=\"31\" y=\"50\" width=\"21\" height=\"84\" rx=\"10.5\" fill=\"url(#gw)\"/> <rect x=\"9\" y=\"42\" width=\"17\" height=\"38\" rx=\"8.5\" fill=\"url(#gw)\" transform=\"rotate(26 17.5 61)\"/> <rect x=\"21\" y=\"21\" width=\"63\" height=\"58\" rx=\"24\" fill=\"url(#gw)\"/> <circle cx=\"81\" cy=\"64\" r=\"9\" fill=\"url(#gw)\"/> <circle cx=\"71\" cy=\"74\" r=\"10.5\" fill=\"url(#gw)\"/> <circle cx=\"58\" cy=\"79\" r=\"11\" fill=\"url(#gw)\"/> </g> <path d=\"M35 12h34M35 19h34\" stroke=\"#4A4540\" stroke-opacity=\".22\" stroke-width=\"2\" stroke-linecap=\"round\"/> <path d=\"M37 90v34\" stroke=\"#FFFFFF\" stroke-width=\"4\" stroke-linecap=\"round\"/> <path d=\"M30 42c4-9 12-13 21-13\" stroke=\"#FFFFFF\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>", w: 100, h: 140, ax: 41.5, ay: 135, size: 44 },
-  boot:   { svg: "<svg width=\"130\" height=\"120\" viewBox=\"0 0 130 120\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"bb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#8FB0EA\"/><stop offset=\"1\" stop-color=\"#4E6FB0\"/></linearGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6E8ED0\"/><stop offset=\"1\" stop-color=\"#4B68A6\"/></linearGradient> </defs> <path d=\"M30 14q0-9 9-9h34q9 0 9 9v52l24 8q18 6 18 22v4H24V14z\" fill=\"url(#bb)\"/> <rect x=\"26\" y=\"4\" width=\"60\" height=\"16\" rx=\"8\" fill=\"url(#bc)\"/> <rect x=\"20\" y=\"96\" width=\"98\" height=\"16\" rx=\"8\" fill=\"#3B3F4C\"/> <path d=\"M28 104h86\" stroke=\"#FFFFFF\" stroke-opacity=\".12\" stroke-width=\"3\" stroke-linecap=\"round\"/> <path d=\"M40 30v52\" stroke=\"#FFFFFF\" stroke-opacity=\".45\" stroke-width=\"6\" stroke-linecap=\"round\"/> <path d=\"M86 78q14 3 22 10\" stroke=\"#FFFFFF\" stroke-opacity=\".35\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>",  w: 130, h: 120, ax: 69,   ay: 112, size: 42 },
-  bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 40 },
+  finger: { svg: "<svg width=\"100\" height=\"140\" viewBox=\"0 0 100 140\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"gw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#E4E0D8\"/></linearGradient> <linearGradient id=\"gc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F7F4EE\"/><stop offset=\"1\" stop-color=\"#DCD7CD\"/></linearGradient> </defs> <g stroke=\"#4A4540\" stroke-opacity=\".5\" stroke-width=\"2.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"> <rect x=\"25\" y=\"5\" width=\"54\" height=\"22\" rx=\"9\" fill=\"url(#gc)\"/> <rect x=\"31\" y=\"50\" width=\"21\" height=\"84\" rx=\"10.5\" fill=\"url(#gw)\"/> <rect x=\"9\" y=\"42\" width=\"17\" height=\"38\" rx=\"8.5\" fill=\"url(#gw)\" transform=\"rotate(26 17.5 61)\"/> <rect x=\"21\" y=\"21\" width=\"63\" height=\"58\" rx=\"24\" fill=\"url(#gw)\"/> <circle cx=\"81\" cy=\"64\" r=\"9\" fill=\"url(#gw)\"/> <circle cx=\"71\" cy=\"74\" r=\"10.5\" fill=\"url(#gw)\"/> <circle cx=\"58\" cy=\"79\" r=\"11\" fill=\"url(#gw)\"/> </g> <path d=\"M35 12h34M35 19h34\" stroke=\"#4A4540\" stroke-opacity=\".22\" stroke-width=\"2\" stroke-linecap=\"round\"/> <path d=\"M37 90v34\" stroke=\"#FFFFFF\" stroke-width=\"4\" stroke-linecap=\"round\"/> <path d=\"M30 42c4-9 12-13 21-13\" stroke=\"#FFFFFF\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>", w: 100, h: 140, ax: 41.5, ay: 135, size: 30 },
+  boot:   { svg: "<svg width=\"130\" height=\"120\" viewBox=\"0 0 130 120\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"bb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#8FB0EA\"/><stop offset=\"1\" stop-color=\"#4E6FB0\"/></linearGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6E8ED0\"/><stop offset=\"1\" stop-color=\"#4B68A6\"/></linearGradient> </defs> <path d=\"M30 14q0-9 9-9h34q9 0 9 9v52l24 8q18 6 18 22v4H24V14z\" fill=\"url(#bb)\"/> <rect x=\"26\" y=\"4\" width=\"60\" height=\"16\" rx=\"8\" fill=\"url(#bc)\"/> <rect x=\"20\" y=\"96\" width=\"98\" height=\"16\" rx=\"8\" fill=\"#3B3F4C\"/> <path d=\"M28 104h86\" stroke=\"#FFFFFF\" stroke-opacity=\".12\" stroke-width=\"3\" stroke-linecap=\"round\"/> <path d=\"M40 30v52\" stroke=\"#FFFFFF\" stroke-opacity=\".45\" stroke-width=\"6\" stroke-linecap=\"round\"/> <path d=\"M86 78q14 3 22 10\" stroke=\"#FFFFFF\" stroke-opacity=\".35\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>",  w: 130, h: 120, ax: 69,   ay: 112, size: 30 },
+  bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 28 },
 };
 
 // Los marcianitos: vectores del archivo original (todos miran a la derecha). body = caja del cuerpo.
@@ -1175,7 +1176,7 @@ function spawnStep(dt) {
   if (alive >= target) { spawnClock = Math.max(spawnClock, 0.2); return; }
   spawnClock -= dt;
   if (spawnClock <= 0) {
-    spawnBall(false);
+    spawnBall(Math.random() < SPAWN.insideChance);
     const f = FX.crowdSpawn(save.up.crowd);
     spawnClock = (target - alive - 1 > 4 ? SPAWN.fastDelay : rand(SPAWN.delayMin, SPAWN.delayMax)) * f;
   }
@@ -1330,8 +1331,8 @@ function smush(b, auto) {
 
 // Pisotón: todos los marcianitos dentro del círculo reciben daño
 function stompAt(x, y, R, dmg, auto) {
-  ring(x, y, R * 0.35, R, 0.42, PAL.text, 2.5, auto ? 0.2 : 0.28, auto ? 0.05 : 0.07);
-  for (let i = 0; i < 6; i++) { const a = rand(0, TAU); part(x + Math.cos(a) * R * 0.5, y + Math.sin(a) * R * 0.25, Math.cos(a) * 60, -rand(20, 60), rand(2, 3.5), 0.45, PAL.mist, "mist", 4, 0, 0.35); }
+  ring(x, y, R * 0.35, R, 0.42, PAL.text, auto ? 1.5 : 2.5, auto ? 0.1 : 0.28, auto ? 0.02 : 0.07);
+  if (!auto) for (let i = 0; i < 6; i++) { const a = rand(0, TAU); part(x + Math.cos(a) * R * 0.5, y + Math.sin(a) * R * 0.25, Math.cos(a) * 60, -rand(20, 60), rand(2, 3.5), 0.45, PAL.mist, "mist", 4, 0, 0.35); }
   Sound.stomp(auto ? 0.45 : 1);
   if (!auto) buzz(16);
   balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - x, b.y - y) < R + b.r * 0.5).forEach((b, i) => hit(b, dmg, x, y, i > 0 || auto, auto));
@@ -1355,8 +1356,8 @@ function zapChain(x, y, first, chains, range, dmg, auto) {
   chain.forEach((c, i) => {
     later(i * TOOLS.bolt.hop, () => {
       const tx = c.x, ty = c.y;
-      bolts.push({ pts: jag(px, py, tx, ty), t: 0, dur: 0.24 });
-      sparks(tx, ty, 4);
+      bolts.push({ pts: jag(px, py, tx, ty), t: 0, dur: auto ? 0.18 : 0.24, soft: auto });
+      sparks(tx, ty, auto ? 2 : 4);
       hit(c, dmg, px, py, true, auto);
       px = tx; py = ty;
     });
@@ -1503,12 +1504,13 @@ function syncHelpers() {
   while (helpers.length > kinds.length) { const h = helpers.pop(); if (h.target) h.target.claimed = null; }
   helpers.forEach((h, i) => {
     if (h.kind === kinds[i]) return;
-    if (h.kind) { ring(h.x, h.y, 6, 34, 0.5, "#F1C84D", 2.5, 0.6); for (let k = 0; k < 8; k++) { const a = rand(0, TAU); part(h.x, h.y - 20, Math.cos(a) * 90, Math.sin(a) * 90, rand(1.4, 2.4), 0.6, "#FFF3C4", "star", 3, 0); } }
+    if (h.kind) { ring(h.x, h.y, 6, 26, 0.5, "#F1C84D", 2, 0.45); for (let k = 0; k < 5; k++) { const a = rand(0, TAU); part(h.x, h.y - 20, Math.cos(a) * 90, Math.sin(a) * 90, rand(1.4, 2.4), 0.6, "#FFF3C4", "star", 3, 0); } }
     h.kind = kinds[i]; h.born = 0;
   });
 }
 // Altura a la que flota cada tipo (px sobre el piso)
-const HOVER = { finger: 10, boot: 24, bolt: 70 };
+const HOVER = { finger: 7, boot: 16, bolt: 46 };
+const HELPER_ALPHA = 0.82; // los ayudantes se ven un poco translúcidos para no distraer
 function updateHelpers(dt) {
   if (!helpers.length) return;
   const iv0 = FX.helperInterval(save.up.speed), dmg = FX.helperDamage(save.up.power);
@@ -1532,20 +1534,20 @@ function updateHelpers(dt) {
     const tx = h.target ? h.target.x : h.home.x * W, ty = h.target ? h.target.y : h.home.y * H;
     const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy);
     // Se desliza con suavidad (rápido de lejos, lento al llegar)
-    if (d > 0.5) { const step = Math.min(d, (150 + d * 4.5) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
-    const near = h.target && d < (h.kind === "bolt" ? 26 : 9);
+    if (d > 0.5) { const step = Math.min(d, (70 + d * 2.2) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
+    const near = h.target && d < (h.kind === "bolt" ? 30 : 10);
     // La bota se levanta un poco antes de pisar
     h.wind += ((near && h.kind === "boot" && h.timer < 0.25 ? 1 : 0) - h.wind) * Math.min(1, dt * 10);
     if (near && h.timer <= 0) {
       h.press = 1; h.timer = iv0 * K.every * rand(0.9, 1.1);
       const t = h.target;
       if (h.kind === "finger") {
-        ring(h.x, h.y, 3, 14, 0.28, PAL.text, 1.4, 0.18);
+        ring(h.x, h.y, 2, 10, 0.25, PAL.text, 1.2, 0.1);
         if (hit(t, dmg, h.x, h.y - 10, false, true)) h.target = null;
       } else if (h.kind === "boot") {
         stompAt(h.x, h.y, K.radius, dmg, true);
       } else {
-        zapChain(h.x, h.y - HOVER.bolt + 6, t, K.chains, K.range, dmg, true);
+        zapChain(h.x, h.y - HOVER.bolt + 4, t, K.chains, K.range, dmg, true);
       }
       if (h.target && h.target.state === "die") h.target = null;
     }
@@ -1556,20 +1558,20 @@ function drawHelper(h) {
   if (!A || !img) return;
   const press = h.press;
   let height = HOVER[h.kind];
-  if (h.kind === "finger") height = height - Math.sin(press * Math.PI) * 8;
-  else if (h.kind === "boot") height = press > 0 ? height * (1 - press) * 0.9 : height + h.wind * 12; // pisa de golpe y vuelve a subir
-  else height += Math.sin(h.bob) * 3;
+  if (h.kind === "finger") height = height - Math.sin(press * Math.PI) * 5;
+  else if (h.kind === "boot") height = press > 0 ? height * (1 - press) * 0.9 : height + h.wind * 6; // pisa y vuelve a subir
+  else height += Math.sin(h.bob) * 1.5;
   const s = A.size / A.h, w = A.w * s, hh = A.h * s;
   // Sombra en el piso: más chica y nítida entre más cerca está
-  const k = clamp(1 - height / 90, 0.35, 1);
-  ctx.globalAlpha = h.born * (0.35 + 0.65 * k);
+  const k = clamp(1 - height / 60, 0.35, 1);
+  ctx.globalAlpha = h.born * (0.25 + 0.45 * k);
   ctx.fillStyle = PAL.shadow;
   ctx.beginPath(); ctx.ellipse(h.x, h.y, w * 0.32 * (1.3 - k * 0.3), w * 0.09 * (1.3 - k * 0.3), 0, 0, TAU); ctx.fill();
-  ctx.globalAlpha = h.born;
+  ctx.globalAlpha = h.born * HELPER_ALPHA;
   const sc = 0.7 + 0.3 * h.born;
   ctx.save();
   ctx.translate(h.x, h.y - height);
-  ctx.scale(sc, sc * (h.kind === "boot" && press > 0.85 ? 0.9 : 1));
+  ctx.scale(sc, sc * (h.kind === "boot" && press > 0.85 ? 0.94 : 1));
   ctx.drawImage(img, -A.ax * s, -A.ay * s, w, hh);
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -2091,7 +2093,7 @@ function render() {
     if (bo.t > bo.dur * 0.45 && !bo.re) { bo.re = true; const s = bo.pts[0], e = bo.pts[bo.pts.length - 1]; bo.pts = jag(s[0], s[1], e[0], e[1]); }
     ctx.globalAlpha = 1;
     for (const [w, col, al] of [[7, PAL.boltGlow, 0.32], [2, PAL.boltCore, 0.95]]) {
-      ctx.strokeStyle = col + (al * a) + ")"; ctx.lineWidth = w;
+      ctx.strokeStyle = col + (al * a * (bo.soft ? 0.55 : 1)) + ")"; ctx.lineWidth = bo.soft ? w * 0.6 : w;
       ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
     }
   }
