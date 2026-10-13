@@ -142,6 +142,21 @@ a { color: inherit; }
   font-size: 14px; font-weight: 650; color: var(--muted); opacity: 0; transition: opacity 0.8s ease;
 }
 #hint.on { opacity: 1; }
+/* Multiplicador activo: una pastilla arriba del campo con el tiempo que le queda, y un borde dorado (o violeta en ×4) */
+#mult-hud {
+  position: absolute; top: 12px; left: 50%; display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 13px;
+  border-radius: 16px; background: var(--card); box-shadow: var(--shadow); pointer-events: none;
+  font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; color: #C9962A;
+  opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+#mult-hud.on { opacity: 1; transform: translate(-50%, 0); }
+#mult-hud.x4 { color: #7C5CE0; }
+#mult-hud i { display: block; width: 64px; height: 5px; border-radius: 3px; background: var(--field); overflow: hidden; }
+#mult-hud b { display: block; width: 100%; height: 100%; border-radius: inherit; background: #F1C84D; transform-origin: left center; }
+#mult-hud.x4 b { background: #A584E8; }
+#field { transition: box-shadow 0.4s ease; }
+#field.boosted { box-shadow: inset 0 0 0 2px rgba(241, 200, 77, 0.7), inset 0 0 40px rgba(241, 200, 77, 0.12); }
+#field.boosted.x4 { box-shadow: inset 0 0 0 2px rgba(165, 132, 232, 0.75), inset 0 0 40px rgba(165, 132, 232, 0.14); }
 
 #tools {
   display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 8px; width: 100%; max-width: 640px; margin: 0 auto;
@@ -340,6 +355,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   <main id="field">
     <canvas id="cv" aria-label="Game area"></canvas>
     <div id="hint" data-i18n="hint">Tap the aliens to smush them</div>
+    <div id="mult-hud" aria-live="polite"><span id="mult-x">×2</span><i><b id="mult-bar"></b></i></div>
   </main>
   <nav id="tools" aria-label="Tools"></nav>
 </div>
@@ -394,7 +410,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 
       <div class="group-title" data-i18n="howTo">How to play</div>
       <div class="group">
-        <ul class="how"><li data-i18n="how1"></li><li data-i18n="how2"></li><li data-i18n="how3"></li><li data-i18n="how4"></li><li data-i18n="how5"></li></ul>
+        <ul class="how"><li data-i18n="how1"></li><li data-i18n="how2"></li><li data-i18n="how3"></li><li data-i18n="how4"></li><li data-i18n="how5"></li><li data-i18n="how6"></li></ul>
       </div>
 
       <div class="group-title" data-i18n="data">Data</div>
@@ -494,14 +510,14 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.3.1";
+const VERSION = "0.4.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
 // Marcianitos. r = radio del cuerpo en px; speed = px/s; hp = puntos de daño; weight = probabilidad de aparecer
 const BALL_TYPES = {
   green:  { color: "#6BCB9B", r: 24, speed: 34, hp: 1, reward: 1,  weight: 58, pitch: 330 },
-  orange: { color: "#FF9E55", r: 17, speed: 90, hp: 1, reward: 3,  weight: 26, pitch: 440 },
+  orange: { color: "#FF9E55", r: 17, speed: 112, hp: 1, reward: 3,  weight: 26, pitch: 440 }, // siempre el más rápido
   purple: { color: "#A584E8", r: 33, speed: 26, hp: 3, reward: 10, weight: 10, pitch: 230 },
   yellow: { color: "#F1C84D", r: 21, speed: 58, hp: 1, reward: 25, weight: 3,  pitch: 392 },
 };
@@ -565,6 +581,14 @@ const HELPER_KIND = {
   finger: { every: 1,   targets: 1 },
   boot:   { every: 1.5, targets: 2.2, radius: 56 },
   bolt:   { every: 1.8, targets: 4,   chains: 3, range: 140 },
+};
+// Multiplicador: cada cierto tiempo aparece una burbuja ×2 o ×4; si la tocas a tiempo, multiplica tus monedas
+const MULT = {
+  every: [25, 45],   // segundos entre una burbuja y la siguiente (al azar dentro del rango)
+  window: 3,         // segundos para tocarla antes de que se vaya
+  duration: 10,      // segundos que dura el multiplicador
+  options: [{ x: 2, weight: 3 }, { x: 4, weight: 1 }], // ×4 sale una de cada cuatro veces
+  radius: 25,
 };
 const OFFLINE_MIN = 20;   // segundos fuera antes de contar lo que hicieron los ayudantes
 const OFFLINE_RATE = 0.5; // fuera rinden la mitad: jugar sigue valiendo más la pena
@@ -671,6 +695,7 @@ const STR = {
   how3: ["Switch tools anytime from the bar below. Hold to use the Spray.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado para usar el Spray."],
   how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 25.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 25."],
   how5: ["Helpers keep smushing while you're away. Turn fingers into boots and storm clouds for more power.", "Los ayudantes siguen aplastando cuando no estás. Convierte dedos en botas y nubes de rayos para más poder."],
+  how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
   resetQ: ["Reset progress?", "¿Reiniciar el progreso?"],
@@ -950,6 +975,15 @@ const Sound = (() => {
       [196, 261.63].forEach((f) => tone(f, { dur: 2, vol: 0.03, attack: 0.35 }));
     },
     drop() { thump({ vol: 0.13 }); },
+    // Burbuja del multiplicador: aparece con una campanita, se activa con un arpegio y se apaga bajando
+    bubble() { pluck(587.33, { vol: 0.06, dur: 1 }); pluck(880, { t: 0.1, vol: 0.04, dur: 1.1 }); },
+    boost(x) {
+      const n = x >= 4 ? [392, 493.88, 587.33, 783.99, 987.77] : [392, 523.25, 659.25, 783.99];
+      n.forEach((f, i) => pluck(f, { t: i * 0.07, vol: 0.085, dur: 1.5 }));
+      tone(196, { dur: 1.6, vol: 0.035, attack: 0.2 });
+    },
+    boostEnd() { pluck(523.25, { vol: 0.05, dur: 0.9 }); pluck(392, { t: 0.12, vol: 0.045, dur: 1 }); },
+    bubbleMiss() { breath({ dur: 0.35, vol: 0.02, from: 900, to: 500 }); },
     // Intro del estudio: el oso aparece con un soplo y una nota grave, golpecitos suaves por letra
     studio(from = 0) {
       const c = ensure(); if (!c) return;
@@ -1159,7 +1193,8 @@ function spawnBall(inside) {
     a = Math.atan2(rand(H * 0.25, H * 0.75) - y, rand(W * 0.25, W * 0.75) - x);
   }
   if (type === "yellow") lastYellow = time;
-  const sp = T.speed * rand(0.85, 1.15);
+  // Variación de velocidad: ±15 % (los naranjas solo hacia arriba, para que nunca bajen al paso de los demás)
+  const sp = T.speed * (type === "orange" ? rand(1, 1.15) : rand(0.85, 1.15));
   const face = Math.cos(a) >= 0 ? 1 : -1;
   balls.push({
     type, T, x, y, r: T.r, hp: T.hp, heading: a, goal: a, speed: sp, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
@@ -1631,11 +1666,89 @@ $("#btn-collect").addEventListener("click", () => {
   for (let i = 0; i < 18; i++) later(i * 0.035, () => { const x = rand(W * 0.2, W * 0.8), y = rand(H * 0.3, H * 0.7); ring(x, y, 2, 14, 0.4, "#F1C84D", 2, 0.5); part(x, y, rand(-40, 40), rand(-160, -60), rand(2.5, 4), 0.8, "#F1C84D", "dot", 2.5, 220); });
 });
 
+/* ---------- 10b. Multiplicador: burbuja ×2 / ×4 que hay que tocar a tiempo ---------- */
+let multBubble = null, multOn = null, multClock = rand(MULT.every[0], MULT.every[1]) * 0.6;
+const multHud = $("#mult-hud"), multBar = $("#mult-bar");
+function spawnBubble() {
+  let tot = 0; for (const o of MULT.options) tot += o.weight;
+  let r = Math.random() * tot, x = MULT.options[0].x;
+  for (const o of MULT.options) { r -= o.weight; if (r <= 0) { x = o.x; break; } }
+  const m = MULT.radius + 18;
+  multBubble = { x: rand(m, W - m), y: rand(m + 30, H - m), mult: x, t: 0, leaving: 0 };
+  Sound.bubble(); buzz(8);
+}
+function updateMult(dt) {
+  if (multOn && time >= multOn.end) {
+    multOn = null;
+    multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
+    Sound.boostEnd();
+  }
+  if (multOn) multBar.style.transform = `scaleX(${Math.max(0, (multOn.end - time) / MULT.duration)})`;
+  const m = multBubble;
+  if (m) {
+    m.t += dt;
+    if (m.leaving) { m.leaving += dt; if (m.leaving > 0.35) multBubble = null; }
+    else if (m.t >= MULT.window) { m.leaving = 0.0001; Sound.bubbleMiss(); }
+    return;
+  }
+  // Una nueva burbuja solo si se está jugando, no hay multiplicador activo y no hay una hoja abierta
+  if (!playing || multOn || document.querySelector(".sheet.open, .dialog.open")) return;
+  multClock -= dt;
+  if (multClock <= 0) { multClock = rand(MULT.every[0], MULT.every[1]); spawnBubble(); }
+}
+// ¿El toque cayó en la burbuja? Entonces se activa (y no cuenta como golpe)
+function tapBubble(x, y) {
+  const m = multBubble;
+  if (!m || m.leaving || Math.hypot(x - m.x, y - (m.y + bubbleBob())) > MULT.radius + 14) return false;
+  multBubble = null;
+  multOn = { x: m.mult, end: time + MULT.duration };
+  $("#mult-x").textContent = "×" + m.mult;
+  multHud.classList.toggle("x4", m.mult >= 4); multHud.classList.add("on");
+  field.classList.add("boosted"); field.classList.toggle("x4", m.mult >= 4);
+  const col = m.mult >= 4 ? "#A584E8" : "#F1C84D";
+  ring(m.x, m.y, MULT.radius, MULT.radius * 3.2, 0.6, col, 3, 0.6);
+  for (let i = 0; i < 14; i++) { const a = rand(0, TAU), s = rand(80, 200); part(m.x, m.y, Math.cos(a) * s, Math.sin(a) * s, rand(1.6, 2.8), 0.8, i % 2 ? "#FFF3C4" : col, "star", 3, 0); }
+  Sound.boost(m.mult); buzz([14, 60, 14, 60, 24]);
+  return true;
+}
+const bubbleBob = () => Math.sin(time * 2.6) * 3;
+function drawBubble() {
+  const m = multBubble;
+  if (!m) return;
+  const R = MULT.radius, appear = easeOut(Math.min(1, m.t / 0.35)), leave = m.leaving ? 1 - Math.min(1, m.leaving / 0.35) : 1;
+  const k = appear * leave, y = m.y + bubbleBob(), x4 = m.mult >= 4;
+  if (k <= 0) return;
+  // Brillo que respira
+  const glow = ctx.createRadialGradient(m.x, y, R * 0.6, m.x, y, R * 2.1);
+  glow.addColorStop(0, x4 ? "rgba(165,132,232,0.4)" : "rgba(241,200,77,0.45)"); glow.addColorStop(1, "rgba(241,200,77,0)");
+  ctx.globalAlpha = k * (0.7 + 0.3 * Math.sin(time * 5));
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(m.x, y, R * 2.1, 0, TAU); ctx.fill();
+  // Disco
+  ctx.globalAlpha = k;
+  ctx.save(); ctx.translate(m.x, y); ctx.scale(0.6 + 0.4 * k, 0.6 + 0.4 * k);
+  const g = ctx.createRadialGradient(-R * 0.35, -R * 0.4, R * 0.1, 0, 0, R);
+  if (x4) { g.addColorStop(0, "#E2D6FF"); g.addColorStop(0.55, "#A584E8"); g.addColorStop(1, "#6E4FCF"); }
+  else { g.addColorStop(0, "#FFF1C2"); g.addColorStop(0.55, "#F1C84D"); g.addColorStop(1, "#D29F28"); }
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.beginPath(); ctx.ellipse(-R * 0.32, -R * 0.45, R * 0.32, R * 0.18, -0.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = "#FFFFFF"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `900 ${R * 0.78}px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif`;
+  ctx.shadowColor = x4 ? "rgba(70,40,150,0.45)" : "rgba(140,95,0,0.45)"; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1;
+  ctx.fillText("×" + m.mult, 0, 1);
+  ctx.restore();
+  // Anillo que se vacía: el tiempo que queda para tocarla
+  const left = Math.max(0, 1 - m.t / MULT.window);
+  ctx.globalAlpha = k * 0.85; ctx.strokeStyle = x4 ? "#7C5CE0" : "#D29F28"; ctx.lineWidth = 3; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(m.x, y, R + 6, -Math.PI / 2, -Math.PI / 2 + TAU * left); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
 /* ---------- 11. Economía: monedas y compras ---------- */
 let uiDirty = true;
 function addCoins(n, x, y, T) {
+  if (multOn) n *= multOn.x; // multiplicador activo
   save.coins += n; save.earned += n;
-  floatText(x, y, "+" + n, T.label, n >= 25 ? 22 : n >= 10 ? 18 : 15);
+  floatText(x, y, "+" + n, multOn ? (multOn.x >= 4 ? "#7C5CE0" : "#C9962A") : T.label, n >= 25 ? 22 : n >= 10 ? 18 : 15);
   uiDirty = true; coinBump = true;
   markSave();
 }
@@ -1877,6 +1990,7 @@ $("#btn-reset-yes").addEventListener("click", () => {
   save = freshSave(); writeSave();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; timers.length = 0;
   helpers.length = 0; vortices.length = 0; meteors.length = 0; beam.length = 0;
+  multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
   for (const k in cdEnd) delete cdEnd[k];
   lastYellow = -99; shopTab = "tools";
   populate();
@@ -1906,8 +2020,9 @@ cv.addEventListener("pointerdown", (e) => {
   Sound.unlock();
   if (e.pointerType === "mouse" && e.button !== 0) return;
   if (!playing) return;
-  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
   const p = localPos(e);
+  if (tapBubble(p.x, p.y)) return;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
   pointers.set(e.pointerId, { id: e.pointerId, x: p.x, y: p.y, lx: null, ly: null, emit: 0, hiss: 0 });
   if (e.pointerType === "mouse") hover = p;
   useTool(p.x, p.y);
@@ -2114,6 +2229,8 @@ function render() {
   }
   // Ayudantes (encima de todo lo del piso), los más lejanos primero
   for (const h of helpers.slice().sort((a, b) => a.y - b.y)) drawHelper(h);
+  // Burbuja del multiplicador (encima de todo)
+  drawBubble();
   // Monedas que flotan hacia arriba, con su monedita
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
   for (const tt of texts) {
@@ -2178,6 +2295,7 @@ function loop(now) {
   updateVortices(dt);
   updateMeteors(dt);
   updateHelpers(dt);
+  updateMult(dt);
   if (playing && save.tool === "spray") for (const p of pointers.values()) sprayTick(p, dt);
   if (playing && save.tool === "laser") for (const p of pointers.values()) laserTick(p);
   while (beam.length && time - beam[0].t > 0.3) beam.shift();
