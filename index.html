@@ -897,7 +897,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.21.1";
+const VERSION = "0.21.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1425,6 +1425,14 @@ const Sound = (() => {
     src.connect(f).connect(g).connect(master); src.loop = true; src.start(t0, Math.random() * 0.4); src.stop(t0 + dur + 0.03);
   }
   const vary = (x, amt = 0.03) => x * (1 + (Math.random() * 2 - 1) * amt);
+  // Monedas que caen: n tiquitos metálicos (ruido filtrado, sin notas) a destiempo, cada vez más suaves
+  function coinRustle(n, t0 = 0, k = 1) {
+    let t = t0;
+    for (let i = 0; i < n; i++) {
+      t += 0.035 + Math.random() * 0.05;
+      noise({ t, dur: 0.035, vol: (0.045 - i * 0.002) * k, freq: vary(3200, 0.18), q: 3, attack: 0.002 });
+    }
+  }
   // Nota tipo kalimba, en tonos medios (solo para premios)
   function pluck(f, o = {}) {
     const { t = 0, vol = 0.1, dur = 1.1 } = o;
@@ -1499,8 +1507,8 @@ const Sound = (() => {
       tone(f * 0.5, { dur: 0.06, vol: 0.08 * k, slide: 0.6, attack: 0.002 });
       noise({ dur: 0.04, vol: 0.07 * k, freq: vary(800, 0.1), q: 0.6, attack: 0.002, kind: "lowpass" });
       if (type === "purple") thump({ vol: 0.12 * k });
-      // El dorado es un premio: campanita
-      if (type === "yellow") { pluck(659.25, { t: 0.05, vol: 0.075 * k, dur: 1.3 }); pluck(987.77, { t: 0.13, vol: 0.04 * k, dur: 1.3 }); }
+      // El dorado es un premio: un brillito de monedas (sin notas, para no chocar con la música)
+      if (type === "yellow") coinRustle(4, 0.05, 0.6 * k);
     },
     hit(soft) { thump({ vol: soft ? 0.05 : 0.11 }); },
     stomp(k = 1) { tone(120, { dur: 0.16, vol: 0.2 * k, slide: 0.6, attack: 0.003 }); noise({ dur: 0.14, vol: 0.1 * k, freq: 320, q: 0.5, attack: 0.003, kind: "lowpass" }); },
@@ -1519,32 +1527,35 @@ const Sound = (() => {
     miss() { noise({ dur: 0.03, vol: 0.03, freq: 700, q: 0.7, attack: 0.002, kind: "lowpass" }); },
     tick() { noise({ dur: 0.035, vol: 0.09, freq: 1000, q: 0.7, attack: 0.002, kind: "lowpass" }); },
     nope() { thump({ vol: 0.1 }); thump({ t: 0.09, vol: 0.07 }); },
-    toggle(onNow) { pluck(onNow ? 392 : 329.63, { vol: 0.06, dur: 0.6 }); pluck(onNow ? 523.25 : 261.63, { t: 0.09, vol: 0.045, dur: 0.7 }); },
-    // Compra: arpegio corto que sube un poco más con cada nivel
+    // Interruptores: un clic suave (más brillante al encender)
+    toggle(onNow) { noise({ dur: 0.03, vol: 0.07, freq: onNow ? 1700 : 1100, q: 1, attack: 0.002, kind: "lowpass" }); thump({ t: 0.02, vol: 0.05 }); },
+    // Comprar y todo lo de dinero: sin melodía (la música ya pone las notas). Monedas que caen y un golpecito cálido
     buy(level) {
-      const notes = [[392, 523.25, 659.25], [440, 587.33, 739.99], [523.25, 659.25, 783.99, 1046.5]][clamp(level, 0, 2)];
-      notes.forEach((f, i) => pluck(f, { t: i * 0.09, vol: 0.08, dur: 1.4 }));
+      thump({ vol: 0.1 });
+      coinRustle(3 + clamp(level, 0, 2), 0.02, 0.8);
     },
-    // Recoger lo ganado fuera: un arpegio lento y cálido
+    // Recoger lo ganado fuera: un puñado de monedas que caen, sobre un soplo suave
     collect() {
-      [261.63, 329.63, 392, 523.25, 659.25].forEach((f, i) => pluck(f, { t: i * 0.11, vol: 0.085, dur: 1.8 }));
-      [196, 261.63].forEach((f) => tone(f, { dur: 2, vol: 0.03, attack: 0.35 }));
+      breath({ dur: 0.9, vol: 0.03, from: 500, to: 1300 });
+      coinRustle(10, 0.05, 1);
+      thump({ t: 0.05, vol: 0.09 });
     },
     drop() { thump({ vol: 0.13 }); },
-    // Burbuja del multiplicador: aparece con una campanita, se activa con un arpegio y se apaga bajando
-    bubble() { pluck(587.33, { vol: 0.06, dur: 1 }); pluck(880, { t: 0.1, vol: 0.04, dur: 1.1 }); },
+    // Burbuja del multiplicador: aparece con un "blup" suave, se activa con un soplo que sube y se apaga bajando
+    bubble() { breath({ dur: 0.3, vol: 0.035, from: 600, to: 1500 }); noise({ t: 0.05, dur: 0.05, vol: 0.04, freq: 1300, q: 1.2, attack: 0.004, kind: "lowpass" }); },
     boost(x) {
-      const n = x >= 4 ? [392, 493.88, 587.33, 783.99, 987.77] : [392, 523.25, 659.25, 783.99];
-      n.forEach((f, i) => pluck(f, { t: i * 0.07, vol: 0.085, dur: 1.5 }));
-      tone(196, { dur: 1.6, vol: 0.035, attack: 0.2 });
+      breath({ dur: 0.7, vol: 0.05, from: 400, to: x >= 4 ? 2200 : 1600 });
+      coinRustle(x >= 4 ? 8 : 5, 0.08, 0.9);
+      thump({ vol: 0.12 });
     },
-    boostEnd() { pluck(523.25, { vol: 0.05, dur: 0.9 }); pluck(392, { t: 0.12, vol: 0.045, dur: 1 }); },
+    boostEnd() { breath({ dur: 0.5, vol: 0.035, from: 1400, to: 450 }); },
     // Viaje a un nivel nuevo: arpegio largo sobre un acorde que respira
-    ready() { [392, 523.25, 659.25, 783.99].forEach((f, i) => pluck(f, { t: i * 0.09, vol: 0.07, dur: 1.4 })); tone(196, { dur: 1.6, vol: 0.03, attack: 0.3 }); },
+    // Nivel listo y llegada a un nivel nuevo: un soplo que crece, brillito y un golpe grave (sin notas)
+    ready() { breath({ dur: 0.8, vol: 0.045, from: 350, to: 1500 }); coinRustle(5, 0.25, 0.7); thump({ t: 0.05, vol: 0.1 }); },
     levelUp() {
-      [261.63, 329.63, 392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i) => pluck(f, { t: 0.2 + i * 0.12, vol: 0.085, dur: 2 }));
-      [130.81, 196, 261.63].forEach((f) => tone(f, { t: 0.1, dur: 3, vol: 0.035, attack: 0.6 }));
-      breath({ t: 0.05, dur: 1.6, vol: 0.04, from: 300, to: 1200 });
+      breath({ dur: 1.8, vol: 0.05, from: 250, to: 1400 });
+      coinRustle(12, 0.35, 0.8);
+      thump({ t: 0.3, vol: 0.13 }); thump({ t: 0.55, vol: 0.08 });
     },
     // Bomba: se pone en la arena (golpecito), la mecha chisporrotea y explota con un retumbo grave
     place() { thump({ vol: 0.11 }); noise({ dur: 0.06, vol: 0.035, freq: 1500, q: 0.8, attack: 0.002 }); },
