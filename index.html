@@ -280,7 +280,10 @@ body::before {
 .tool .price { display: none; align-items: center; gap: 3px; font-size: 11px; font-weight: 750; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tool .price .coin { font-size: 9px; }
 .tool.locked svg { opacity: 0.32; }
-.tool.locked .pips { display: none; }
+.tool.locked .pips, .tool.locked .lvb { display: none; }
+/* Nivel de la herramienta en la barra: una rayita que se llena (20 niveles) */
+.lvb { display: block; width: 26px; height: 4px; border-radius: 2px; background: color-mix(in srgb, currentColor 18%, transparent); overflow: hidden; }
+.lvb b { display: block; height: 100%; border-radius: inherit; background: currentColor; opacity: 0.85; transition: width 0.4s ease; }
 .tool.locked .price { display: flex; }
 .tool.locked.can .price { color: var(--text); }
 .tool.sel { background: linear-gradient(150deg, color-mix(in srgb, var(--tc) 72%, #FFFFFF), var(--tc)); color: #FFFFFF; box-shadow: 0 6px 16px color-mix(in srgb, var(--tc) 40%, transparent); }
@@ -379,6 +382,8 @@ body::before {
 .segs { display: flex; gap: 3px; max-width: 150px; margin-top: 8px; }
 .segs i { flex: 1; height: 4px; border-radius: 2px; background: var(--field); transition: background-color 0.3s; }
 .segs i.on { background: var(--c); }
+.segs.long { display: block; height: 4px; border-radius: 2px; background: var(--field); overflow: hidden; }
+.segs.long b { display: block; height: 100%; border-radius: inherit; background: var(--c); transition: width 0.4s ease; }
 .item .cta { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .item .need { min-height: 13px; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .item .need:empty { display: none; }
@@ -879,7 +884,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.19.3";
+const VERSION = "0.20.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -924,17 +929,25 @@ const SPAWN = {
 // Herramientas. price = compra; upgrades = precio de cada nivel siguiente (arreglo) o función del nivel actual.
 // max = nivel máximo (3 si no se dice). world = nivel donde se desbloquea (0 = The Void, 1 = The Beach, 2 = The Slopes).
 // only = solo existe en ese nivel (el tsunami necesita el mar).
+// Progresión: todo tiene 20 niveles. Los primeros salen rápido; luego cada nivel cuesta ~1.4× el anterior,
+// así siempre hay algo más que comprar, pero el nivel 20 es para los mundos que pagan ×2 y ×4.
+const LV_MAX = 20;
+const nice = (x) => { const p = 10 ** Math.max(0, Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; }; // precios redondos (2 cifras)
+const L20 = (f) => Array.from({ length: LV_MAX }, (_, i) => f(i + 1));                // valor en cada nivel (1 → 20)
+const ups = (base, g) => Array.from({ length: LV_MAX - 1 }, (_, i) => nice(base * g ** i)); // precio de subir al 2, 3, … 20
+const curve = (a, b, lv, k = 1) => a + (b - a) * Math.pow((lv - 1) / (LV_MAX - 1), k);      // de a (nivel 1) a b (nivel 20)
+const geo = (a, b, lv) => a * (b / a) ** ((lv - 1) / (LV_MAX - 1));                        // igual, pero creciendo en proporción
 const TOOLS = {
   // The Void
-  finger: { price: 0,     upgrades: [150, 600],    radius: [0, 45, 70], slop: 10 }, // nivel 1: uno a la vez; luego aplasta un área
-  bolt:   { price: 1200,  upgrades: [2500, 6000],  chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
-  saw:    { price: 10000, max: 4, upgrades: [15000, 30000, 60000], radius: [22, 30, 40, 52] }, // sierra: mantén y arrastra; crece en 4 tamaños
+  finger: { price: 0, max: 20, upgrades: ups(150, 1.42), radius: L20((v) => (v === 1 ? 0 : Math.round(30 * 4 ** ((v - 2) / 18)))), slop: 10 }, // nivel 1: uno a la vez; luego un área de 30 a 120 px
+  bolt:   { price: 1200, max: 20, upgrades: ups(2000, 1.42), chains: L20((v) => 2 + Math.floor((v - 1) * 0.55)), range: L20((v) => Math.round(curve(130, 230, v))), hop: 0.05 }, // de 2 a 12 en cadena
+  saw:    { price: 10000, max: 20, upgrades: ups(12000, 1.4), radius: L20((v) => Math.round(geo(22, 72, v))) }, // sierra: mantén y arrastra; crece de 44 a 144 px
   // The Beach
-  bomb:   { price: 8000,  world: 1, max: 10, upgrades: (l) => Math.round(2500 * 1.35 ** (l - 1)) }, // nivel = cuántas bombas puedes poner
-  meteor: { price: 40000, world: 2, upgrades: [80000, 160000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
-  wave:   { price: 30000, world: 1, only: 1, upgrades: [60000, 120000], cooldown: [8, 6.5, 5], dur: [1.8, 1.55, 1.3] }, // tsunami: baja desde el mar y arrastra a todos
+  bomb:   { price: 8000, world: 1, max: 20, upgrades: ups(2500, 1.38), count: L20((v) => Math.min(10, v)), radius: L20((v) => Math.round(curve(70, 185, v))) }, // hasta 10 bombas; luego, más grandes
+  wave:   { price: 30000, world: 1, only: 1, max: 20, upgrades: ups(40000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.5, v) * 10) / 10), dur: L20((v) => curve(1.8, 1.2, v)) }, // tsunami: baja desde el mar y arrastra a todos
   // The Slopes
-  aval:   { price: 60000, world: 2, upgrades: [120000, 240000], cooldown: [9, 7, 5.5], dur: [2.3, 2.05, 1.8] }, // avalancha: baja de los picos y arrastra a todos
+  meteor: { price: 40000, world: 2, max: 20, upgrades: ups(60000, 1.34), count: L20((v) => 5 + Math.floor((v - 1) * 0.6)), radius: 52, damage: 3, spread: L20((v) => Math.round(curve(120, 175, v))), cooldown: L20((v) => Math.round(geo(3, 1, v) * 10) / 10) },
+  aval:   { price: 60000, world: 2, max: 20, upgrades: ups(80000, 1.34), cooldown: L20((v) => Math.round(geo(9, 3.5, v) * 10) / 10), dur: L20((v) => curve(2.3, 1.6, v)) }, // avalancha: baja de los picos y arrastra a todos
 };
 const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval"];
 const PREMIUM = new Set();
@@ -944,24 +957,25 @@ const toolGone = (id) => TOOLS[id].only != null && save.level > TOOLS[id].only; 
 const toolHere = (id) => toolWorld(id) <= save.level && !toolGone(id);
 
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
+const upCost = (base, g) => (l) => nice(base * g ** l); // precio del nivel l+1
 const UP = {
-  // Ayudantes: hasta 5, los acomodas tú. Son dedos o nubes (uno u otro); la velocidad y el área valen para todos
-  hire:   { tab: "helpers", max: 5, cost: [100, 350, 1000, 2500, 6000] },       // cuántos ayudantes
+  // Ayudantes: hasta 5, los acomodas tú. Son dedos o nubes (uno u otro)
+  hire:   { tab: "helpers", max: 5, cost: [100, 350, 1000, 2500, 6000] },       // cuántos ayudantes (máximo 5)
   cloud:  { tab: "helpers", max: 1, cost: [3000] },                              // desbloquea las nubes eléctricas
   // Mejoras de los dedos
-  fspeed: { tab: "helpers", max: 8, cost: [200, 450, 900, 1600, 2600, 4000, 6000, 9000] }, // toques por segundo (2 → 10)
-  farea:  { tab: "helpers", max: 5, cost: [500, 1500, 4000, 9000, 18000] },     // área de cada toque (hasta 5 veces más grande)
-  fmove:  { tab: "helpers", max: 1, cost: [25000] },                             // los dedos dejan su lugar y persiguen marcianitos
+  fspeed: { tab: "helpers", max: 20, cost: upCost(200, 1.4) },   // toques por segundo (2 → 10)
+  farea:  { tab: "helpers", max: 20, cost: upCost(500, 1.42) },  // área de cada toque (hasta 5 veces más grande)
+  fmove:  { tab: "helpers", max: 1, cost: [25000] },             // los dedos dejan su lugar y persiguen marcianitos
   // Mejoras de las nubes
-  carea:  { tab: "helpers", max: 3, cost: [800, 2200, 5000] },                   // qué tan lejos alcanzan (4 tamaños)
-  cchain: { tab: "helpers", max: 8, cost: [600, 1200, 2200, 3500, 5500, 8000, 11000, 15000] }, // marcianitos por descarga (2 → 10)
-  // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
-  jet:   { tab: "helpers", world: 1, max: 6, cost: [20000, 8000, 12000, 18000, 27000, 40000] }, // jet bombardero
+  carea:  { tab: "helpers", max: 20, cost: upCost(800, 1.42) },  // qué tan lejos alcanzan
+  cchain: { tab: "helpers", max: 20, cost: upCost(600, 1.42) },  // marcianitos por descarga (2 → 10) y distancia del salto
+  // Ayudante de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
+  jet:    { tab: "helpers", world: 1, max: 20, cost: (l) => (l === 0 ? 20000 : nice(8000 * 1.38 ** (l - 1))) },
   // Mejoras
-  value: { tab: "boosts",  max: 8,  cost: [80, 140, 230, 360, 550, 820, 1200, 1750] }, // más monedas
-  crowd: { tab: "boosts",  max: 10, cost: [150, 350, 700, 1300, 2200, 3500, 5500, 8500, 13000, 20000] }, // más marcianitos y más rápido
-  luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
-  night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
+  value:  { tab: "boosts", max: 20, cost: upCost(80, 1.5) },     // más monedas
+  crowd:  { tab: "boosts", max: 20, cost: upCost(150, 1.45) },   // más marcianitos y más rápido
+  luck:   { tab: "boosts", max: 20, cost: upCost(200, 1.45) },   // más dorados
+  night:  { tab: "boosts", max: 20, cost: upCost(300, 1.5) },    // más horas fuera
 };
 const HELPER_KEYS = ["hire", "jet"]; // los que se pueden apagar
 // Cuántos trabajan de verdad: los contratados, salvo que estén apagados
@@ -969,17 +983,18 @@ const active = (k) => (save.off[k] ? 0 : save.up[k]);
 const UP_ORDER = ["hire", "cloud", "fspeed", "farea", "fmove", "carea", "cchain", "jet", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
-  fingerRate: (l) => [2, 3, 4, 5, 6, 7, 8, 9, 10][l], // toques por segundo de cada dedo (máximo 10)
-  fingerArea: (l) => [26, 44, 64, 86, 108, 130][l], // radio del área de cada dedo (px): hasta 5 veces el de inicio
-  cloudArea: (l) => [64, 80, 96, 115][l],     // qué tan lejos alcanza cada nube (px)
-  cloudHits: (l) => [2, 3, 4, 5, 6, 7, 8, 9, 10][l], // a cuántos marcianitos llega cada descarga (máximo 10)
-  valueMult: (l) => 1 + 0.2 * l,            // multiplicador de monedas
-  crowdExtra: (l) => 2 * l,                 // marcianitos extra en pantalla
-  crowdSpawn: (l) => 0.85 ** l,             // pausa entre apariciones
-  luckWeight: (l) => 3 + 3 * l,             // peso del dorado (base 3)
-  luckGap: (l) => SPAWN.yellowGap - 1.5 * l,
-  nightHours: (l) => [0.5, 1, 2, 4, 8][l],  // horas que trabajan los ayudantes mientras no estás
-  jetEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)],  // s entre que cae una bomba y pasa el siguiente jet
+  fingerRate: (l) => Math.round((2 + 0.4 * l) * 10) / 10,  // toques por segundo de cada dedo (2 → 10)
+  fingerArea: (l) => Math.round(26 * 5 ** (l / 20)),       // radio del área de cada dedo: hasta 5 veces el de inicio (26 → 130 px)
+  cloudArea: (l) => Math.round(64 * 2.4 ** (l / 20)),      // qué tan lejos alcanza cada nube (64 → 154 px)
+  cloudHits: (l) => 2 + Math.floor((l * 8) / 20),          // a cuántos marcianitos llega cada descarga (2 → 10)
+  cloudJump: (l) => 100 + 4 * l,                           // qué tan lejos salta la descarga de uno a otro (px)
+  valueMult: (l) => Math.round((1 + 0.2 * l) * 10) / 10,   // multiplicador de monedas (×1 → ×5)
+  crowdExtra: (l) => Math.round(1.25 * l),                 // marcianitos extra en pantalla (hasta +25)
+  crowdSpawn: (l) => 0.92 ** l,                            // pausa entre apariciones
+  luckWeight: (l) => 3 + 1.5 * l,                          // peso del dorado (base 3 → ×11)
+  luckGap: (l) => Math.max(1.5, SPAWN.yellowGap - 0.4 * l),
+  nightHours: (l) => (l <= 4 ? 0.5 * 2 ** l : 8 * 3 ** ((l - 4) / 16)), // horas que trabajan los ayudantes fuera (30 min → 24 h)
+  jetEvery: (l) => Math.round(5 * (1.2 / 5) ** (Math.max(0, l - 1) / 19) * 10) / 10, // s entre jets (5 → 1.2)
 };
 // Multiplicador: cada cierto tiempo aparece una burbuja ×2 o ×4; si la tocas a tiempo, multiplica tus monedas
 const MULT = {
@@ -1258,9 +1273,9 @@ function statText(id, lvl) {
   if (id === "finger") { const r = TOOLS.finger.radius[i]; return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
 
   if (id === "saw") { const r = TOOLS.saw.radius[i] * 2; return es ? `Sierra de ${r} px` : `${r} px blade`; }
-  if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
+  if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = TOOLS.bolt.range[i]; return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
-  if (id === "bomb") { const n = lvl; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} a la vez` : `${n} ${n === 1 ? "bomb" : "bombs"} at once`; }
+  if (id === "bomb") { const n = TOOLS.bomb.count[i], r = TOOLS.bomb.radius[i]; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} · ${r} px` : `${n} ${n === 1 ? "bomb" : "bombs"} · ${r} px`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
 function statShort(id, lvl) {
@@ -1268,10 +1283,10 @@ function statShort(id, lvl) {
   if (id === "finger") return `${TOOLS.finger.radius[i]} px`;
 
   if (id === "saw") return `${TOOLS.saw.radius[i] * 2} px`;
-  if (id === "bolt") return `+${TOOLS.bolt.chains[i]}`;
+  if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${TOOLS.bolt.range[i]} px`;
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval") return `${TOOLS[id].cooldown[i]}${s}`;
-  if (id === "bomb") return String(lvl);
+  if (id === "bomb") return `${TOOLS.bomb.count[i]} · ${TOOLS.bomb.radius[i]} px`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
@@ -1283,7 +1298,7 @@ function upText(k, l, short) {
     case "fspeed": { const r = FX.fingerRate(l); return short ? `${r}/s` : es ? `${r} toques por segundo` : `${r} taps per second`; }
     case "fmove": return !l ? (es ? "Se quedan en su lugar" : "Stay in their spot") : es ? "Persiguen marcianitos" : "Chase aliens";
     case "carea": { const r = FX.cloudArea(l); return short ? `${r} px` : es ? `Alcance de ${r} px` : `${r} px reach`; }
-    case "cchain": { const r = FX.cloudHits(l); return short ? String(r) : es ? `${r} marcianitos por descarga` : `${r} aliens per shock`; }
+    case "cchain": { const r = FX.cloudHits(l), j = FX.cloudJump(l); return short ? `${r} · ${j} px` : es ? `${r} marcianitos por descarga · saltos de ${j} px` : `${r} aliens per shock · ${j} px jumps`; }
     case "farea": { const r = FX.fingerArea(l); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
     case "jet": {
       if (!l) return tx("notHired");
@@ -1293,7 +1308,7 @@ function upText(k, l, short) {
     case "value": { const m = "×" + n(FX.valueMult(l)); return short ? m : es ? `${m} monedas` : `${m} coins`; }
     case "crowd": { const e = FX.crowdExtra(l); return short ? `+${e}` : es ? `+${e} marcianitos` : `+${e} aliens`; }
     case "luck": { const m = "×" + n(FX.luckWeight(l) / FX.luckWeight(0)); return short ? m : es ? `${m} dorados` : `${m} golden`; }
-    case "night": { const h = FX.nightHours(l), t = h < 1 ? `${h * 60} min` : `${h} h`; return short ? t : es ? `${t} trabajando fuera` : `${t} of work while away`; }
+    case "night": { const h = FX.nightHours(l), t = h < 1 ? `${Math.round(h * 60)} min` : `${n(h >= 10 ? Math.round(h) : Math.round(h * 10) / 10)} h`; return short ? t : es ? `${t} trabajando fuera` : `${t} of work while away`; }
   }
   return "";
 }
@@ -2098,7 +2113,7 @@ function useTool(x, y, pid) {
     startCd(id, TOOLS.meteor.cooldown[L]);
     const M = TOOLS.meteor, n = M.count[L];
     for (let i = 0; i < n; i++) {
-      const a = rand(0, TAU), d = i ? Math.sqrt(Math.random()) * M.spread : 0;
+      const a = rand(0, TAU), d = i ? Math.sqrt(Math.random()) * M.spread[L] : 0;
       meteors.push({ x: clamp(x + Math.cos(a) * d, 0, W), y: clamp(y + Math.sin(a) * d * 0.8, 0, H), t: -i * 0.11 - rand(0, 0.05), dur: 0.34, dx: rand(0.35, 0.7), hit: false });
     }
     Sound.whoosh();
@@ -2334,7 +2349,7 @@ function updateHelpers(dt) {
         const d = Math.hypot(b.x - h.x, b.y - h.y);
         if (d < R + b.r * 0.5 && d < bd) { bd = d; best = b; }
       }
-      if (best) { h.press = 1; zapChain(h.x, h.y - HOVER.bolt + 4, best, FX.cloudHits(save.up.cchain) - 1, 100, 1, true); }
+      if (best) { h.press = 1; zapChain(h.x, h.y - HOVER.bolt + 4, best, FX.cloudHits(save.up.cchain) - 1, FX.cloudJump(save.up.cchain), 1, true); }
     }
   }
 }
@@ -3536,7 +3551,7 @@ function puffSprite(dark) {
 
 /* ---------- Herramientas y ayudantes de The Beach: bombas, lluvia ácida, jets y tormentas ácidas ---------- */
 let seaShift = 0; // cuánto se mueve la orilla del mar (hoy se queda quieta)
-const BOMB_R = 82, JET_R = 215, JET_BOMBS = 6; // JET_R: radio de cada bomba del jet (5 veces el área de antes)
+const JET_R = 215, JET_BOMBS = 6; // JET_R: radio de cada bomba del jet (5 veces el área de antes)
 const BOMB_SIZE = 40, JET_SIZE = 150; // alto de la bomba y largo del jet, en px
 // --- Explosiones: destello, bola de fuego, onda expansiva, humo, esquirlas y una marca en el piso
 const booms = [];
@@ -3584,7 +3599,8 @@ const fuseTip = (x, y, s = 1) => { const A = HELPER_ART.bomb, k = (BOMB_SIZE / A
 
 // --- Bombas que pone el jugador: se colocan con un toque y explotan juntas con el botón Detonar
 const bombs = [];
-const bombCap = () => (toolWorld("bomb") <= save.level ? save.tools.bomb || 0 : 0);
+const bombCap = () => (toolWorld("bomb") <= save.level && save.tools.bomb ? TOOLS.bomb.count[save.tools.bomb - 1] : 0);
+const bombR = () => TOOLS.bomb.radius[Math.max(0, (save.tools.bomb || 1) - 1)];
 function placeBomb(x, y) {
   if (bombs.some((b) => b.lit)) return;
   if (bombs.length >= bombCap()) { notReady(x, y); const d = $("#detonate"); if (d.animate && !reduceMotion) d.animate([{ transform: "translateX(-50%)" }, { transform: "translateX(calc(-50% - 6px))" }, { transform: "translateX(calc(-50% + 6px))" }, { transform: "translateX(-50%)" }], { duration: 260 }); return; }
@@ -3606,7 +3622,7 @@ function updateBombs(dt) {
     b.t += dt;
     const [fx, fy] = fuseTip(b.x, b.y);
     if (Math.random() < (b.lit ? 0.9 : 0.18) * (lowFx ? 0.5 : 1)) part(fx, fy, rand(-40, 40), -rand(20, 70), rand(0.8, 1.6), rand(0.2, 0.4), Math.random() < 0.5 ? "#FFD27A" : "#FFFFFF", "dot", 3, 120);
-    if (b.lit && time >= b.at) { bombs.splice(i, 1); explode(b.x, b.y, BOMB_R, false); if (!bombs.length) updateDetonate(); }
+    if (b.lit && time >= b.at) { bombs.splice(i, 1); explode(b.x, b.y, bombR(), false); if (!bombs.length) updateDetonate(); }
   }
 }
 function drawBombs() {
@@ -3955,7 +3971,7 @@ function renderToolbar() {
   bar.innerHTML = vis.map((id) => {
     const l = save.tools[id], locked = l === 0;
     return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}" style="--tc:${HUE[id]}" type="button" data-id="${id}" aria-pressed="${save.tool === id}" aria-label="${tx(id)}">
-      ${ICONS[id]}<span class="name">${tx(id)}</span>${id === "bomb" ? `<span class="count">×${l}</span>` : `<span class="pips">${pips(l, toolMax(id))}</span>`}
+      ${ICONS[id]}<span class="name">${tx(id)}</span><span class="lvb"><b style="width:${(l / toolMax(id)) * 100}%"></b></span>
       <span class="price"><span class="coin"></span>${fmtShort(TOOLS[id].price)}</span><i class="cd"></i></button>`;
   }).join("");
   for (const k in toolEls) delete toolEls[k];
@@ -3982,7 +3998,7 @@ function buyButton(kind, key, price, label, blocked) {
     <span class="what">${label}</span><span class="cost">${price ? '<span class="coin"></span>' + fmtShort(price) : ""}</span></button>`;
 }
 // Barra de niveles de cada tarjeta (un segmento por nivel)
-const segs = (n, max) => `<div class="segs">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</div>`;
+const segs = (n, max) => max > 6 ? `<div class="segs long"><b style="width:${(n / max) * 100}%"></b></div>` : `<div class="segs">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</div>`;
 // Una tarjeta de la Tienda: ícono de color, nombre, nivel, descripción, qué mejora y el botón
 function shopCard({ key, cls = "", icon, name, tags = "", lv = "", desc, stat, bar = "", btn, extra = "" }) {
   return `<div class="item${cls}" data-key="${key}" style="--c:${HUE[key] || "#8A94A6"}">
@@ -3997,7 +4013,7 @@ function toolCard(id) {
   const stat = l === 0 ? statText(id, 1) : l < mx ? `${statText(id, l)} <span class="nx">→ ${statShort(id, l + 1)}</span>` : statText(id, mx);
   const btn = away
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
-    : buyButton("tool", id, price, l === 0 ? tx("buy") : id === "bomb" ? tx("addBomb") : tx("upgrade"));
+    : buyButton("tool", id, price, l === 0 ? tx("buy") : id === "bomb" && l < 10 ? tx("addBomb") : tx("upgrade"));
   return shopCard({
     key: id, cls: (away ? " locked-world" : "") + (price == null ? " done" : ""), icon: ICONS[id], name: tx(id),
     tags: (pro ? `<span class="pro">${tx("premium")}</span>` : "") + (wl ? `<span class="tag">${LEVELS[wl].name}</span>` : ""),
@@ -4459,7 +4475,7 @@ function drawCursor(x, y) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else if (id === "saw" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = id === "finger" ? TOOLS.finger.radius[L] : id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? BOMB_R : TOOLS.meteor.spread;
+    const R = id === "finger" ? TOOLS.finger.radius[L] : id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() : TOOLS.meteor.spread[L];
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
