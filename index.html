@@ -937,7 +937,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.28.0";
+const VERSION = "0.28.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -6469,6 +6469,36 @@ const Hero = (() => {
   const HDIE = 0.3;
   const KINDS = ["green", "orange", "purple", "green", "yellow", "orange"];
   const HERO_PINES = [[-0.66, -0.32, 1], [0.48, -0.6, 1.15], [0.8, -0.04, 0.78], [-0.24, -0.78, 0.8]]; // x, y (en radios de la isla) y alto
+  // Más cositas de cada isla (u, v en radios de la isla; r = qué tanto estorban a los marcianitos, en px a escala)
+  const HERO_PROPS = {
+    void: [{ k: "crystal", u: -0.5, v: -0.4, s: 1, r: 12 }, { k: "crystal", u: 0.58, v: -0.3, s: 0.75, r: 9 }],
+    beach: [{ k: "palm", u: -0.58, v: -0.28, s: 1, r: 7 }, { k: "umbrella", u: 0.58, v: -0.2, s: 1, r: 6 }, { k: "castle", u: 0.4, v: 0.52, s: 1, r: 22 }],
+    snow: [{ k: "snowman", u: -0.5, v: 0.45, s: 1, r: 12 }],
+    city: [{ k: "tree", u: 0.42, v: 0.68, s: 1, r: 6 }],
+  };
+  const heroProps = (lid, e) => { const k = Math.min(e.ry, 78) / 78; return (HERO_PROPS[lid] || []).map((p) => ({ ...p, sc: k, x: e.cx + p.u * e.rx, y: e.cy + p.v * e.ry, rr: p.r * k })); };
+  function drawHeroProp(P, dark) {
+    const k = P.sc, x = P.x, y = P.y;
+    if (P.k === "palm") { g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(120,90,50,0.16)"; g.beginPath(); g.ellipse(x + 34 * k, y + 2, 30 * k, 7 * k, 0, 0, TAU); g.fill(); paintPalm(g, x, y, 112 * k, 1, dark); }
+    else if (P.k === "umbrella") {
+      g.save(); g.translate(x - 26 * k, y + 8 * k); g.rotate(-0.2); g.fillStyle = dark ? "#2A6A80" : "#2FA3C4"; g.beginPath(); g.roundRect(-16 * k, -4 * k, 32 * k, 9 * k, 2); g.fill(); g.fillStyle = dark ? "#D6D2C8" : "#FFFFFF"; for (const o of [-8, 0, 8]) g.fillRect(o * k - 1.5 * k, -4 * k, 3 * k, 9 * k); g.restore();
+      g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(120,90,50,0.16)"; g.beginPath(); g.ellipse(x + 8 * k, y + 2, 26 * k, 7 * k, 0, 0, TAU); g.fill();
+      paintUmbrella(g, x, y, 54 * k, UMBRELLAS[0], -0.08, dark);
+    }
+    else if (P.k === "castle") paintCastle(g, x, y, 0.72 * k, dark);
+    else if (P.k === "snowman") paintSnowman(g, x, y, 0.92 * k, dark);
+    else if (P.k === "tree") paintTree(g, x, y, 70 * k, dark, 5);
+    else if (P.k === "crystal") {
+      const s2 = P.s * k, gl = g.createRadialGradient(x, y - 14 * s2, 0, x, y - 14 * s2, 26 * s2);
+      gl.addColorStop(0, dark ? "rgba(200,180,255,0.45)" : "rgba(165,132,232,0.3)"); gl.addColorStop(1, "rgba(165,132,232,0)");
+      g.fillStyle = gl; g.beginPath(); g.arc(x, y - 14 * s2, 26 * s2, 0, TAU); g.fill();
+      for (const [dx, hh2, w2] of [[-7, 18, 5], [6, 14, 4.5], [0, 26, 6]]) {
+        const cx = x + dx * s2, H2 = hh2 * s2, W2 = w2 * s2;
+        g.fillStyle = dark ? "#C9B6FF" : "#E7DCFF"; g.beginPath(); g.moveTo(cx, y - H2); g.lineTo(cx + W2, y - H2 * 0.3); g.lineTo(cx, y); g.lineTo(cx - W2, y - H2 * 0.3); g.closePath(); g.fill();
+        g.fillStyle = dark ? "#8C6FE0" : "#A584E8"; g.beginPath(); g.moveTo(cx, y - H2); g.lineTo(cx + W2, y - H2 * 0.3); g.lineTo(cx, y); g.closePath(); g.fill();
+      }
+    }
+  }
   // The City: dos edificios atrás (con su tienda) y dos postes de luz adelante, en las banquetas
   function heroCity(e) {
     const blds = [[-0.52, -0.3, 0.34, 1.05, 2, 1], [0.5, -0.34, 0.32, 1.3, 4, -1]].map(([u, v, ww, hgt, ci, side], i) => {
@@ -6488,9 +6518,12 @@ const Hero = (() => {
     const e = ground(), a = rand(0, TAU), d = fromEdge ? 0.95 : Math.sqrt(Math.random()) * 0.75;
     return { k, skin: k === "purple" && lvl().id === "snow" ? "purpleYeti" : null, ride: k === "orange" ? (Math.random() < 0.5 ? "ski" : "board") : null, x: e.cx + Math.cos(a) * e.rx * d, y: e.cy + Math.sin(a) * e.ry * d, h: a + Math.PI + rand(-0.6, 0.6), sp: BALL_TYPES[k].speed * 0.5, walk: rand(0, TAU), face: 1, flip: 1, born: 0, die: 0 };
   }
+  let actorsLid = "";
   function start() {
     size();
-    if (!actors.length) actors = KINDS.map((k) => make(k));
+    // Si cambiaste de nivel por otro lado (viaje, Niveles), los marcianitos del Inicio son los del nivel nuevo
+    if (!actors.length || (actorsLid !== lvl().id && !sw)) { actors = KINDS.map((k) => make(k)); hgoos.length = 0; }
+    actorsLid = lvl().id;
     hlast = 0;
     if (!hraf) hraf = requestAnimationFrame(frame);
   }
@@ -6532,6 +6565,7 @@ const Hero = (() => {
     old.forEach((a) => { a.detach = rand(0.03, 0.17); });
     drag.ox = 0; drag.back = false; hgoos.length = 0;
     if (!setWorldFromHome(save.level + d)) return false;
+    actorsLid = lvl().id;
     actors = KINDS.map((k, i) => { const a = make(k); a.born = 1; a.wait = 0.7 + i * 0.075; a.dropY = hh * 0.7 + rand(0, 30); a.dropV = 0; return a; });
     Sound.homeSwap(); buzz(10);
     if (reduceMotion) { actors.forEach((a) => { a.wait = 0; a.dropY = 0; }); return true; }
@@ -6649,6 +6683,13 @@ const Hero = (() => {
         a.h += angDiff(Math.atan2(dy, dx), a.h) * Math.min(1, dt * 4);
       }
     }
+    // Las cositas de la isla (palmera, castillo, muñeco de nieve, cristales…) no se atraviesan
+    for (const P of heroProps(lvl().id, e)) for (const a of solid) {
+      const dx = a.x - P.x, dy = (a.y - P.y) * 1.6, min = P.rr + BALL_TYPES[a.k].baseR * 0.75, d = Math.hypot(dx, dy) || 0.01;
+      if (d >= min) continue;
+      a.x += (dx / d) * (min - d); a.y += ((dy / d) * (min - d)) / 1.6;
+      a.h += angDiff(Math.atan2(dy, dx), a.h) * Math.min(1, dt * 4);
+    }
     // En la ciudad no se meten a los edificios ni atraviesan los postes
     if (lvl().id === "city") {
       const C = heroCity(e);
@@ -6700,21 +6741,58 @@ const Hero = (() => {
     g.save();
     if (ox || rot) { const [px, py] = pivot(e); g.translate(px + ox, py); g.rotate(rot); g.translate(-px, -py); }
     const dark = PAL.dark, beach = lid === "beach";
+    // Un costado con grosor (la isla no es una calcomanía): th = qué tan gruesa se ve
+    const th = Math.max(7, e.ry * 0.13);
+    const slab = (c0, c1) => {
+      const sd = g.createLinearGradient(0, e.cy, 0, e.cy + e.ry + th);
+      sd.addColorStop(0, c0); sd.addColorStop(1, c1);
+      g.fillStyle = sd; g.beginPath(); g.ellipse(e.cx, e.cy + th, e.rx, e.ry, 0, 0, TAU); g.fill(); g.fillRect(e.cx - e.rx, e.cy, e.rx * 2, th);
+    };
     if (lid === "snow") {
-      // Una islita nevada en agua helada: nieve con sombras azules, brillo en la orilla y pinos
+      // Una islita nevada en agua helada: costado de hielo con carámbanos, nieve con sombras azules, un charquito
+      // congelado y destellos
       const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
       g.save(); g.translate(e.cx, e.cy); g.scale(1, gs);
       const ice = g.createRadialGradient(0, 0, Math.min(e.rx * 0.9, GR * 0.7), 0, 0, GR);
       ice.addColorStop(0, dark ? "#2C4A68" : "#BFDDF4"); ice.addColorStop(1, dark ? "rgba(44,74,104,0)" : "rgba(191,221,244,0)");
       g.fillStyle = ice; g.beginPath(); g.arc(0, 0, GR, 0, TAU); g.fill(); g.restore();
-      g.fillStyle = dark ? "rgba(150,190,230,0.2)" : "rgba(255,255,255,0.65)";
-      g.beginPath(); g.ellipse(e.cx, e.cy + 2, e.rx * 1.06, e.ry * 1.1, 0, 0, TAU); g.fill();
+      slab(dark ? "#3E5878" : "#CFE2F4", dark ? "#22344C" : "#8FB2D6");
+      // Carámbanos colgando de la orilla de enfrente
+      g.fillStyle = dark ? "rgba(200,225,255,0.55)" : "rgba(255,255,255,0.9)";
+      for (let i = 0; i < 9; i++) {
+        const a = Math.PI * (0.15 + i * 0.087), x = e.cx + Math.cos(a) * e.rx * 0.98, y = e.cy + th + Math.sin(a) * e.ry * 0.98, l = th * (0.6 + ((i * 37) % 5) / 6);
+        g.beginPath(); g.moveTo(x - 3, y - 1); g.lineTo(x + 3, y - 1); g.lineTo(x, y + l); g.closePath(); g.fill();
+      }
       const sn = g.createRadialGradient(e.cx - e.rx * 0.3, e.cy - e.ry * 0.4, 4, e.cx, e.cy, e.rx);
       sn.addColorStop(0, dark ? "#46546E" : "#FFFFFF"); sn.addColorStop(1, dark ? "#2E3A50" : "#D9E6F4");
       g.fillStyle = sn; g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.fill();
       g.fillStyle = dark ? "rgba(0,0,0,0.16)" : "rgba(110,145,200,0.1)";
       g.beginPath(); g.ellipse(e.cx + e.rx * 0.25, e.cy + e.ry * 0.3, e.rx * 0.45, e.ry * 0.25, 0, 0, TAU); g.fill();
       g.beginPath(); g.ellipse(e.cx - e.rx * 0.4, e.cy - e.ry * 0.1, e.rx * 0.3, e.ry * 0.18, 0, 0, TAU); g.fill();
+      // Crestitas que talla el viento
+      g.lineCap = "round";
+      for (const [u, v] of [[-0.1, -0.45], [0.42, 0.12], [-0.62, 0.15]]) for (let j = 0; j < 3; j++) {
+        const x = e.cx + u * e.rx, y = e.cy + v * e.ry + j * 4;
+        g.strokeStyle = dark ? "rgba(0,0,0,0.18)" : "rgba(110,140,190,0.18)"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x - 14, y); g.quadraticCurveTo(x, y - 3, x + 14, y); g.stroke();
+        g.strokeStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)"; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 12, y - 1.2); g.quadraticCurveTo(x, y - 4.2, x + 12, y - 1.2); g.stroke();
+      }
+      // Charquito congelado con su reflejo
+      const px = e.cx + e.rx * 0.18, py = e.cy + e.ry * 0.12, pr = e.rx * 0.2;
+      g.fillStyle = dark ? "#C2D0E2" : "#FFFFFF"; g.beginPath(); g.ellipse(px, py, pr + 3, pr * 0.42 + 2, 0, 0, TAU); g.fill();
+      const pg = g.createLinearGradient(px - pr, py - pr * 0.4, px + pr, py + pr * 0.4);
+      pg.addColorStop(0, dark ? "#3A5A7A" : "#D8ECF8"); pg.addColorStop(1, dark ? "#22384E" : "#9CC4E2");
+      g.fillStyle = pg; g.beginPath(); g.ellipse(px, py, pr, pr * 0.42, 0, 0, TAU); g.fill();
+      g.strokeStyle = dark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.85)"; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(px - pr * 0.4, py + pr * 0.25); g.lineTo(px - pr * 0.05, py - pr * 0.25); g.moveTo(px + pr * 0.05, py + pr * 0.25); g.lineTo(px + pr * 0.3, py - pr * 0.18); g.stroke();
+      // Destellos que titilan
+      g.fillStyle = dark ? "#E6EEFA" : "#7FAAE0";
+      for (let i = 0; i < 7; i++) {
+        const k = Math.pow(Math.max(0, Math.sin(t * (0.8 + i * 0.13) + i * 2.1)), 12);
+        if (k < 0.05) continue;
+        const a = i * 2.39, d = 0.25 + (i % 3) * 0.22, x = e.cx + Math.cos(a) * e.rx * d, y = e.cy + Math.sin(a) * e.ry * d, r = 0.8 + 2.4 * k;
+        g.globalAlpha = k * 0.8; g.fillRect(x - r, y - 0.5, r * 2, 1); g.fillRect(x - 0.5, y - r, 1, r * 2);
+      }
+      g.globalAlpha = 1;
       g.strokeStyle = dark ? "rgba(220,235,255,0.35)" : "rgba(255,255,255,0.95)"; g.lineWidth = 2;
       g.beginPath(); g.ellipse(e.cx, e.cy, e.rx + 1, e.ry + 1, 0, 0, TAU); g.stroke();
     } else if (lid === "city") {
@@ -6762,29 +6840,95 @@ const Hero = (() => {
       g.strokeStyle = dark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.9)"; g.lineWidth = 1.6;
       g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, Math.PI * 1.04, Math.PI * 1.96); g.stroke();
     } else if (beach) {
-      // Una islita en el mar: agua alrededor, una franja de agua clara y espuma que va y viene
-      // El brillo del agua se apaga antes de llegar a la orilla del canvas (nunca se ve cortado)
+      // Una islita en el mar: agua clara alrededor, espuma que va y viene, costado de arena (la orilla que baja
+      // al agua), arena mojada, rizos del viento, conchitas, una estrella de mar y una piedrita
       const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
       g.save(); g.translate(e.cx, e.cy); g.scale(1, gs);
       const sea = g.createRadialGradient(0, 0, Math.min(e.rx * 0.9, GR * 0.7), 0, 0, GR);
       sea.addColorStop(0, dark ? "#2F7488" : "#9EDDEB"); sea.addColorStop(1, dark ? "rgba(47,116,136,0)" : "rgba(158,221,235,0)");
       g.fillStyle = sea; g.beginPath(); g.arc(0, 0, GR, 0, TAU); g.fill(); g.restore();
+      // Destellitos en el agua
+      g.strokeStyle = "#FFFFFF"; g.lineCap = "round"; g.lineWidth = 1.4;
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.05 + 0.3, d = 1.2 + (i % 2) * 0.1, x = e.cx + Math.cos(a + t * 0.05) * e.rx * d, y = e.cy + th * 0.6 + Math.sin(a + t * 0.05) * e.ry * d * 1.05;
+        g.globalAlpha = (dark ? 0.25 : 0.6) * (0.5 + 0.5 * Math.sin(t * 2 + i * 1.7));
+        g.beginPath(); g.moveTo(x - 4, y); g.lineTo(x + 4, y); g.stroke();
+      }
+      g.globalAlpha = 1;
       const sw = 1 + 0.025 * Math.sin(t * 1.4);
       g.fillStyle = dark ? "rgba(120,200,215,0.25)" : "rgba(255,255,255,0.55)";
-      g.beginPath(); g.ellipse(e.cx, e.cy + 2, e.rx * 1.07 * sw, e.ry * 1.1 * sw, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(e.cx, e.cy + th * 0.7, e.rx * 1.07 * sw, e.ry * 1.1 * sw, 0, 0, TAU); g.fill();
+      slab(dark ? "#5A4E38" : "#E6C690", dark ? "#3E3526" : "#C09A60");
+      // La línea mojada del costado (donde llega el agua)
+      g.strokeStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(130,95,50,0.25)"; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(e.cx, e.cy + th * 0.75, e.rx * 0.995, e.ry * 0.995, 0, Math.PI * 0.05, Math.PI * 0.95); g.stroke();
       const sand = g.createRadialGradient(e.cx - e.rx * 0.3, e.cy - e.ry * 0.4, 4, e.cx, e.cy, e.rx);
       sand.addColorStop(0, dark ? "#5C513C" : "#FFF8E8"); sand.addColorStop(1, dark ? "#4A412F" : "#F0DFBC");
       g.fillStyle = sand; g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.fill();
+      // Arena mojada en la orilla (un anillo más oscuro)
+      g.save(); g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.clip();
+      g.strokeStyle = dark ? "rgba(0,0,0,0.18)" : "rgba(180,140,80,0.18)"; g.lineWidth = 10;
+      g.beginPath(); g.ellipse(e.cx, e.cy, e.rx - 3, e.ry - 3, 0, 0, TAU); g.stroke();
+      // Rizos del viento
+      g.lineCap = "round";
+      for (const [u, v] of [[-0.15, -0.5], [0.3, 0.2], [-0.55, 0.25], [0.6, -0.35]]) for (let j = 0; j < 3; j++) {
+        const x = e.cx + u * e.rx, y = e.cy + v * e.ry + j * 4;
+        g.strokeStyle = dark ? "rgba(0,0,0,0.18)" : "rgba(175,150,105,0.2)"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - 13, y); g.quadraticCurveTo(x, y - 3, x + 13, y); g.stroke();
+        g.strokeStyle = dark ? "rgba(255,240,210,0.06)" : "rgba(255,255,255,0.8)"; g.lineWidth = 0.9; g.beginPath(); g.moveTo(x - 11, y + 1.2); g.quadraticCurveTo(x, y - 1.8, x + 11, y + 1.2); g.stroke();
+      }
+      // Granitos
+      for (let i = 0; i < 70; i++) {
+        const a = i * 2.399, d = Math.sqrt((i * 0.618) % 1);
+        g.fillStyle = i % 2 ? (dark ? "rgba(255,240,210,0.08)" : "rgba(255,255,255,0.9)") : dark ? "rgba(0,0,0,0.2)" : "rgba(170,135,85,0.22)";
+        g.fillRect(e.cx + Math.cos(a) * e.rx * d * 0.95, e.cy + Math.sin(a) * e.ry * d * 0.95, 1.2, 1.2);
+      }
+      g.restore();
+      // Conchitas, una estrella de mar y una piedrita
+      const sh = (x, y, r, rot) => {
+        g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = dark ? "#B9A08F" : "#F6D7C6"; g.strokeStyle = "rgba(190,130,100,0.55)"; g.lineWidth = 0.8;
+        g.beginPath(); g.moveTo(0, r * 0.5); g.arc(0, r * 0.5, r, Math.PI * 1.12, Math.PI * 1.88); g.closePath(); g.fill(); g.stroke();
+        for (let k = 1; k < 4; k++) { const a = Math.PI * (1.12 + 0.76 * (k / 4)); g.beginPath(); g.moveTo(0, r * 0.5); g.lineTo(Math.cos(a) * r, r * 0.5 + Math.sin(a) * r); g.stroke(); }
+        g.restore();
+      };
+      sh(e.cx - e.rx * 0.2, e.cy + e.ry * 0.62, 5, 0.3); sh(e.cx + e.rx * 0.72, e.cy + e.ry * 0.3, 4, -0.5);
+      { const x = e.cx - e.rx * 0.7, y = e.cy + e.ry * 0.05; g.save(); g.translate(x, y); g.rotate(0.4); g.fillStyle = dark ? "#B87A60" : "#EE9D78"; g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 2.4 : 6.4, a = (k * Math.PI) / 5 - Math.PI / 2; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.7) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r * 0.7); } g.closePath(); g.fill(); g.restore(); }
+      { const x = e.cx + e.rx * 0.05, y = e.cy - e.ry * 0.7; g.fillStyle = "rgba(0,0,0,0.15)"; g.beginPath(); g.ellipse(x + 1.5, y + 1.5, 6, 2.4, 0, 0, TAU); g.fill(); g.fillStyle = dark ? "#6B6152" : "#C9BEAE"; g.beginPath(); g.ellipse(x, y, 5.5, 3.4, 0, Math.PI, TAU); g.ellipse(x, y, 5.5, 1.6, 0, 0, Math.PI); g.fill(); g.fillStyle = dark ? "#8A7E6C" : "#E2D9CC"; g.beginPath(); g.ellipse(x - 1.5, y - 1.8, 2.4, 1, 0, 0, TAU); g.fill(); }
+      // Espuma de encaje que va y viene alrededor de la isla
       g.strokeStyle = dark ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.95)"; g.lineWidth = 2.2; g.lineCap = "round";
-      g.beginPath(); for (let i = 0; i <= 64; i++) { const a = (i / 64) * TAU, wob = 1.5 + Math.sin(a * 7 + t * 2.2) * 1.5; const x = e.cx + Math.cos(a) * (e.rx + wob), y = e.cy + Math.sin(a) * (e.ry + wob * 0.6); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
+      g.beginPath(); for (let i = 0; i <= 64; i++) { const a = (i / 64) * TAU, wob = 1.5 + Math.sin(a * 7 + t * 2.2) * 1.5; const x = e.cx + Math.cos(a) * (e.rx + wob), y = e.cy + Math.sin(a) * (e.ry + wob * 0.6) + (Math.sin(a) > 0 ? th * 0.75 * Math.sin(a) : 0); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
     } else {
-      g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(60,50,30,0.08)";
-      g.beginPath(); g.ellipse(e.cx, e.cy + e.ry * 0.22, e.rx * 1.03, e.ry * 1.02, 0, 0, TAU); g.fill();
-      const rock = g.createRadialGradient(e.cx - e.rx * 0.3, e.cy - e.ry * 0.4, 4, e.cx, e.cy, e.rx);
-      rock.addColorStop(0, dark ? "#3A3360" : "#F4F1FD"); rock.addColorStop(1, dark ? "#252040" : "#DDD6F5");
-      g.fillStyle = rock; g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.fill();
+      // Una isla flotante: debajo, roca en punta con un brillo morado; arriba, roca lisa con cráteres;
+      // piedritas que flotan alrededor y estrellitas que titilan
+      const fy = Math.sin(t * 1.1) * 2.5, by = e.cy + fy;
+      const gl = g.createRadialGradient(e.cx, by + e.ry * 1.1, 4, e.cx, by + e.ry * 1.1, e.rx * 1.1);
+      gl.addColorStop(0, dark ? "rgba(165,132,232,0.45)" : "rgba(165,132,232,0.3)"); gl.addColorStop(1, "rgba(165,132,232,0)");
+      g.fillStyle = gl; g.beginPath(); g.ellipse(e.cx, by + e.ry * 1.1, e.rx * 1.1, e.ry * 0.9, 0, 0, TAU); g.fill();
+      const rock = g.createLinearGradient(e.cx - e.rx, by, e.cx + e.rx * 0.6, by + e.ry * 1.6);
+      rock.addColorStop(0, dark ? "#4A3D86" : "#8C78D8"); rock.addColorStop(1, dark ? "#1C1638" : "#4B3A92");
+      g.fillStyle = rock; g.beginPath(); g.moveTo(e.cx - e.rx, by);
+      for (const [u, v] of [[-0.82, 0.38], [-0.55, 0.62], [-0.32, 1.05], [-0.08, 1.35], [0.12, 1.12], [0.34, 1.2], [0.55, 0.78], [0.8, 0.45]]) g.lineTo(e.cx + u * e.rx, by + v * e.ry);
+      g.lineTo(e.cx + e.rx, by); g.closePath(); g.fill();
+      g.strokeStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.18)"; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(e.cx - e.rx * 0.6, by + e.ry * 0.45); g.lineTo(e.cx - e.rx * 0.3, by + e.ry * 0.9); g.moveTo(e.cx + e.rx * 0.25, by + e.ry * 0.6); g.lineTo(e.cx + e.rx * 0.08, by + e.ry * 1.05); g.stroke();
+      // Cristalitos colgando por debajo
+      for (const [u, v, s2] of [[-0.3, 1.0, 1], [0.38, 0.95, 0.8]]) { const x = e.cx + u * e.rx, y = by + v * e.ry, hh2 = 12 * s2; g.fillStyle = dark ? "#C9B6FF" : "#E7DCFF"; g.beginPath(); g.moveTo(x - 4, y); g.lineTo(x + 4, y); g.lineTo(x, y + hh2); g.closePath(); g.fill(); }
+      const top = g.createRadialGradient(e.cx - e.rx * 0.3, by - e.ry * 0.4, 4, e.cx, by, e.rx);
+      top.addColorStop(0, dark ? "#3A3360" : "#F4F1FD"); top.addColorStop(1, dark ? "#252040" : "#DDD6F5");
+      g.fillStyle = top; g.beginPath(); g.ellipse(e.cx, by, e.rx, e.ry, 0, 0, TAU); g.fill();
+      // Cráteres con su sombra y su borde con luz
+      for (const [u, v, r] of [[0.3, 0.25, 0.16], [-0.42, 0.38, 0.11], [0.05, -0.5, 0.09], [0.62, -0.12, 0.07]]) {
+        const x = e.cx + u * e.rx, y = by + v * e.ry, rx = r * e.rx, ry = rx * 0.45;
+        g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(124,92,224,0.12)"; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+        g.strokeStyle = dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.9)"; g.lineWidth = 1.4; g.beginPath(); g.ellipse(x, y + 0.8, rx, ry, 0, Math.PI * 0.1, Math.PI * 0.9); g.stroke();
+      }
       g.strokeStyle = dark ? "rgba(180,165,255,0.35)" : "rgba(124,92,224,0.22)"; g.lineWidth = 2;
-      g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+      g.beginPath(); g.ellipse(e.cx, by, e.rx, e.ry, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+      // Piedritas que flotan alrededor (suben y bajan despacio)
+      for (const [u, v, r, ph] of [[-1.22, -0.2, 7, 0], [1.25, 0.1, 5, 1.7], [-1.0, 0.9, 4, 3.1], [1.05, -0.75, 4.5, 4.4]]) {
+        const x = e.cx + u * e.rx, y = e.cy + v * e.ry + Math.sin(t * 1.3 + ph) * 3;
+        g.fillStyle = dark ? "#2E2650" : "#9C8AE0"; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x - r * 0.4, y - r * 0.7); g.lineTo(x + r * 0.6, y - r * 0.6); g.lineTo(x + r, y); g.lineTo(x + r * 0.2, y + r * 0.9); g.closePath(); g.fill();
+        g.fillStyle = dark ? "#4A3D86" : "#C9BDF2"; g.beginPath(); g.moveTo(x - r * 0.4, y - r * 0.7); g.lineTo(x + r * 0.6, y - r * 0.6); g.lineTo(x + r * 0.2, y - r * 0.1); g.closePath(); g.fill();
+      }
       // Estrellitas que titilan alrededor
       g.fillStyle = dark ? "#FFFFFF" : "#7C5CE0";
       for (let i = 0; i < 12; i++) { const a = i * 2.39, d = 1.12 + (i % 4) * 0.09; g.globalAlpha = (dark ? 0.6 : 0.35) * (0.5 + 0.5 * Math.sin(t * 2 + i)); g.beginPath(); g.arc(e.cx + Math.cos(a) * e.rx * d, e.cy + Math.sin(a) * e.ry * d * 1.6 - e.ry * 0.3, 1.4, 0, TAU); g.fill(); }
@@ -6797,6 +6941,7 @@ const Hero = (() => {
     // En la nieve, los pinos se acomodan entre los marcianitos según la profundidad
     if (lid === "snow") for (const [px, py, ph] of HERO_PINES) list.push({ pine: true, x: e.cx + px * e.rx, y: e.cy + py * e.ry, h: ph * Math.min(e.ry, 70) });
     if (lid === "city") { const C = heroCity(e); for (const B of C.blds) list.push({ bld: B, y: B.y }); for (const L of C.lamps) list.push({ lamp: L, y: L.y }); }
+    for (const P of heroProps(lid, e)) list.push({ prop: P, y: P.y });
     list.sort((a, b) => a.y - b.y);
     for (const a of list) {
       if (a.pine) {
@@ -6810,6 +6955,7 @@ const Hero = (() => {
         paintMiniBuilding(g, B.x, B.y, B.w, B.d, B.h, B.col, dark, B.side, B.seed, B.awn); continue;
       }
       if (a.lamp) { const L = a.lamp; g.globalAlpha = 1; paintLamp(g, L.x, L.y, L.hp, 0, L.dir, 0, L.hp * 0.3, dark); continue; }
+      if (a.prop) { g.globalAlpha = 1; drawHeroProp(a.prop, dark); continue; }
       const T = BALL_TYPES[a.k], im = alienImg[(lid === "snow" && a.skin) || a.k];
       if (!im || a.wait > 0) continue;
       const lift = a.dropY || 0;
