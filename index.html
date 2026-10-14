@@ -912,7 +912,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.22.1";
+const VERSION = "0.22.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -933,6 +933,7 @@ for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia e
 
 // Niveles: cada uno con su tema (colores y fondo animado), su multiplicador de monedas y sus herramientas.
 // Para pasar al siguiente: llegar a "smush" marcianitos aplastados EN TOTAL (se acumulan todo el juego) y pagar "cost" monedas.
+const START_COINS = 10000; // monedas con las que empiezas cada nivel nuevo
 const LEVELS = [
   { id: "void",  name: "The Void",  coinMult: 1 },
   { id: "beach", name: "The Beach", coinMult: 2, smush: 5000, cost: 10000 },
@@ -1220,7 +1221,7 @@ const STR = {
   how3: ["Switch tools anytime from the bar below. Hold and drag to use the Saw.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar la Sierra."],
   how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 60.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 60."],
   how5: ["Hire up to 5 helpers and place them anywhere: they tap their spot on their own, even while you're away. Make them fingers or shock clouds.", "Contrata hasta 5 ayudantes y acomódalos donde quieras: tocan su lugar solos, incluso cuando no estás. Pueden ser dedos o nubes eléctricas."],
-  how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there: your coins and your smush count come with you.", "Cada marcianito que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marcianito vale más. Ahí empiezas de cero: viajan tus monedas y tu cuenta de aplastados."],
+  how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there with 10,000 coins; your smush count comes with you.", "Cada marcianito que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marcianito vale más. Ahí empiezas de cero con 10,000 monedas; tu cuenta de aplastados viaja contigo."],
   how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
@@ -1261,7 +1262,7 @@ const STR = {
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
-  freshStart: ["Fresh start: tools, helpers and boosts reset. Your coins and your smush count come with you.", "Empiezas de cero: herramientas, ayudantes y mejoras se reinician. Viajan tus monedas y tu cuenta de aplastados."], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
+  freshStart: ["Fresh start: tools, helpers and boosts reset, and you begin with 10,000 coins. Your smush count comes with you.", "Empiezas de cero: herramientas, ayudantes y mejoras se reinician y arrancas con 10,000 monedas. Tu cuenta de aplastados viaja contigo."], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
   soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianitos, nuevas herramientas."],
   ready: ["Ready!", "¡Listo!"],
   stay: ["Stay a bit", "Un rato más"], travelNow: ["Travel now", "Viajar ya"], unlocked: ["unlocked", "desbloqueado"],
@@ -3001,8 +3002,8 @@ function checkReady() {
   $("#ready-kicker").textContent = `${tx("level")} ${save.level + 2} ${tx("unlocked")}`;
   $("#ready-title").textContent = `${n.name} ${tx("readyTitle")}`;
   $("#ready-msg").textContent = es
-    ? `Ya llevas ${fmt(n.smush)} marcianitos aplastados y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero; viajan tus monedas y tu cuenta de aplastados.`
-    : `You've smushed ${fmt(n.smush)} aliens in total and you have the ${fmt(n.cost)} coins for the trip. You start fresh there; your coins and your smush count come with you.`;
+    ? `Ya llevas ${fmt(n.smush)} marcianitos aplastados y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero con 10,000 monedas; tu cuenta de aplastados viaja contigo.`
+    : `You've smushed ${fmt(n.smush)} aliens in total and you have the ${fmt(n.cost)} coins for the trip. You start fresh there with 10,000 coins; your smush count comes with you.`;
   $("#btn-go").textContent = tx("travelNow");
   readyEl.classList.toggle("to-snow", n.id === "snow");
   readyEl.hidden = false; void readyEl.offsetWidth; readyEl.classList.add("open");
@@ -3020,8 +3021,9 @@ function travel() {
   if (!n || save.smushed < n.smush || save.coins < n.cost) { Sound.nope(); return; }
   const from = lvl();
   save.coins -= n.cost; save.spent += n.cost;
+  save.coins = START_COINS; // en el nivel nuevo empiezas con 10,000 monedas (lo demás se queda atrás)
   save.level++;
-  // Nivel nuevo, desde cero: herramientas, ayudantes y mejoras se reinician. Solo viajan tus monedas.
+  // Nivel nuevo, desde cero: herramientas, ayudantes y mejoras se reinician; empiezas con 10,000 monedas.
   const fresh = freshSave();
   save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.spots = []; save.hmode = "finger"; save.tool = "finger"; placing = -1; toPlace.length = 0; $("#place-hint").classList.remove("on");
   helpers.length = 0; syncHelpers();
