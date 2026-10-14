@@ -951,7 +951,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.29.5";
+const VERSION = "0.29.6";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1052,7 +1052,6 @@ const UP = {
   carea:  { tab: "helpers", max: 20, cost: upCost(800, 1.42) },  // qué tan lejos alcanzan
   cchain: { tab: "helpers", max: 20, cost: upCost(600, 1.42) },  // marcianitos por descarga (2 → 10) y distancia del salto
   // Ayudante de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
-  jet:    { tab: "helpers", world: 1, max: 20, cost: (l) => (l === 0 ? 20000 : nice(8000 * 1.38 ** (l - 1))) },
   // Mejoras
   value:  { tab: "boosts", max: 20, cost: upCost(80, 1.5) },     // más monedas
   crowd:  { tab: "boosts", max: 20, cost: upCost(150, 1.45) },   // más marcianitos y más rápido
@@ -1060,14 +1059,14 @@ const UP = {
   night:  { tab: "boosts", max: 20, cost: upCost(300, 1.5) },    // más horas fuera
 };
 const HELPER_MAX = 5; // ayudantes como máximo (se usa al cargar el guardado: tiene que estar definido antes)
-const HELPER_KEYS = ["hire", "jet"]; // los que se pueden apagar
+const HELPER_KEYS = ["hire"]; // los que se pueden apagar
 // Cuántos trabajan de verdad: los contratados, salvo que estén apagados
 // En el celular caben menos: máximo 3 ayudantes (dedos o nubes). Si ya tenías más, siguen siendo tuyos, pero ahí trabajan 3
 const HELPER_MAX_PHONE = 3;
 const helperCap = () => (W && W < PHONE_WIDTH ? HELPER_MAX_PHONE : HELPER_MAX);
 const upMax = (k) => (k === "hire" ? helperCap() : UP[k].max);
 const active = (k) => (save.off[k] ? 0 : k === "hire" ? Math.min(save.up.hire, helperCap()) : save.up[k]);
-const UP_ORDER = ["hire", "cloud", "fspeed", "farea", "fmove", "carea", "cchain", "jet", "value", "crowd", "luck", "night"];
+const UP_ORDER = ["hire", "cloud", "fspeed", "farea", "fmove", "carea", "cchain", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   fingerRate: (l) => Math.round((2 + 0.4 * l) * 10) / 10,  // toques por segundo de cada dedo (2 → 10)
@@ -1153,7 +1152,7 @@ const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0, car: 0, arrows: 0 }, // 0 = sin comprar; 1+ = nivel
-  up: { hire: 0, cloud: 0, fspeed: 0, farea: 0, fmove: 0, carea: 0, cchain: 0, jet: 0, value: 0, crowd: 0, luck: 0, night: 0 },
+  up: { hire: 0, cloud: 0, fspeed: 0, farea: 0, fmove: 0, carea: 0, cchain: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 4, // versión del guardado
   level: 0, // nivel actual (la meta del siguiente usa el total de aplastados, que nunca se reinicia)
@@ -1228,6 +1227,7 @@ function loadSave() {
     const refund = (l, prices) => { for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); } };
     refund(clamp(Math.floor(num(s.tools && s.tools.acid)), 0, 3), [20000, 35000, 60000]);
     refund(clamp(Math.floor(num(s.up && s.up.acidH)), 0, 6), [15000, 8000, 13000, 20000, 30000, 45000]); // Tormenta ácida (ya no existe)
+    refund(clamp(Math.floor(num(s.up && s.up.jet)), 0, 20), Array.from({ length: 20 }, (_, l) => (l === 0 ? 20000 : nice(8000 * 1.38 ** (l - 1))))); // Jet bombardero (ya no existe)
     if (d.level < 2 && d.tools.meteor) { refund(d.tools.meteor, [15000, 30000, 60000]); d.tools.meteor = 0; }
     // Partidas de antes de los niveles: lo que llevas aplastado cuenta para la meta de The Beach
     const st = s.tool === "spray" ? "saw" : s.tool;
@@ -1330,7 +1330,7 @@ const STR = {
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
-  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, the Tsunami and the Bomber jet.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, el Tsunami y el Jet bombardero."],
+  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs and the Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas y el Tsunami."],
   snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
   jungleD: ["Giant trees, ferns and a quiet pond under a green canopy. Every alien is worth ×16; butterflies drift by in the day and fireflies glow at night.", "Árboles gigantes, helechos y un estanque tranquilo bajo un techo de hojas. Cada marcianito vale ×16; de día pasan mariposas y de noche brillan las luciérnagas."],
   cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
@@ -2701,7 +2701,6 @@ function helperRate() {
     rate += Math.min(n * helperRateNow() * perClick, 7) * coinsPerTap(1); // los marcianitos solo aparecen tan rápido
   }
   // Jets (de The Beach en adelante): ~3 marcianitos por bomba
-  if (save.level >= 1 && active("jet")) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
   return rate;
 }
 function avgReward() {
@@ -6044,7 +6043,6 @@ function launchJet() {
 function updateSky(dt) {
   const beach = save.level >= 1; // jets y tormentas: de The Beach en adelante
   // Jets
-  if (beach && active("jet") > 0 && playing && !jets.length && !falling.length) { jetClock -= dt; if (jetClock <= 0) launchJet(); }
   for (let i = jets.length - 1; i >= 0; i--) {
     const j = jets[i];
     j.t += dt; j.x += j.vx * dt; j.y += j.vy * dt;
@@ -6246,7 +6244,6 @@ function buyUp(k) {
   if (k === "hire" || k === "cloud") syncHelpers();
   // Ayudante nuevo: se acomoda al cerrar la Tienda (puedes comprar varios y luego acomodarlos uno por uno)
   if (k === "hire") toPlace.push(save.up.hire - 1);
-  if (k === "jet") jetClock = Math.min(jetClock, 1.5);
   if (k === "crowd") updateTarget();
   afterBuy(Math.min(was, 2), k);
 }
@@ -6373,7 +6370,7 @@ function toolCard(id) {
 function upCard(k) {
   const mx = upMax(k), l = Math.min(save.up[k], mx), u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
   const stat = l >= mx ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
-  const hireLike = k === "hire" || (k === "jet" && l === 0);
+  const hireLike = k === "hire";
   const btn = !ready
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
     : buyButton("up", k, price, hireLike ? tx("hireBtn") : k === "cloud" ? tx("unlock") : l === 0 ? tx("buy") : tx("upgrade"));
@@ -6403,7 +6400,6 @@ function renderShop(animate) {
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "cloud"].map(upCard).join("")
       + (helperKind() === "bolt" ? sect("secClouds") + ["carea", "cchain"].map(upCard).join("") : sect("secFingers") + ["fspeed", "farea", "fmove"].map(upCard).join(""))
-      + sect("secBeach") + ["jet"].map(upCard).join("")
 
   } else {
     html = sect("secBoostWorld") + ["value", "crowd", "luck", "night"].map(upCard).join("");
