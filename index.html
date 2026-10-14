@@ -915,7 +915,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.22.7";
+const VERSION = "0.22.8";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2274,37 +2274,34 @@ const SAW_CUT_DIE = 0.6; // s que tardan en caer las dos mitades
 let sawSpr = {};
 // La hoja (dientes, ranuras y centro) se pinta una vez por tamaño; luego solo se gira
 function sawSprite(R) {
+  // Estilo juguete: plana, de color coral, con pocos dientes redondeados, un aro más claro y el centro blanco
   const key = R + (PAL.onDark ? "d" : "l");
   if (sawSpr[key]) return sawSpr[key];
   const pad = 4, size = (R + pad) * 2, c = document.createElement("canvas");
   c.width = c.height = Math.ceil(size * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR); g.translate(size / 2, size / 2);
-  const teeth = Math.round(12 + R * 0.35), inner = R * 0.82;
-  // Dientes: cada uno sube en rampa y cae de golpe (como sierra de verdad)
+  const teeth = Math.max(8, Math.round(7 + R * 0.12)), inner = R * 0.78;
+  // Dientes: picos redondeados
   g.beginPath();
   for (let i = 0; i < teeth; i++) {
-    const a0 = (i / teeth) * TAU, a1 = ((i + 0.72) / teeth) * TAU, a2 = ((i + 1) / teeth) * TAU;
+    const a0 = (i / teeth) * TAU, am = ((i + 0.55) / teeth) * TAU, a1 = ((i + 1) / teeth) * TAU;
     const p = (a, r) => [Math.cos(a) * r, Math.sin(a) * r];
-    const [x0, y0] = p(a0, inner), [x1, y1] = p(a1, R), [x2, y2] = p(a1 + 0.02, inner * 0.98), [x3, y3] = p(a2, inner);
-    i ? g.lineTo(x0, y0) : g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineTo(x2, y2); g.lineTo(x3, y3);
+    const [x0, y0] = p(a0, inner), [xm, ym] = p(am, R), [x1, y1] = p(a1, inner), [cx, cy] = p(am - 0.08, R * 1.02);
+    i ? g.lineTo(x0, y0) : g.moveTo(x0, y0);
+    g.quadraticCurveTo(cx, cy, xm, ym); g.lineTo(x1, y1);
   }
   g.closePath();
-  const mg = g.createLinearGradient(-R, -R, R, R);
-  mg.addColorStop(0, "#F4F7FB"); mg.addColorStop(0.45, "#C7D0DC"); mg.addColorStop(1, "#7F8A9C");
-  g.fillStyle = mg; g.fill();
-  g.strokeStyle = "rgba(40,48,62,0.35)"; g.lineWidth = 1; g.stroke();
-  // Disco con un brillo metálico en abanico
-  const dg = g.createRadialGradient(-R * 0.25, -R * 0.3, R * 0.1, 0, 0, inner);
-  dg.addColorStop(0, "#FFFFFF"); dg.addColorStop(0.5, "#D5DCE6"); dg.addColorStop(1, "#9AA5B6");
-  g.fillStyle = dg; g.beginPath(); g.arc(0, 0, inner * 0.94, 0, TAU); g.fill();
-  // Ranuras curvas (se ven girar)
-  g.strokeStyle = "rgba(60,70,88,0.35)"; g.lineWidth = Math.max(1.2, R * 0.05); g.lineCap = "round";
-  for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU; g.beginPath(); g.arc(0, 0, inner * 0.62, a, a + 0.9); g.stroke(); }
-  // Centro: buje oscuro con tornillos
-  g.fillStyle = "#4A5366"; g.beginPath(); g.arc(0, 0, R * 0.26, 0, TAU); g.fill();
-  g.fillStyle = "#2E3545"; g.beginPath(); g.arc(0, 0, R * 0.1, 0, TAU); g.fill();
-  g.fillStyle = "#B8C1CF";
-  for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.4; g.beginPath(); g.arc(Math.cos(a) * R * 0.18, Math.sin(a) * R * 0.18, Math.max(1, R * 0.035), 0, TAU); g.fill(); }
+  g.fillStyle = "#FF7A59"; g.fill();
+  g.lineJoin = "round"; g.strokeStyle = "#E45A3C"; g.lineWidth = Math.max(1.5, R * 0.05); g.stroke();
+  // Disco y aro más claro
+  g.fillStyle = "#FF9A7E"; g.beginPath(); g.arc(0, 0, inner * 0.92, 0, TAU); g.fill();
+  g.fillStyle = "#FFC2AF"; g.beginPath(); g.arc(0, 0, inner * 0.62, 0, TAU); g.fill();
+  // Centro blanco con un puntito
+  g.fillStyle = "#FFFFFF"; g.beginPath(); g.arc(0, 0, R * 0.24, 0, TAU); g.fill();
+  g.fillStyle = "#FF7A59"; g.beginPath(); g.arc(0, 0, R * 0.08, 0, TAU); g.fill();
+  // Dos marcas para que se note que gira
+  g.fillStyle = "#FFFFFF"; g.globalAlpha = 0.85;
+  for (const a of [0, Math.PI]) { g.beginPath(); g.ellipse(Math.cos(a) * inner * 0.45, Math.sin(a) * inner * 0.45, R * 0.09, R * 0.05, a, 0, TAU); g.fill(); }
   return (sawSpr[key] = { c, size });
 }
 // La sierra va un poco arriba del dedo en pantallas táctiles (para que se vea)
