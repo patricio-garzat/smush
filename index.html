@@ -3577,10 +3577,12 @@ const Hero = (() => {
     const dark = PAL.dark, beach = lvl().id === "beach";
     if (beach) {
       // Una islita en el mar: agua alrededor, una franja de agua clara y espuma que va y viene
-      g.save(); g.translate(e.cx, e.cy); g.scale(1, (e.ry * 1.15) / e.rx);
-      const sea = g.createRadialGradient(0, 0, e.rx * 0.9, 0, 0, e.rx * 1.45);
+      // El brillo del agua se apaga antes de llegar a la orilla del canvas (nunca se ve cortado)
+      const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
+      g.save(); g.translate(e.cx, e.cy); g.scale(1, gs);
+      const sea = g.createRadialGradient(0, 0, Math.min(e.rx * 0.9, GR * 0.7), 0, 0, GR);
       sea.addColorStop(0, dark ? "#2F7488" : "#9EDDEB"); sea.addColorStop(1, dark ? "rgba(47,116,136,0)" : "rgba(158,221,235,0)");
-      g.fillStyle = sea; g.beginPath(); g.arc(0, 0, e.rx * 1.45, 0, TAU); g.fill(); g.restore();
+      g.fillStyle = sea; g.beginPath(); g.arc(0, 0, GR, 0, TAU); g.fill(); g.restore();
       const sw = 1 + 0.025 * Math.sin(t * 1.4);
       g.fillStyle = dark ? "rgba(120,200,215,0.25)" : "rgba(255,255,255,0.55)";
       g.beginPath(); g.ellipse(e.cx, e.cy + 2, e.rx * 1.07 * sw, e.ry * 1.1 * sw, 0, 0, TAU); g.fill();
