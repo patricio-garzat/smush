@@ -915,7 +915,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.22.8";
+const VERSION = "0.22.9";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2021,7 +2021,7 @@ function burst(b) {
 // gotitas que saltan en arco (con altura y sombra) y dejan puntitos donde caen. Luego se absorbe en el piso.
 const goos = [];
 const GOO_DUR = 1.5;
-function gooBurst(b) {
+function gooBurst(b, list = goos) {
   const T = b.T, big = b.type === "purple" || b.type === "yellow", sc = b.r / 20;
   const R = b.r * (big ? 1.35 : 1.2), n = (lowFx ? 5 : 8) + (big ? 3 : 0);
   // Contorno del charco: un círculo con lóbulos (cada uno distinto), aplanado por la perspectiva
@@ -2037,69 +2037,69 @@ function gooBurst(b) {
     const a = (i / n) * TAU + rand(-0.3, 0.3), d = R * rand(1.5, 2.7);
     drops.push({ dx: Math.cos(a) * d, dy: Math.sin(a) * d * 0.42, h: rand(10, 26) * sc, r: rand(1.8, 3.4) * sc ** 0.6, at: rand(0, 0.04), fl: rand(0.26, 0.4) });
   }
-  if (goos.length > 40) goos.shift();
-  goos.push({ x: b.x, y: b.y + T.bottom * 0.8, R, t: 0, path, drops, color: T.color, light: T.light, dark: mix(T.color, "#000000", 0.22) });
+  if (list.length > 40) list.shift();
+  list.push({ x: b.x, y: b.y + T.bottom * 0.8, R, t: 0, path, drops, color: T.color, light: T.light, dark: mix(T.color, "#000000", 0.22) });
 }
-function updateGoos(dt) { for (let i = goos.length - 1; i >= 0; i--) if ((goos[i].t += dt) >= GOO_DUR) goos.splice(i, 1); }
+function updateGoos(dt, list = goos) { for (let i = list.length - 1; i >= 0; i--) if ((list[i].t += dt) >= GOO_DUR) list.splice(i, 1); }
 // En el piso: la onda, el charco con su brillo y las gotitas que ya cayeron
-function drawGooGround() {
-  for (const g of goos) {
+function drawGooGround(list = goos, c = ctx) {
+  for (const g of list) {
     const t = g.t, grow = easeOut(clamp((t - 0.05) / 0.2, 0, 1)), fade = clamp((t - 0.7) / (GOO_DUR - 0.7), 0, 1);
     const a = (PAL.onDark ? 0.78 : 0.9) * Math.pow(1 - fade, 1.4);
     // Onda suave que se abre sobre el piso
     if (t < 0.34) {
       const u = t / 0.34, rr = g.R * (0.9 + 1.7 * easeOut(u));
-      ctx.globalAlpha = 0.32 * (1 - u); ctx.strokeStyle = g.color; ctx.lineWidth = 0.6 + 2.2 * (1 - u);
-      ctx.beginPath(); ctx.ellipse(g.x, g.y, rr, rr * 0.42, 0, 0, TAU); ctx.stroke();
+      c.globalAlpha = 0.32 * (1 - u); c.strokeStyle = g.color; c.lineWidth = 0.6 + 2.2 * (1 - u);
+      c.beginPath(); c.ellipse(g.x, g.y, rr, rr * 0.42, 0, 0, TAU); c.stroke();
     }
     if (grow > 0) {
       const R = g.R * (0.35 + 0.65 * grow) * (1 - 0.14 * fade);
-      ctx.save(); ctx.translate(g.x, g.y); ctx.scale(R, R);
+      c.save(); c.translate(g.x, g.y); c.scale(R, R);
       // Grosor: la orilla de abajo un poco más oscura, como un charquito con volumen
-      ctx.globalAlpha = a * 0.55; ctx.fillStyle = g.dark; ctx.translate(0, 0.07); ctx.fill(g.path); ctx.translate(0, -0.07);
-      ctx.globalAlpha = a;
-      if (lowFx) ctx.fillStyle = g.color;
-      else { const gr = ctx.createRadialGradient(-0.25, -0.12, 0.05, 0, 0, 1.15); gr.addColorStop(0, g.light); gr.addColorStop(0.55, g.color); gr.addColorStop(1, g.dark); ctx.fillStyle = gr; }
-      ctx.fill(g.path);
+      c.globalAlpha = a * 0.55; c.fillStyle = g.dark; c.translate(0, 0.07); c.fill(g.path); c.translate(0, -0.07);
+      c.globalAlpha = a;
+      if (lowFx) c.fillStyle = g.color;
+      else { const gr = c.createRadialGradient(-0.25, -0.12, 0.05, 0, 0, 1.15); gr.addColorStop(0, g.light); gr.addColorStop(0.55, g.color); gr.addColorStop(1, g.dark); c.fillStyle = gr; }
+      c.fill(g.path);
       // Brillo húmedo
-      ctx.globalAlpha = a * 0.6; ctx.fillStyle = "#FFFFFF";
-      ctx.beginPath(); ctx.ellipse(-0.3, -0.13, 0.3, 0.075, -0.12, 0, TAU); ctx.fill();
-      ctx.globalAlpha = a * 0.45; ctx.beginPath(); ctx.ellipse(0.28, 0.1, 0.07, 0.03, 0, 0, TAU); ctx.fill();
-      ctx.restore();
+      c.globalAlpha = a * 0.6; c.fillStyle = "#FFFFFF";
+      c.beginPath(); c.ellipse(-0.3, -0.13, 0.3, 0.075, -0.12, 0, TAU); c.fill();
+      c.globalAlpha = a * 0.45; c.beginPath(); c.ellipse(0.28, 0.1, 0.07, 0.03, 0, 0, TAU); c.fill();
+      c.restore();
     }
-    ctx.globalAlpha = a; ctx.fillStyle = g.color;
+    c.globalAlpha = a; c.fillStyle = g.color;
     for (const d of g.drops) {
       if ((t - d.at) / d.fl < 1) continue;
-      ctx.beginPath(); ctx.ellipse(g.x + d.dx, g.y + d.dy, d.r * 1.3, d.r * 0.55, 0, 0, TAU); ctx.fill();
+      c.beginPath(); c.ellipse(g.x + d.dx, g.y + d.dy, d.r * 1.3, d.r * 0.55, 0, 0, TAU); c.fill();
     }
   }
-  ctx.globalAlpha = 1;
+  c.globalAlpha = 1;
 }
 // En el aire: el destello del impacto y las gotitas volando
-function drawGooAir() {
-  for (const g of goos) {
+function drawGooAir(list = goos, c = ctx) {
+  for (const g of list) {
     const t = g.t;
     if (t < 0.1) {
       const u = t / 0.1, rr = g.R * (0.8 + 0.8 * u), cy = g.y - g.R * 0.5;
-      const gr = ctx.createRadialGradient(g.x, cy, 0, g.x, cy, rr);
+      const gr = c.createRadialGradient(g.x, cy, 0, g.x, cy, rr);
       gr.addColorStop(0, "rgba(255,255,255,0.9)"); gr.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.globalAlpha = (1 - u) * 0.7; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(g.x, cy, rr, 0, TAU); ctx.fill();
+      c.globalAlpha = (1 - u) * 0.7; c.fillStyle = gr; c.beginPath(); c.arc(g.x, cy, rr, 0, TAU); c.fill();
     }
     for (const d of g.drops) {
       const p = (t - d.at) / d.fl;
       if (p < 0 || p >= 1) continue;
       const gx = g.x + d.dx * p, gy = g.y + d.dy * p, z = 4 * d.h * p * (1 - p);
-      ctx.globalAlpha = 0.18 * (1 - z / (d.h + 1) * 0.6); ctx.fillStyle = PAL.shadow;
-      ctx.beginPath(); ctx.ellipse(gx, gy, d.r, d.r * 0.4, 0, 0, TAU); ctx.fill();
+      c.globalAlpha = 0.18 * (1 - z / (d.h + 1) * 0.6); c.fillStyle = PAL.shadow;
+      c.beginPath(); c.ellipse(gx, gy, d.r, d.r * 0.4, 0, 0, TAU); c.fill();
       // La gotita se estira un poco según su velocidad
       const vy = d.dy - 4 * d.h * (1 - 2 * p) * 1.0, ang = Math.atan2(vy, d.dx), st = 1 + Math.min(0.6, Math.hypot(d.dx, vy) / 160);
-      ctx.globalAlpha = 1; ctx.fillStyle = g.color;
-      ctx.beginPath(); ctx.ellipse(gx, gy - z, d.r * st, d.r / Math.sqrt(st), ang, 0, TAU); ctx.fill();
-      ctx.fillStyle = "#FFFFFF"; ctx.globalAlpha = 0.7;
-      ctx.beginPath(); ctx.arc(gx - d.r * 0.3, gy - z - d.r * 0.3, d.r * 0.32, 0, TAU); ctx.fill();
+      c.globalAlpha = 1; c.fillStyle = g.color;
+      c.beginPath(); c.ellipse(gx, gy - z, d.r * st, d.r / Math.sqrt(st), ang, 0, TAU); c.fill();
+      c.fillStyle = "#FFFFFF"; c.globalAlpha = 0.7;
+      c.beginPath(); c.arc(gx - d.r * 0.3, gy - z - d.r * 0.3, d.r * 0.32, 0, TAU); c.fill();
     }
   }
-  ctx.globalAlpha = 1;
+  c.globalAlpha = 1;
 }
 function jag(x1, y1, x2, y2) {
   const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, n = Math.max(3, Math.round(d / 14));
@@ -4873,7 +4873,9 @@ let inGame = false, homeAt = 0;
 // El escenario del Inicio: una islita con el tema del nivel y marcianitos paseando; de vez en cuando uno se aplasta
 const Hero = (() => {
   const cvh = $("#home-cv"), g = cvh.getContext("2d");
-  let hraf = 0, hlast = 0, t = 0, w = 0, hh = 0, actors = [], pops = [], popClock = 2.2;
+  let hraf = 0, hlast = 0, t = 0, w = 0, hh = 0, actors = [], popClock = 2.2;
+  const hgoos = []; // los charquitos de los que se aplastan (mismo efecto que en el juego)
+  const HDIE = 0.3;
   const KINDS = ["green", "orange", "purple", "green", "yellow", "orange"];
   const HERO_PINES = [[-0.66, -0.32, 1], [0.48, -0.6, 1.15], [0.8, -0.04, 0.78], [-0.24, -0.78, 0.8]]; // x, y (en radios de la isla) y alto
   const ground = () => ({ cx: w / 2, cy: hh * 0.56, rx: Math.min(w * 0.38, 190), ry: Math.min(hh * 0.25, 78) });
@@ -4901,7 +4903,7 @@ const Hero = (() => {
     for (let i = 0; i < actors.length; i++) {
       const a = actors[i];
       a.born = Math.min(1, a.born + dt * 2.5);
-      if (a.die) { a.die += dt; if (a.die > 0.7) actors[i] = make(a.k, true); continue; }
+      if (a.die) { a.die += dt; if (a.die > HDIE) actors[i] = make(a.k, true); continue; }
       a.h += Math.sin(t * 0.7 + a.walk * 0.3) * 0.8 * dt;
       // Se quedan dentro de la isla: si se acercan a la orilla, giran hacia el centro
       const nx = (a.x - e.cx) / e.rx, ny = (a.y - e.cy) / e.ry;
@@ -4912,6 +4914,25 @@ const Hero = (() => {
       a.flip += (a.face - a.flip) * Math.min(1, dt * 12);
       a.walk += dt * (5 + a.sp * 0.08);
     }
+    // Que no se enciman: se empujan suave entre ellos y le sacan la vuelta a los pinos
+    const solid = actors.filter((a) => !a.die);
+    for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) {
+      const A = solid[i], B = solid[j], dx = B.x - A.x, dy = (B.y - A.y) * 1.6, min = (BALL_TYPES[A.k].baseR + BALL_TYPES[B.k].baseR) * 1.2, d = Math.hypot(dx, dy) || 0.01;
+      if (d >= min) continue;
+      // Se separan de inmediato (no se atraviesan) y cada uno voltea suave hacia el otro lado
+      const o = (min - d) * 0.5, nx = dx / d, ny = dy / d / 1.6, k = Math.min(1, dt * 5), aw = Math.atan2(ny, nx);
+      A.x -= nx * o; A.y -= ny * o; B.x += nx * o; B.y += ny * o;
+      A.h += angDiff(aw + Math.PI, A.h) * k; B.h += angDiff(aw, B.h) * k;
+    }
+    if (lvl().id === "snow") for (const [px, py, ph] of HERO_PINES) {
+      const x = e.cx + px * e.rx, y = e.cy + py * e.ry, pr = ph * Math.min(e.ry, 70) * 0.3;
+      for (const a of solid) {
+        const dx = a.x - x, dy = (a.y - y) * 1.6, min = pr + BALL_TYPES[a.k].baseR * 0.8, d = Math.hypot(dx, dy);
+        if (d >= min || d < 0.01) continue;
+        a.x += (dx / d) * (min - d) * Math.min(1, dt * 12); a.y += ((dy / d) * (min - d) * Math.min(1, dt * 12)) / 1.6;
+        a.h += angDiff(Math.atan2(dy, dx), a.h) * Math.min(1, dt * 4);
+      }
+    }
     // Cada tanto, un toque invisible aplasta a uno (una pequeña muestra del juego)
     popClock -= dt;
     if (popClock <= 0 && !reduceMotion) {
@@ -4920,10 +4941,10 @@ const Hero = (() => {
       if (a && !a.die && a.born >= 1) {
         a.die = 0.0001;
         const T = BALL_TYPES[a.k];
-        pops.push({ x: a.x, y: a.y - T.baseR * 0.8, t: 0, c: T.color, dots: Array.from({ length: 9 }, () => ({ a: rand(Math.PI * 1.05, Math.PI * 1.95), s: rand(40, 95) })) });
+        gooBurst({ T: { color: T.color, light: T.light, bottom: 0 }, r: T.baseR, x: a.x, y: a.y - 2, type: a.k }, hgoos);
       }
     }
-    for (let i = pops.length - 1; i >= 0; i--) { pops[i].t += dt; if (pops[i].t > 0.7) pops.splice(i, 1); }
+    updateGoos(dt, hgoos);
     draw(e);
   }
   function draw(e) {
@@ -4975,6 +4996,8 @@ const Hero = (() => {
       for (let i = 0; i < 12; i++) { const a = i * 2.39, d = 1.12 + (i % 4) * 0.09; g.globalAlpha = (dark ? 0.6 : 0.35) * (0.5 + 0.5 * Math.sin(t * 2 + i)); g.beginPath(); g.arc(e.cx + Math.cos(a) * e.rx * d, e.cy + Math.sin(a) * e.ry * d * 1.6 - e.ry * 0.3, 1.4, 0, TAU); g.fill(); }
       g.globalAlpha = 1;
     }
+    // Charquitos en el piso (detrás de los marcianitos)
+    if (hgoos.length) drawGooGround(hgoos, g);
     // Marcianitos, del fondo hacia el frente, con su sombra
     const list = actors.slice();
     // En la nieve, los pinos se acomodan entre los marcianitos según la profundidad
@@ -4989,7 +5012,8 @@ const Hero = (() => {
       if (!im) continue;
       const hgt = T.baseR * 2.9, wid = hgt * (im.width / im.height);
       let sx = 1, sy = 1, al = a.born;
-      if (a.die) { const u = a.die / 0.7; if (u < 0.3) { const k = easeOut(u / 0.3); sx = 1 + 0.4 * k; sy = 1 - 0.55 * k; } else { const k = (u - 0.3) / 0.7; sx = 1.4 * (1 - 0.4 * k); sy = 0.45 * (1 - 0.6 * k); al = 1 - k; } }
+      // Aplastado como en el juego: se aplasta de golpe y se funde con el charco
+      if (a.die) { const u = a.die / HDIE; if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.5 * k; sy = 1 - 0.62 * k; } else { const k = easeIn((u - 0.35) / 0.65); sx = 1.5 + 0.3 * k; sy = 0.38 * (1 - 0.75 * k); al = 1 - k; } }
       const ski = lid === "snow" && a.ride && !a.die;
       const bob = a.die || ski ? 0 : Math.abs(Math.sin(a.walk)) * 2.2, tilt = a.die ? 0 : ski ? Math.sin(t * 1.3 + a.walk) * 0.12 : Math.sin(a.walk) * 0.045;
       if (ski) drawRide(g, a.x, a.y, Math.atan2(Math.sin(a.h) * 0.33, Math.cos(a.h)), T.baseR * 0.82, a.ride, al);
@@ -4999,17 +5023,14 @@ const Hero = (() => {
       g.save(); g.translate(a.x, a.y - bob); g.rotate(tilt);
       g.scale(Math.sign(a.flip || 1) * Math.max(0.45, Math.abs(a.flip)) * sx * (0.5 + 0.5 * a.born), sy * (0.5 + 0.5 * a.born));
       g.drawImage(im, -wid / 2, -hgt, wid, hgt);
+      // El destello blanco del golpe
+      const fl = a.die ? Math.max(0, 1 - a.die / 0.09) : 0, S = (lid === "snow" && a.skin && SKIN_SPR[a.skin]) || T.spr;
+      if (fl > 0 && S && S.flash) { g.globalAlpha = al * fl * 0.8; g.drawImage(S.flash, -wid / 2, -hgt, wid, hgt); }
       g.restore();
     }
     g.globalAlpha = 1;
-    // Pops: un anillito y gotitas del color del marcianito
-    for (const p of pops) {
-      const u = p.t / 0.7;
-      g.globalAlpha = 0.45 * (1 - u); g.strokeStyle = p.c; g.lineWidth = 2.5;
-      g.beginPath(); g.arc(p.x, p.y, 6 + 26 * easeOut(u), 0, TAU); g.stroke();
-      g.fillStyle = p.c;
-      for (const d of p.dots) { g.globalAlpha = 1 - u; g.beginPath(); g.arc(p.x + Math.cos(d.a) * d.s * u, p.y + Math.sin(d.a) * d.s * u + 120 * u * u, 2.6 * (1 - u * 0.5), 0, TAU); g.fill(); }
-    }
+    // Gotitas volando y el destello del impacto
+    if (hgoos.length) drawGooAir(hgoos, g);
     g.globalAlpha = 1;
     // Copos cayendo sobre la isla nevada
     if (lid === "snow") {
