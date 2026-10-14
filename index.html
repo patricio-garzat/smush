@@ -889,7 +889,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.16.0";
+const VERSION = "0.17.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -936,13 +936,12 @@ const TOOLS = {
   spray:  { price: 10000, upgrades: [15000, 30000], radius: [72, 86, 100], interval: [0.45, 0.36, 0.28] }, // lanzallamas: largo de la llama y cada cuánto quema
   // The Beach
   bomb:   { price: 8000,  world: 1, max: 10, upgrades: (l) => Math.round(2500 * 1.35 ** (l - 1)) }, // nivel = cuántas bombas puedes poner
-  acid:   { price: 20000, world: 1, upgrades: [35000, 60000], radius: [60, 75, 90], rate: [5, 7, 9], damage: 1 }, // mantén y mueve: la nube te sigue
-  meteor: { price: 15000, world: 1, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
+  meteor: { price: 40000, world: 2, upgrades: [80000, 160000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
   wave:   { price: 30000, world: 1, only: 1, upgrades: [60000, 120000], cooldown: [8, 6.5, 5], dur: [1.8, 1.55, 1.3] }, // tsunami: baja desde el mar y arrastra a todos
   // The Slopes
   aval:   { price: 60000, world: 2, upgrades: [120000, 240000], cooldown: [9, 7, 5.5], dur: [2.3, 2.05, 1.8] }, // avalancha: baja de los picos y arrastra a todos
 };
-const TOOL_ORDER = ["finger", "bolt", "spray", "bomb", "acid", "meteor", "wave", "aval"];
+const TOOL_ORDER = ["finger", "bolt", "spray", "bomb", "wave", "meteor", "aval"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
 const toolWorld = (id) => TOOLS[id].world || 0;
@@ -1053,7 +1052,7 @@ const TAU = Math.PI * 2;
 const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
-  tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, acid: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
+  tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
   up: { hire: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 2, // versión del guardado
@@ -1098,9 +1097,13 @@ function loadSave() {
     }
     d.v = 2;
     d.level = clamp(Math.floor(num(s.level)), 0, LEVELS.length - 1);
+    // La Lluvia ácida ya no existe, y los Meteoritos ahora son de The Slopes: se devuelve lo que costaron
+    const refund = (l, prices) => { for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); } };
+    refund(clamp(Math.floor(num(s.tools && s.tools.acid)), 0, 3), [20000, 35000, 60000]);
+    if (d.level < 2 && d.tools.meteor) { refund(d.tools.meteor, [15000, 30000, 60000]); d.tools.meteor = 0; }
     // Partidas de antes de los niveles: lo que llevas aplastado cuenta para la meta de The Beach
     d.lvlSmushed = Number.isFinite(s.lvlSmushed) ? Math.floor(num(s.lvlSmushed)) : d.smushed;
-    if (TOOLS[s.tool] && d.tools[s.tool] > 0) d.tool = s.tool;
+    if (TOOLS[s.tool] && d.tools[s.tool] > 0 && (TOOLS[s.tool].world || 0) <= d.level) d.tool = s.tool;
     d.hinted = !!s.hinted;
     if (Number.isInteger(s.readyAsked)) d.readyAsked = s.readyAsked;
     if (s.off && typeof s.off === "object") for (const k of HELPER_KEYS) if (s.off[k] === true) d.off[k] = true;
@@ -1190,8 +1193,8 @@ const STR = {
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
-  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, Acid rain, Meteors and the Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, Lluvia ácida, Meteoritos y el Tsunami."],
-  snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and the Avalanche arrives. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llega la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
+  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs and the Tsunami, plus the Bomber jet and the Acid storm.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas y el Tsunami, además del Jet bombardero y la Tormenta ácida."],
+  snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Smush aliens here", "Aplasta marcianitos aquí"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
@@ -1233,7 +1236,6 @@ function statText(id, lvl) {
   if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   if (id === "bomb") { const n = lvl; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} a la vez` : `${n} ${n === 1 ? "bomb" : "bombs"} at once`; }
-  if (id === "acid") { const r = TOOLS.acid.radius[i], v = TOOLS.acid.rate[i]; return es ? `Radio ${r} px · ${v} gotas/s` : `${r} px · ${v} drops/s`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
 function statShort(id, lvl) {
@@ -1245,7 +1247,6 @@ function statShort(id, lvl) {
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval") return `${TOOLS[id].cooldown[i]}${s}`;
   if (id === "bomb") return String(lvl);
-  if (id === "acid") return `${TOOLS.acid.radius[i]} px · ${TOOLS.acid.rate[i]}/s`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
@@ -1913,6 +1914,17 @@ function jag(x1, y1, x2, y2) {
   pts.push([x2, y2]);
   return pts;
 }
+// Ramitas: 1 o 2 chispazos cortos que se abren del rayo principal
+function forks(pts) {
+  const out = [], n = pts.length;
+  if (n < 4) return out;
+  for (let k = 0, m = Math.random() < 0.5 ? 1 : 2; k < m; k++) {
+    const i = 1 + Math.floor(Math.random() * (n - 3)), [x, y] = pts[i], [x2, y2] = pts[i + 1];
+    const a = Math.atan2(y2 - y, x2 - x) + (Math.random() < 0.5 ? -1 : 1) * rand(0.5, 0.95), len = rand(12, 26);
+    out.push(jag(x, y, x + Math.cos(a) * len, y + Math.sin(a) * len));
+  }
+  return out;
+}
 function updateFx(dt) {
   if (goos.length) updateGoos(dt);
   if (flames.length || smokes.length) updateFlames(dt);
@@ -1999,7 +2011,8 @@ function zapChain(x, y, first, chains, range, dmg, auto) {
   chain.forEach((c, i) => {
     later(i * TOOLS.bolt.hop, () => {
       const tx = c.x, ty = c.y;
-      bolts.push({ pts: jag(px, py, tx, ty), t: 0, dur: auto ? 0.18 : 0.24, soft: auto });
+      const pts = jag(px, py, tx, ty);
+      bolts.push({ pts, br: forks(pts), t: 0, dur: auto ? 0.18 : 0.24, soft: auto });
       sparks(tx, ty, auto ? 2 : 4);
       hit(c, dmg, px, py, true, auto);
       px = tx; py = ty;
@@ -2041,10 +2054,6 @@ function useTool(x, y, pid) {
     launchAval(TOOLS.aval.dur[L]);
   } else if (id === "bomb") {
     placeBomb(x, y);
-  } else if (id === "acid") {
-    // Una nubecita aparece sobre el dedo y lo sigue mientras lo mantengas presionado
-    startRain({ x, y, R: TOOLS.acid.radius[L], rate: TOOLS.acid.rate[L], dmg: TOOLS.acid.damage, life: Infinity, auto: false, pid });
-    Sound.rain(); buzz(8);
   } else if (id === "bolt") {
     const b = pick(x, y, 16);
     if (!b) { ring(x, y, 3, 18, 0.3, PAL.text, 1.5, 0.2); sparks(x, y, 3); Sound.miss(); return; }
@@ -2062,7 +2071,7 @@ function useTool(x, y, pid) {
   }
 }
 function sparks(x, y, n) {
-  for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 160); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2), 0.25, PAL.onDark ? "#FFFFFF" : "#7EA0F2", "dot", 7, 0); }
+  for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 170); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2.1), 0.28, i % 2 ? "#FFFFFF" : PAL.onDark ? "#9FE3FF" : "#3AB0F5", "dot", 7, 0); }
 }
 // Lanzallamas: mientras se mantiene presionado, un chorro de fuego sale hacia donde se mueve el dedo
 // (si está quieto, hacia arriba) y quema a intervalos a todo lo que tiene enfrente.
@@ -2074,11 +2083,11 @@ function sprayTick(p, dt) {
   if (mv > 1.2) p.ang += angDiff(Math.atan2(my, mx), p.ang) * Math.min(1, dt * 9 + 0.04);
   const ca = Math.cos(p.ang), sa = Math.sin(p.ang);
   p.ox = p.x + ca * 10; p.oy = p.y + sa * 10; // la boquilla, justo delante del dedo
-  p.emit = (p.emit || 0) + dt * (lowFx ? 95 : 190);
+  p.emit = (p.emit || 0) + dt * (lowFx ? 130 : 260);
   while (p.emit >= 1) {
     p.emit--;
     const a = p.ang + rand(-0.13, 0.13), s = rand(R * 6.6, R * 8.4);
-    flame(p.ox + rand(-1.5, 1.5), p.oy + rand(-1.5, 1.5), Math.cos(a) * s, Math.sin(a) * s, rand(8, 12.5), rand(0.38, 0.56));
+    flame(p.ox + rand(-1.5, 1.5), p.oy + rand(-1.5, 1.5), Math.cos(a) * s, Math.sin(a) * s, rand(9, 14), rand(0.36, 0.52));
   }
   // Chispas que saltan del chorro y suben parpadeando
   if (Math.random() < dt * (lowFx ? 8 : 18)) { const a = p.ang + rand(-0.5, 0.5), s = rand(R * 2.5, R * 4.5); ember(p.ox + Math.cos(p.ang) * R * 0.5, p.oy + Math.sin(p.ang) * R * 0.5, Math.cos(a) * s, Math.sin(a) * s); }
@@ -2113,17 +2122,18 @@ function glowSprite(c, stops) {
   return s;
 }
 function buildFire() {
-  fireSpr = FIRE_TEMPS[PAL.onDark ? "dark" : "light"].map((c) => glowSprite(c, PAL.onDark ? [[0, 1], [0.32, 0.65], [0.65, 0.18], [1, 0]] : [[0, 1], [0.42, 0.88], [0.74, 0.32], [1, 0]]));
-  fireSpr.core = glowSprite([255, 250, 225], [[0, 1], [0.4, 0.55], [1, 0]]);
+  // Lenguas densas: casi sólidas al centro y con la orilla suave (así se siente "lumbre", no neblina)
+  fireSpr = FIRE_TEMPS[PAL.onDark ? "dark" : "light"].map((c) => glowSprite(c, PAL.onDark ? [[0, 1], [0.42, 0.85], [0.76, 0.32], [1, 0]] : [[0, 1], [0.52, 0.96], [0.8, 0.5], [1, 0]]));
+  fireSpr.core = glowSprite([255, 246, 200], [[0, 1], [0.45, 0.8], [1, 0]]);
   fireSpr.blue = glowSprite([90, 150, 255], [[0, 0.9], [0.4, 0.35], [1, 0]]);
   smokeSpr = glowSprite(PAL.onDark ? [150, 145, 140] : [140, 132, 124], [[0, 0.45], [0.5, 0.2], [1, 0]]);
-  // La capa del fuego va a 3/4 de resolución: el fuego es suave, así cuesta casi la mitad
-  fireK = Math.max(1, Math.min(DPR, 2) * 0.75);
+  // La capa del fuego va a la resolución de la pantalla, para que las orillas se vean nítidas
+  fireK = Math.max(1, Math.min(DPR, 2));
   fireCv = fireCv || document.createElement("canvas");
   fireCv.width = Math.ceil(W * fireK); fireCv.height = Math.ceil(H * fireK);
   fctx = fireCv.getContext("2d");
 }
-const flame = (x, y, vx, vy, r, life) => { if (flames.length < (lowFx ? 220 : 420)) flames.push({ x, y, vx, vy, r, life, t: 0, s: Math.random() * 100, ember: false }); };
+const flame = (x, y, vx, vy, r, life) => { if (flames.length < (lowFx ? 260 : 520)) flames.push({ x, y, vx, vy, r, life, t: 0, s: Math.random() * 100, ember: false }); };
 const ember = (x, y, vx, vy) => { if (flames.length < 460) flames.push({ x, y, vx, vy, r: rand(1.1, 2), life: rand(0.6, 1.1), t: 0, s: Math.random() * 100, ember: true }); };
 function updateFlames(dt) {
   for (let i = flames.length - 1; i >= 0; i--) {
@@ -2165,7 +2175,7 @@ function drawFlames() {
   // 2) Humo (normal, detrás de las llamas)
   for (const s of smokes) {
     const u = s.t / s.life, r = s.r * (1 + u * 2.4);
-    ctx.globalAlpha = (PAL.onDark ? 0.45 : 0.3) * Math.min(1, u * 4) * (1 - u);
+    ctx.globalAlpha = (PAL.onDark ? 0.4 : 0.22) * Math.min(1, u * 4) * (1 - u);
     ctx.drawImage(smokeSpr, s.x - r, s.y - r, r * 2, r * 2);
   }
   ctx.globalAlpha = 1;
@@ -2173,10 +2183,15 @@ function drawFlames() {
   const g = fctx, k = fireK;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, fireCv.width, fireCv.height);
   g.setTransform(k, 0, 0, k, 0, 0);
-  // De noche las llamas suman su luz (brillan); de día se apilan de las más viejas (rojas) a las nuevas (amarillas)
+  // Las llamas se apilan de las más viejas (rojas) a las nuevas (amarillas): lumbre densa con colores definidos.
+  // De noche, además, un resplandor suave alrededor (suma luz)
   const glow = PAL.onDark;
-  g.globalCompositeOperation = glow ? "lighter" : "source-over";
-  if (!glow) flames.sort((a, b) => b.t / b.life - a.t / a.life);
+  if (glow) {
+    g.globalCompositeOperation = "lighter";
+    for (const f of flames) { if (f.ember) continue; const u = f.t / f.life, r = f.r * (1.4 + 2.6 * u); g.globalAlpha = 0.07 * (1 - u); g.drawImage(fireSpr[2], f.x - r, f.y - r, r * 2, r * 2); }
+  }
+  g.globalCompositeOperation = "source-over";
+  flames.sort((a, b) => b.t / b.life - a.t / a.life);
   for (const f of flames) {
     const u = f.t / f.life;
     if (f.ember) {
@@ -2188,23 +2203,20 @@ function drawFlames() {
     const ti = Math.min(5, Math.floor(Math.pow(u, 0.85) * 6));
     const flick = 0.85 + 0.3 * Math.sin(time * 38 + f.s * 11);
     const r = f.r * (0.55 + 2.6 * u) * flick;
-    g.globalAlpha = Math.min(1, u / 0.07) * Math.pow(1 - u, glow ? 1.25 : 1.1) * (glow ? 0.55 : 0.68);
+    g.globalAlpha = Math.min(1, u / 0.06) * Math.pow(1 - u, 0.95) * 0.88;
     // Cada lengua se estira en la dirección en que va (más rápida = más larga)
     const sp = Math.hypot(f.vx, f.vy), c = sp ? f.vx / sp : 1, s = sp ? f.vy / sp : 0, st = 1 + Math.min(1.1, sp / 360);
     g.setTransform(k * c * st, k * s * st, -k * s, k * c, k * f.x, k * f.y);
     g.drawImage(fireSpr[ti], -r, -r, r * 2, r * 2);
   }
   g.setTransform(k, 0, 0, k, 0, 0);
-  // De día: un núcleo luminoso adentro del chorro (las llamas más nuevas)
-  if (!glow) {
-    g.globalCompositeOperation = "lighter";
-    for (const f of flames) {
-      const u = f.t / f.life;
-      if (f.ember || u > 0.4) continue;
-      const r = f.r * (0.5 + 1.4 * u);
-      g.globalAlpha = (1 - u / 0.4) * 0.32;
-      g.drawImage(fireSpr.core, f.x - r, f.y - r, r * 2, r * 2);
-    }
+  // Núcleo: las llamas más nuevas, casi blancas, encima de todo (de día sólido; de noche suma luz)
+  for (const f of flames) {
+    const u = f.t / f.life;
+    if (f.ember || u > 0.42) continue;
+    const r = f.r * (0.45 + 1.3 * u);
+    g.globalAlpha = (1 - u / 0.42) * (glow ? 0.6 : 0.75);
+    g.drawImage(fireSpr.core, f.x - r, f.y - r, r * 2, r * 2);
   }
   // Base azul y núcleo blanco en la boquilla
   if (firing) for (const p of pointers.values()) {
@@ -3823,8 +3835,8 @@ function renderShop(animate) {
   let html = "";
   if (shopTab === "tools") {
     html = sect("secVoid") + ["finger", "bolt", "spray"].map(toolCard).join("")
-      + sect("secBeach") + ["bomb", "acid", "meteor", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("")
-      + sect("secSnow") + ["aval"].map(toolCard).join("");
+      + sect("secBeach") + ["bomb", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("")
+      + sect("secSnow") + ["meteor", "aval"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "boltH"].map(upCard).join("")
       + sect("secBeach") + ["jet", "acidH"].map(upCard).join("")
@@ -4151,16 +4163,25 @@ function render(dt) {
     if (p.kind === "star") { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.t * 4); const r = p.r * 1.8; ctx.fillRect(-r, -0.7, r * 2, 1.4); ctx.fillRect(-0.7, -r, 1.4, r * 2); ctx.restore(); continue; }
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 - u * 0.5), 0, TAU); ctx.fill();
   }
-  // Rayos: brillo suave y un hilo central
+  // Rayos eléctricos: aura violeta, resplandor cian y un núcleo blanco; ramitas y un destello donde pega
   ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const BOLT = PAL.onDark
+    ? [[15, "rgba(150,120,255,", 0.22], [6, "rgba(110,220,255,", 0.7], [2.2, "rgba(255,255,255,", 1]]
+    : [[14, "rgba(120,90,245,", 0.2], [5.5, "rgba(40,170,255,", 0.75], [2, "rgba(255,255,255,", 1]];
+  const line = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
   for (const bo of bolts) {
-    const a = 1 - bo.t / bo.dur;
-    if (bo.t > bo.dur * 0.45 && !bo.re) { bo.re = true; const s = bo.pts[0], e = bo.pts[bo.pts.length - 1]; bo.pts = jag(s[0], s[1], e[0], e[1]); }
+    const a = 1 - bo.t / bo.dur, k = bo.soft ? 0.6 : 1;
+    if (bo.t > bo.dur * 0.45 && !bo.re) { bo.re = true; const s = bo.pts[0], e = bo.pts[bo.pts.length - 1]; bo.pts = jag(s[0], s[1], e[0], e[1]); bo.br = forks(bo.pts); }
     ctx.globalAlpha = 1;
-    for (const [w, col, al] of [[7, PAL.boltGlow, 0.32], [2, PAL.boltCore, 0.95]]) {
-      ctx.strokeStyle = col + (al * a * (bo.soft ? 0.55 : 1)) + ")"; ctx.lineWidth = bo.soft ? w * 0.6 : w;
-      ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+    for (const [w, col, al] of BOLT) {
+      ctx.strokeStyle = col + al * a * (bo.soft ? 0.7 : 1) + ")"; ctx.lineWidth = w * k; line(bo.pts);
+      if (bo.br) { ctx.lineWidth = w * k * 0.55; for (const b of bo.br) line(b); }
     }
+    // Destello en el punto de impacto
+    const [ex, ey] = bo.pts[bo.pts.length - 1], fr = (bo.soft ? 12 : 18) * (0.7 + 0.3 * a);
+    const fg = ctx.createRadialGradient(ex, ey, 0, ex, ey, fr);
+    fg.addColorStop(0, `rgba(255,255,255,${0.9 * a})`); fg.addColorStop(0.35, PAL.onDark ? `rgba(120,220,255,${0.55 * a})` : `rgba(60,175,255,${0.45 * a})`); fg.addColorStop(1, "rgba(120,90,245,0)");
+    ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(ex, ey, fr, 0, TAU); ctx.fill();
   }
   // Explosiones
   for (const e of booms) drawBoom(e);
@@ -4217,8 +4238,8 @@ function drawCursor(x, y) {
   if (id === "finger" && !TOOLS.finger.radius[L]) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
-  } else if (id === "spray" || id === "acid" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = id === "finger" ? TOOLS.finger.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "acid" ? TOOLS.acid.radius[L] : id === "bomb" ? BOMB_R : TOOLS.meteor.spread;
+  } else if (id === "spray" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
+    const R = id === "finger" ? TOOLS.finger.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "bomb" ? BOMB_R : TOOLS.meteor.spread;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
