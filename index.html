@@ -678,7 +678,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.8.0";
+const VERSION = "0.8.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1783,28 +1783,37 @@ const HELPER_ALPHA = 0.82; // los ayudantes se ven un poco translúcidos para no
 function updateHelpers(dt) {
   if (!helpers.length) return;
   const iv0 = FX.helperInterval(save.up.speed), dmg = FX.helperDamage(save.up.power);
+  // Cuántos ayudantes van ya por cada marcianito: pueden compartir, pero prefieren al que tiene menos
+  const load = new Map();
+  for (const h of helpers) {
+    const t = h.target;
+    if (t && (t.state === "die" || t.pull || isOut(t))) h.target = null;
+    else if (t) load.set(t, (load.get(t) || 0) + 1);
+  }
   for (const h of helpers) {
     const K = HELPER_KIND[h.kind];
     h.born = Math.min(1, h.born + dt * 2.5);
     h.bob += dt * 2.2;
     h.timer -= dt;
     h.press = Math.max(0, h.press - dt / (h.kind === "boot" ? 0.3 : 0.18));
-    if (h.target && (h.target.state === "die" || h.target.claimed !== h || h.target.pull || isOut(h.target))) { if (h.target.claimed === h) h.target.claimed = null; h.target = null; }
-    // Elige al marcianito libre más cercano que ya esté en la pantalla
+    if (h.target && (h.target.state === "die" || h.target.pull || isOut(h.target))) h.target = null;
+    // Elige un marcianito cercano y poco "ocupado" que ya esté en la pantalla
     if (!h.target && playing) {
-      let best = null, bd = Infinity;
+      let best = null, bs = Infinity;
       for (const b of balls) {
-        if (b.state === "die" || b.claimed || b.pull || !b.entered || b.t < 0.3) continue;
-        const d = (b.x - h.x) ** 2 + (b.y - h.y) ** 2;
-        if (d < bd) { bd = d; best = b; }
+        if (b.state === "die" || b.pull || !b.entered || b.t < 0.3) continue;
+        const s = ((b.x - h.x) ** 2 + (b.y - h.y) ** 2 + 400) * (1 + 2.5 * (load.get(b) || 0));
+        if (s < bs) { bs = s; best = b; }
       }
-      if (best) { h.target = best; best.claimed = h; }
+      if (best) { h.target = best; load.set(best, (load.get(best) || 0) + 1); h.ox = rand(-0.5, 0.5) * best.r; h.oy = rand(-0.3, 0.3) * best.r; }
     }
-    const tx = h.target ? h.target.x : h.home.x * W, ty = h.target ? h.target.y : h.home.y * H;
+    // Sin marcianitos: se pasea despacio cerca de su lugar (nunca se queda congelado)
+    const wx = h.home.x * W + Math.sin(h.bob * 0.35) * 26, wy = h.home.y * H + Math.cos(h.bob * 0.28) * 18;
+    const tx = h.target ? h.target.x + (h.ox || 0) : wx, ty = h.target ? h.target.y + (h.oy || 0) : wy;
     const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy);
     // Se desliza con suavidad (rápido de lejos, lento al llegar)
-    if (d > 0.5) { const step = Math.min(d, (70 + d * 2.2) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
-    const near = h.target && d < (h.kind === "bolt" ? 30 : 10);
+    if (d > 0.5) { const step = Math.min(d, (90 + d * 2.6) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
+    const near = h.target && d < (h.kind === "bolt" ? 30 : 12);
     // La bota se levanta un poco antes de pisar
     h.wind += ((near && h.kind === "boot" && h.timer < 0.25 ? 1 : 0) - h.wind) * Math.min(1, dt * 10);
     if (near && h.timer <= 0) {
