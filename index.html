@@ -889,7 +889,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.17.2";
+const VERSION = "0.17.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1918,7 +1918,7 @@ function forks(pts) {
 }
 function updateFx(dt) {
   if (goos.length) updateGoos(dt);
-  if (flames.length || smokes.length) updateFlames(dt);
+  if (streams.length || fireBlobs.length) updateFlames(dt);
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
     p.t += dt;
@@ -2074,151 +2074,133 @@ function sprayTick(p, dt) {
   if (mv > 1.2) p.ang += angDiff(Math.atan2(my, mx), p.ang) * Math.min(1, dt * 9 + 0.04);
   const ca = Math.cos(p.ang), sa = Math.sin(p.ang);
   p.ox = p.x + ca * 10; p.oy = p.y + sa * 10; // la boquilla, justo delante del dedo
-  p.emit = (p.emit || 0) + dt * (lowFx ? 130 : 260);
-  while (p.emit >= 1) {
-    p.emit--;
-    const a = p.ang + rand(-0.13, 0.13), s = rand(R * 6.6, R * 8.4);
-    flame(p.ox + rand(-1.5, 1.5), p.oy + rand(-1.5, 1.5), Math.cos(a) * s, Math.sin(a) * s, rand(9, 14), rand(0.36, 0.52));
-  }
-  // Chispas que saltan del chorro y suben parpadeando
-  if (Math.random() < dt * (lowFx ? 8 : 18)) { const a = p.ang + rand(-0.5, 0.5), s = rand(R * 2.5, R * 4.5); ember(p.ox + Math.cos(p.ang) * R * 0.5, p.oy + Math.sin(p.ang) * R * 0.5, Math.cos(a) * s, Math.sin(a) * s); }
+  emitFire(p, dt, R, mx / Math.max(dt, 1e-3), my / Math.max(dt, 1e-3));
   // Daño: la zona de la llama, delante de la boquilla
   const zx = p.ox + ca * R * 0.75, zy = p.oy + sa * R * 0.75, zr = R * 0.6;
   for (const b of balls) {
     if (b.state === "die" || b.pull || time - b.lastSpray < iv) continue;
     if (Math.hypot(b.x - zx, b.y - zy) < zr + b.r * 0.5) {
       b.lastSpray = time;
-      // Se prende un poquito: llamitas y humo encima
-      for (let k = 0; k < 5; k++) flame(b.x + rand(-b.r * 0.6, b.r * 0.6), b.y - rand(0, b.r), rand(-15, 15), -rand(30, 80), rand(5, 8), rand(0.3, 0.45));
-      smokes.push({ x: b.x, y: b.y - b.r, vx: rand(-8, 8), vy: -rand(20, 40), r: rand(6, 9), t: 0, life: 1 });
+      // Se prende un poquito: bolitas de fuego que suben de su cabeza
+      for (let k = 0; k < 4; k++) fireBlob(b.x + rand(-b.r * 0.6, b.r * 0.6), b.y - rand(0, b.r), rand(-15, 15), -rand(30, 70), rand(3.5, 6), rand(0.3, 0.45));
       hit(b, 1, p.ox, p.oy, true);
     }
   }
   p.hiss = (p.hiss || 0) - dt;
   if (p.hiss <= 0) { Sound.flame(); p.hiss = 0.13; buzz(4); }
 }
-// Fuego (lanzallamas): partículas suaves que se suman en su propia capa (donde se enciman se forma el núcleo
-// blanco-amarillo; en las orillas queda naranja y rojo). Suben por el calor, se mueven con turbulencia,
-// y al apagarse dejan humo. Abajo, la boquilla tiene una base azul y el piso se ilumina.
-const flames = [], smokes = [];
-// Del más caliente (boquilla) al más frío (puntas). De día el núcleo es amarillo (el blanco no se vería sobre la arena)
-const FIRE_TEMPS = { dark: [[255, 248, 232], [255, 226, 150], [255, 190, 86], [255, 140, 48], [232, 84, 28], [160, 40, 16]],
-  light: [[255, 230, 140], [255, 200, 70], [255, 158, 46], [248, 112, 34], [220, 70, 26], [160, 44, 20]] };
-let fireSpr = null, smokeSpr = null, fireCv = null, fctx = null, fireK = 1;
-function glowSprite(c, stops) {
-  const s = document.createElement("canvas"); s.width = s.height = 64;
-  const g = s.getContext("2d"), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  for (const [o, a] of stops) gr.addColorStop(o, `rgba(${c[0]},${c[1]},${c[2]},${a})`);
-  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-  return s;
+// Fuego (lanzallamas), estilizado y fluido: un chorro continuo que sale de la boquilla como una manguera.
+// Cada cuadro sale un "nodo" que vuela hacia adelante; la llama es una cinta suave que pasa por todos los nodos,
+// así se curva y te sigue al mover el dedo. Capas de color limpias (rojo, naranja, amarillo, crema), orillas que
+// ondulan como lenguas, bolitas de fuego redondas que se desprenden en la punta y chispas que suben.
+const streams = [], fireBlobs = [];
+const FIRE_COLS = ["#FF5A36", "#FF8A3D", "#FFC24D", "#FFF3C8"], FIRE_W = [1, 0.76, 0.52, 0.28];
+const NODE_LIFE = 0.3; // s que tarda un tramo de llama en ir de la boquilla a la punta
+function fireBlob(x, y, vx, vy, r, life, ember) { if (fireBlobs.length < 140) fireBlobs.push({ x, y, vx, vy, r, life, t: 0, ember: !!ember }); }
+// Echa fuego desde la boquilla del dedo p (vx, vy = cómo se mueve el dedo, para que la llama herede el movimiento)
+function emitFire(p, dt, R, vx, vy) {
+  let s = p.stream;
+  if (!s || !streams.includes(s)) { s = p.stream = { nodes: [], p, blob: 0 }; streams.push(s); }
+  // Un vaivén muy suave en la dirección: la llama nunca se ve congelada
+  const k = Math.max(1, Math.round(dt * 60)), sp = R / (NODE_LIFE * 0.82), wa = p.ang + (reduceMotion ? 0 : Math.sin(time * 6.5) * 0.05 + Math.sin(time * 11) * 0.025), ca = Math.cos(wa), sa = Math.sin(wa);
+  for (let j = 0; j < k; j++) s.nodes.push({ x: p.ox, y: p.oy, vx: ca * sp + vx * 0.3, vy: sa * sp + vy * 0.3, t: (j / k) * dt });
+  // Bolitas que se desprenden de la punta, y chispas
+  s.blob -= dt;
+  if (s.blob <= 0 && s.nodes.length > 3) {
+    s.blob = lowFx ? 0.09 : 0.05;
+    const tip = s.nodes[0];
+    fireBlob(tip.x + rand(-6, 6), tip.y + rand(-6, 6), tip.vx * 0.35 + rand(-20, 20), tip.vy * 0.35 - rand(20, 50), rand(5, 9) * (R / 86), rand(0.32, 0.5));
+  }
+  if (Math.random() < dt * (lowFx ? 6 : 14)) { const a = p.ang + rand(-0.5, 0.5), v = rand(R * 2, R * 3.6); fireBlob(p.ox + ca * R * 0.5, p.oy + sa * R * 0.5, Math.cos(a) * v, Math.sin(a) * v, rand(1.4, 2.4), rand(0.5, 0.9), true); }
 }
-function buildFire() {
-  // Lenguas densas: casi sólidas al centro y con la orilla suave (así se siente "lumbre", no neblina)
-  fireSpr = FIRE_TEMPS[PAL.onDark ? "dark" : "light"].map((c) => glowSprite(c, PAL.onDark ? [[0, 1], [0.42, 0.85], [0.76, 0.32], [1, 0]] : [[0, 1], [0.52, 0.96], [0.8, 0.5], [1, 0]]));
-  fireSpr.core = glowSprite([255, 246, 200], [[0, 1], [0.45, 0.8], [1, 0]]);
-  fireSpr.blue = glowSprite([90, 150, 255], [[0, 0.9], [0.4, 0.35], [1, 0]]);
-  smokeSpr = glowSprite(PAL.onDark ? [150, 145, 140] : [140, 132, 124], [[0, 0.45], [0.5, 0.2], [1, 0]]);
-  // La capa del fuego va a la resolución de la pantalla, para que las orillas se vean nítidas
-  fireK = Math.max(1, Math.min(DPR, 2));
-  fireCv = fireCv || document.createElement("canvas");
-  fireCv.width = Math.ceil(W * fireK); fireCv.height = Math.ceil(H * fireK);
-  fctx = fireCv.getContext("2d");
-}
-const flame = (x, y, vx, vy, r, life) => { if (flames.length < (lowFx ? 260 : 520)) flames.push({ x, y, vx, vy, r, life, t: 0, s: Math.random() * 100, ember: false }); };
-const ember = (x, y, vx, vy) => { if (flames.length < 460) flames.push({ x, y, vx, vy, r: rand(1.1, 2), life: rand(0.6, 1.1), t: 0, s: Math.random() * 100, ember: true }); };
 function updateFlames(dt) {
-  for (let i = flames.length - 1; i >= 0; i--) {
-    const f = flames[i], u = f.t / f.life;
-    f.t += dt;
-    if (f.t >= f.life) {
-      // Algunas puntas se vuelven humo
-      if (!f.ember && Math.random() < (lowFx ? 0.05 : 0.1)) smokes.push({ x: f.x, y: f.y, vx: f.vx * 0.2 + rand(-8, 8), vy: -rand(18, 40), r: rand(7, 11), t: 0, life: rand(0.9, 1.4) });
-      flames[i] = flames[flames.length - 1]; flames.pop(); continue;
+  for (let i = streams.length - 1; i >= 0; i--) {
+    const s = streams[i];
+    if (pointers.get(s.p.id) !== s.p) s.p.stream = null; // se soltó: la llama termina sola
+    for (let j = s.nodes.length - 1; j >= 0; j--) {
+      const n = s.nodes[j];
+      n.t += dt;
+      if (n.t >= NODE_LIFE) { s.nodes.splice(j, 1); continue; }
+      n.x += n.vx * dt; n.y += n.vy * dt;
+      n.vy -= 70 * (n.t / NODE_LIFE) * dt; // el calor la levanta tantito al final
     }
-    const dr = Math.exp(-(f.ember ? 2.2 : 5.4) * dt);
-    f.vx *= dr; f.vy *= dr;
-    // Turbulencia (más fuerte al alejarse de la boquilla) y el calor que las hace subir
-    const turb = (f.ember ? 140 : 190) * Math.min(1, u * 1.5);
-    f.vx += Math.sin(time * 13 + f.s * 7 + f.y * 0.045) * turb * dt;
-    f.vy += Math.cos(time * 11 + f.s * 5 + f.x * 0.045) * turb * dt - (f.ember ? 90 : 70 + 220 * u) * dt;
-    f.x += f.vx * dt; f.y += f.vy * dt;
+    if (!s.nodes.length && s.p.stream !== s) streams.splice(i, 1);
   }
-  for (let i = smokes.length - 1; i >= 0; i--) {
-    const s = smokes[i];
-    s.t += dt;
-    if (s.t >= s.life) { smokes[i] = smokes[smokes.length - 1]; smokes.pop(); continue; }
-    s.x += (s.vx + Math.sin(time * 2 + s.y * 0.05) * 10) * dt; s.y += s.vy * dt; s.vy *= Math.exp(-0.6 * dt);
+  for (let i = fireBlobs.length - 1; i >= 0; i--) {
+    const b = fireBlobs[i];
+    b.t += dt;
+    if (b.t >= b.life) { fireBlobs[i] = fireBlobs[fireBlobs.length - 1]; fireBlobs.pop(); continue; }
+    const dr = Math.exp(-(b.ember ? 2 : 3.5) * dt);
+    b.vx *= dr; b.vy = b.vy * dr - (b.ember ? 60 : 110) * dt;
+    b.x += b.vx * dt; b.y += b.vy * dt;
   }
+}
+// Medio ancho de la llama según qué tan lejos va el tramo (u: 0 = boquilla, 1 = punta), con ondas que viajan
+const fireHalf = (u, Wm, layer) => Wm * (0.16 + 0.84 * Math.sin(Math.PI * Math.min(1, Math.pow(u, 0.62)))) * (1 + 0.1 * Math.sin(time * 15 - u * 10 + layer * 1.4)) * (layer === 3 ? clamp((0.78 - u) / 0.3, 0, 1) : 1);
+function drawRibbon(pts, nx, ny, us, Wm, layer) {
+  const n = pts.length, m = FIRE_W[layer], L = [], Rt = [];
+  for (let i = 0; i < n; i++) { const w = fireHalf(us[i], Wm, layer) * m; L.push([pts[i][0] + nx[i] * w, pts[i][1] + ny[i] * w]); Rt.push([pts[i][0] - nx[i] * w, pts[i][1] - ny[i] * w]); }
+  const smooth = (arr, first) => { for (let i = 1; i < arr.length - 1; i++) { const mx = (arr[i][0] + arr[i + 1][0]) / 2, my = (arr[i][1] + arr[i + 1][1]) / 2; ctx.quadraticCurveTo(arr[i][0], arr[i][1], mx, my); } if (!first) ctx.lineTo(arr[arr.length - 1][0], arr[arr.length - 1][1]); };
+  const tip = pts[n - 1], tw = fireHalf(us[n - 1], Wm, layer) * m, tdx = tip[0] - pts[n - 2][0], tdy = tip[1] - pts[n - 2][1], tl = Math.hypot(tdx, tdy) || 1;
+  const base = pts[0], bw = fireHalf(us[0], Wm, layer) * m, bdx = pts[1][0] - base[0], bdy = pts[1][1] - base[1], bl = Math.hypot(bdx, bdy) || 1;
+  ctx.fillStyle = FIRE_COLS[layer];
+  ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
+  smooth(L);
+  // Punta redonda
+  ctx.quadraticCurveTo(tip[0] + (tdx / tl) * (tw * 2.2 + 4), tip[1] + (tdy / tl) * (tw * 2.2 + 4), Rt[n - 1][0], Rt[n - 1][1]);
+  const RR = Rt.slice().reverse(); smooth(RR);
+  // Base redondita detrás de la boquilla
+  ctx.quadraticCurveTo(base[0] - (bdx / bl) * (bw * 1.6 + 2), base[1] - (bdy / bl) * (bw * 1.6 + 2), L[0][0], L[0][1]);
+  ctx.fill();
 }
 function drawFlames() {
-  const firing = save.tool === "spray" && [...pointers.values()].some((p) => p.ox != null);
-  if (!flames.length && !smokes.length && !firing) return;
-  if (!fctx || !smokeSpr || fireCv.width !== Math.ceil(W * fireK) || fireCv.height !== Math.ceil(H * fireK)) buildFire();
+  if (!streams.length && !fireBlobs.length) return;
   // 1) Luz cálida sobre el piso, debajo del chorro
-  if (save.tool === "spray") for (const p of pointers.values()) {
-    if (p.ox == null) continue;
-    const R = TOOLS.spray.radius[lvlOf("spray") - 1], cx = p.ox + Math.cos(p.ang) * R * 0.6, cy = p.oy + Math.sin(p.ang) * R * 0.6 + 10, rr = R * 1.15;
-    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
-    const a = (PAL.onDark ? 0.26 : 0.16) * (0.85 + 0.15 * Math.sin(time * 31) * Math.sin(time * 17));
-    g.addColorStop(0, `rgba(255,150,60,${a})`); g.addColorStop(1, "rgba(255,150,60,0)");
-    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.55); ctx.translate(-cx, -cy); ctx.beginPath(); ctx.arc(cx, cy, rr, 0, TAU); ctx.fill(); ctx.restore();
+  for (const s of streams) {
+    if (s.nodes.length < 3) continue;
+    const mid = s.nodes[Math.floor(s.nodes.length * 0.45)], rr = 90;
+    const g = ctx.createRadialGradient(mid.x, mid.y + 10, 0, mid.x, mid.y + 10, rr);
+    g.addColorStop(0, `rgba(255,150,60,${PAL.onDark ? 0.3 : 0.18})`); g.addColorStop(1, "rgba(255,150,60,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.save(); ctx.translate(mid.x, mid.y + 10); ctx.scale(1, 0.6); ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill(); ctx.restore();
   }
-  // 2) Humo (normal, detrás de las llamas)
-  for (const s of smokes) {
-    const u = s.t / s.life, r = s.r * (1 + u * 2.4);
-    ctx.globalAlpha = (PAL.onDark ? 0.4 : 0.22) * Math.min(1, u * 4) * (1 - u);
-    ctx.drawImage(smokeSpr, s.x - r, s.y - r, r * 2, r * 2);
+  // 2) Bolitas de fuego (detrás de la llama): amarillas al nacer, luego naranja y rojo, y se encogen suave
+  for (const b of fireBlobs) {
+    if (b.ember) continue;
+    const u = b.t / b.life, r = b.r * (1 - u * 0.75);
+    ctx.globalAlpha = 1 - u * u;
+    ctx.fillStyle = u < 0.3 ? FIRE_COLS[2] : u < 0.6 ? FIRE_COLS[1] : FIRE_COLS[0];
+    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, TAU); ctx.fill();
+    ctx.fillStyle = FIRE_COLS[3]; ctx.globalAlpha *= 0.7; ctx.beginPath(); ctx.arc(b.x - r * 0.25, b.y - r * 0.25, r * 0.4, 0, TAU); ctx.fill();
   }
+  // 3) La llama: cuatro capas de la orilla al centro
   ctx.globalAlpha = 1;
-  // 3) Las llamas: se suman en su capa y luego la capa se pega encima del juego
-  const g = fctx, k = fireK;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, fireCv.width, fireCv.height);
-  g.setTransform(k, 0, 0, k, 0, 0);
-  // Las llamas se apilan de las más viejas (rojas) a las nuevas (amarillas): lumbre densa con colores definidos.
-  // De noche, además, un resplandor suave alrededor (suma luz)
-  const glow = PAL.onDark;
-  if (glow) {
-    g.globalCompositeOperation = "lighter";
-    for (const f of flames) { if (f.ember) continue; const u = f.t / f.life, r = f.r * (1.4 + 2.6 * u); g.globalAlpha = 0.07 * (1 - u); g.drawImage(fireSpr[2], f.x - r, f.y - r, r * 2, r * 2); }
-  }
-  g.globalCompositeOperation = "source-over";
-  flames.sort((a, b) => b.t / b.life - a.t / a.life);
-  for (const f of flames) {
-    const u = f.t / f.life;
-    if (f.ember) {
-      const tw = 0.6 + 0.4 * Math.sin(time * 40 + f.s * 9);
-      g.globalAlpha = (1 - u) * tw; const r = f.r * 2.6;
-      g.drawImage(fireSpr[1], f.x - r, f.y - r, r * 2, r * 2);
-      continue;
+  for (const s of streams) {
+    const ns = s.nodes, n = ns.length;
+    if (n < 3) continue;
+    const R = TOOLS.spray.radius[Math.max(0, lvlOf("spray") - 1)], Wm = R * 0.3;
+    // Del más nuevo (boquilla) al más viejo (punta)
+    const pts = [], us = [], nx = [], ny = [];
+    for (let i = n - 1; i >= 0; i--) { pts.push([ns[i].x, ns[i].y]); us.push(ns[i].t / NODE_LIFE); }
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+      nx.push(-dy / l); ny.push(dx / l);
     }
-    const ti = Math.min(5, Math.floor(Math.pow(u, 0.85) * 6));
-    const flick = 0.85 + 0.3 * Math.sin(time * 38 + f.s * 11);
-    const r = f.r * (0.55 + 2.6 * u) * flick;
-    g.globalAlpha = Math.min(1, u / 0.06) * Math.pow(1 - u, 0.95) * 0.88;
-    // Cada lengua se estira en la dirección en que va (más rápida = más larga)
-    const sp = Math.hypot(f.vx, f.vy), c = sp ? f.vx / sp : 1, s = sp ? f.vy / sp : 0, st = 1 + Math.min(1.1, sp / 360);
-    g.setTransform(k * c * st, k * s * st, -k * s, k * c, k * f.x, k * f.y);
-    g.drawImage(fireSpr[ti], -r, -r, r * 2, r * 2);
+    for (let layer = 0; layer < 4; layer++) drawRibbon(pts, nx, ny, us, Wm, layer);
+    // Boquilla encendida
+    if (s.p.stream === s) {
+      const g = ctx.createRadialGradient(pts[0][0], pts[0][1], 0, pts[0][0], pts[0][1], 12);
+      g.addColorStop(0, "rgba(255,255,240,1)"); g.addColorStop(1, "rgba(255,240,200,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], 12, 0, TAU); ctx.fill();
+    }
   }
-  g.setTransform(k, 0, 0, k, 0, 0);
-  // Núcleo: las llamas más nuevas, casi blancas, encima de todo (de día sólido; de noche suma luz)
-  for (const f of flames) {
-    const u = f.t / f.life;
-    if (f.ember || u > 0.42) continue;
-    const r = f.r * (0.45 + 1.3 * u);
-    g.globalAlpha = (1 - u / 0.42) * (glow ? 0.6 : 0.75);
-    g.drawImage(fireSpr.core, f.x - r, f.y - r, r * 2, r * 2);
+  // 4) Chispas que suben (encima)
+  ctx.fillStyle = "#FFD45A";
+  for (const b of fireBlobs) {
+    if (!b.ember) continue;
+    const u = b.t / b.life;
+    ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.arc(b.x, b.y, b.r * (1 - u * 0.5), 0, TAU); ctx.fill();
   }
-  // Base azul y núcleo blanco en la boquilla
-  if (firing) for (const p of pointers.values()) {
-    if (p.ox == null) continue;
-    const fl = 0.9 + 0.1 * Math.sin(time * 45);
-    g.globalAlpha = 0.75; g.drawImage(fireSpr.blue, p.ox - 11 * fl, p.oy - 11 * fl, 22 * fl, 22 * fl);
-    g.globalAlpha = 0.9; g.drawImage(fireSpr[0], p.ox - 8, p.oy - 8, 16, 16);
-  }
-  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
   ctx.globalAlpha = 1;
-  ctx.drawImage(fireCv, 0, 0, W, H);
 }
 const meteors = [];
 // Meteoritos: caen en diagonal y al tocar el piso aplastan todo alrededor
@@ -2489,7 +2471,7 @@ const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" str
 function applyLevel() {
   const root = document.documentElement;
   if (lvl().id === "void") delete root.dataset.level; else root.dataset.level = lvl().id;
-  readPalette(); if (W) { buildSprites(); buildBackground(); smokeSpr = null; fctx = null; }
+  readPalette(); if (W) { buildSprites(); buildBackground(); }
   syncThemeColor();
   levelShown = "";
 }
@@ -3814,7 +3796,7 @@ function applyLang() {
 function applyTheme() {
   const root = document.documentElement;
   if (settings.theme === "auto") delete root.dataset.theme; else root.dataset.theme = settings.theme;
-  readPalette(); if (W) { buildSprites(); buildBackground(); smokeSpr = null; fctx = null; }
+  readPalette(); if (W) { buildSprites(); buildBackground(); }
   syncThemeColor();
 }
 function nativeBar() {
