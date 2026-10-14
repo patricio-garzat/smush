@@ -929,7 +929,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.23.0";
+const VERSION = "0.23.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -4411,7 +4411,7 @@ function buildCity() {
       const corner = i === ws.length - 1, z = rr(byT * 0.85, byT * 1.55) + (corner ? 0 : rr(-20, 20));
       topBuilding({ x0, x1, z: Math.max(z, gh + fh * 2.2), left, corner, col: nextCol(), brick: R() < 0.3, escape: !small && !corner && w0 > 120 && R() < 0.6,
         name: CITY_SHOPS[shopI++ % CITY_SHOPS.length], sign: pick(CITY_SIGNS), awn: R() < 0.72 ? CITY_AWN[awnI++ % CITY_AWN.length] : null,
-        blade: corner && !small && R() < 0.7 ? pick(["HOTEL", "CAFÉ", "JAZZ", "BAR"]) : null, tank: R() < 0.5 ? rr(-20, 20) : 0 });
+        blade: corner && !small ? ["HOTEL", "JAZZ"][left ? 0 : 1] : null, tank: R() < 0.5 ? rr(-20, 20) : 0 });
     });
   }
   const terraceLeft = R() < 0.5;
