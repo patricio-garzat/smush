@@ -755,7 +755,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
     <div class="panel-body">
       <div class="group">
         <div class="row"><span class="lbl"><span class="si" style="--c:#F2557A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span><span data-i18n="sound">Sound</span></span><button class="switch" id="sw-sound" role="switch" type="button" aria-checked="true" aria-label="Sound"></button></div>
-        <div class="row"><span class="lbl"><span class="si" style="--c:#4A86D8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg></span><span class="lbl2"><span data-i18n="music">Music</span><small data-i18n="musicSub">Plays in The Slopes</small></span></span><button class="switch" id="sw-music" role="switch" type="button" aria-checked="true" aria-label="Music"></button></div>
+        <div class="row"><span class="lbl"><span class="si" style="--c:#4A86D8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg></span><span class="lbl2"><span data-i18n="music">Music</span><small data-i18n="musicSub">Plays in The Beach and The Slopes</small></span></span><button class="switch" id="sw-music" role="switch" type="button" aria-checked="true" aria-label="Music"></button></div>
         <div class="row vol-row" id="music-vol-row"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M5 9.5h3L12 6v12l-4-3.5H5z"/></svg><input type="range" id="music-vol" min="0" max="100" step="1" value="60" aria-label="Music volume" data-i18n-aria="musicVol"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#8E7CE8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect fill="currentColor" fill-opacity=".35" x="8" y="4" width="8" height="16" rx="2"/><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/></svg></span><span data-i18n="vibration">Vibration</span></span><button class="switch" id="sw-vibe" role="switch" type="button" aria-checked="true" aria-label="Vibration"></button></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#4B5BD6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><path fill="currentColor" d="M12 4.5a7.5 7.5 0 0 1 0 15z"/></svg></span><span data-i18n="theme">Theme</span></span>
@@ -897,7 +897,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.21.0";
+const VERSION = "0.21.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1187,7 +1187,7 @@ const STR = {
   noteBoosts: ["Permanent upgrades that make every smush count more.", "Mejoras permanentes para que cada aplastón rinda más."],
   settings: ["Settings", "Ajustes"],
   sound: ["Sound", "Sonido"],
-  music: ["Music", "Música"], musicSub: ["Plays in The Slopes", "Suena en The Slopes"], musicVol: ["Music volume", "Volumen de la música"],
+  music: ["Music", "Música"], musicSub: ["Plays in The Beach and The Slopes", "Suena en The Beach y The Slopes"], musicVol: ["Music volume", "Volumen de la música"],
   vibration: ["Vibration", "Vibración"],
   theme: ["Theme", "Tema"],
   auto: ["Auto", "Auto"], light: ["Light", "Claro"], dark: ["Dark", "Oscuro"],
@@ -1585,23 +1585,25 @@ const Sound = (() => {
   };
 })();
 
-/* ---------- 4b. Música: en The Slopes suena una canción en repeat. Antes de que termine, vuelve a empezar
-   y las dos se funden (fade de 4 s), así suena como si nunca acabara. Se apaga suave al salir de la app o del nivel. ---------- */
-const MUSIC = { src: "audio/slopes.m4a", fade: 4, levels: ["snow"] };
+/* ---------- 4b. Música: cada nivel puede tener su canción, en repeat. Antes de que termine, vuelve a empezar
+   y las dos vueltas se funden (fade de 4 s), así suena como si nunca acabara. Al cambiar de nivel, una canción
+   se desvanece mientras entra la otra. Se apaga suave al salir de la app. ---------- */
+const MUSIC = { fade: 4, tracks: { beach: "audio/beach.m4a", snow: "audio/slopes.m4a" } };
 let musicReady = false; // suena hasta que terminan las intros
 const Music = (() => {
-  let buf = null, loading = false, failed = false, c = null, out = null, voices = [], cur = null, on = false;
+  const bufs = {}, loading = {}, failed = {};
+  let c = null, out = null, voices = [], cur = null, playing = null; // playing = la canción que suena ahora
   const target = () => (settings.music ? settings.musicVol : 0) * 0.9;
-  function load(ctx) {
-    if (buf || loading || failed) return;
-    loading = true;
-    fetch(MUSIC.src).then((r) => { if (!r.ok) throw new Error("music"); return r.arrayBuffer(); })
-      .then((a) => new Promise((res, rej) => ctx.decodeAudioData(a, res, rej)))
-      .then((b) => { buf = b; loading = false; tick(); })
-      .catch(() => { loading = false; failed = true; });
+  function load(src) {
+    if (bufs[src] || loading[src] || failed[src]) return;
+    loading[src] = true;
+    fetch(src).then((r) => { if (!r.ok) throw new Error("music"); return r.arrayBuffer(); })
+      .then((a) => new Promise((res, rej) => c.decodeAudioData(a, res, rej)))
+      .then((b) => { bufs[src] = b; loading[src] = false; tick(); })
+      .catch(() => { loading[src] = false; failed[src] = true; });
   }
   // Una vuelta de la canción: entra subiendo y sale bajando (así se cruza con la siguiente)
-  function voice(at) {
+  function voice(buf, at) {
     const s = c.createBufferSource(), g = c.createGain(), F = Math.min(MUSIC.fade, buf.duration / 4), end = at + buf.duration;
     s.buffer = buf;
     g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(1, at + F);
@@ -1611,31 +1613,46 @@ const Music = (() => {
     voices.push(v); s.onended = () => { voices = voices.filter((x) => x !== v); };
     return v;
   }
-  function stopAll() { for (const v of voices) { try { v.s.stop(); } catch (e) {} } voices = []; cur = null; }
+  // Desvanece lo que esté sonando (al cambiar de canción, o al apagar)
+  function fadeAll(sec) {
+    const now = c.currentTime;
+    for (const v of voices) {
+      try { v.g.gain.cancelScheduledValues(now); v.g.gain.setValueAtTime(v.g.gain.value, now); v.g.gain.linearRampToValueAtTime(0, now + sec); v.s.stop(now + sec + 0.05); } catch (e) {}
+    }
+    voices = []; cur = null;
+  }
   function tick() {
-    const want = musicReady && settings.music && settings.musicVol > 0 && MUSIC.levels.includes(lvl().id) && !document.hidden;
-    const ctx = want || on ? Sound.ctxAny() : null;
-    if (ctx && ctx !== c) { c = ctx; voices = []; cur = null; out = c.createGain(); out.gain.value = 0; out.connect(c.destination); } // audio nuevo
+    const src = MUSIC.tracks[lvl().id];
+    const want = musicReady && settings.music && settings.musicVol > 0 && !!src && !document.hidden ? src : null;
+    const ctx = want || playing ? Sound.ctxAny() : null;
+    if (ctx && ctx !== c) { c = ctx; voices = []; cur = null; playing = null; out = c.createGain(); out.gain.value = 0; out.connect(c.destination); } // audio nuevo
     if (!c) return;
     const now = c.currentTime;
-    if (want) {
-      load(c);
-      if (!buf) return;
-      if (!on) { on = true; out.gain.cancelScheduledValues(now); out.gain.setTargetAtTime(target(), now, 0.5); }
-      // La siguiente vuelta empieza justo cuando esta empieza a desvanecerse
-      if (!cur) cur = voice(now + 0.05);
-      else if (now >= cur.end - cur.F - 0.8) cur = voice(Math.max(now + 0.05, cur.end - cur.F));
-    } else if (on) {
-      on = false; out.gain.cancelScheduledValues(now); out.gain.setTargetAtTime(0, now, 0.35);
-      const cc = c; setTimeout(() => { if (!on && c === cc) stopAll(); }, 1800);
+    if (!want) {
+      if (playing) { playing = null; fadeAll(1.2); out.gain.cancelScheduledValues(now); out.gain.setTargetAtTime(0, now, 0.4); }
+      return;
     }
+    load(want);
+    const buf = bufs[want];
+    if (!buf) return;
+    if (playing !== want) {
+      // Canción nueva: la anterior se va desvaneciendo mientras esta entra
+      if (playing) fadeAll(MUSIC.fade * 0.6);
+      playing = want;
+      out.gain.cancelScheduledValues(now); out.gain.setTargetAtTime(target(), now, 0.5);
+      cur = voice(buf, now + 0.05);
+      return;
+    }
+    // La siguiente vuelta empieza justo cuando esta empieza a desvanecerse
+    if (!cur) cur = voice(buf, now + 0.05);
+    else if (now >= cur.end - cur.F - 0.8) cur = voice(buf, Math.max(now + 0.05, cur.end - cur.F));
   }
   setInterval(tick, 250);
   document.addEventListener("visibilitychange", tick);
   return {
     tick,
-    setVolume() { if (c && out && on) out.gain.setTargetAtTime(target(), c.currentTime, 0.12); },
-    info: () => ({ on, voices: voices.length, left: cur && c ? Math.round(cur.end - c.currentTime) : null, vol: out ? Math.round(out.gain.value * 100) / 100 : 0 }), // para revisar
+    setVolume() { if (c && out && playing) out.gain.setTargetAtTime(target(), c.currentTime, 0.12); },
+    info: () => ({ playing, voices: voices.length, left: cur && c ? Math.round(cur.end - c.currentTime) : null, vol: out ? Math.round(out.gain.value * 100) / 100 : 0 }), // para revisar
   };
 })();
 
