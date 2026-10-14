@@ -884,7 +884,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.20.0";
+const VERSION = "0.20.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1861,7 +1861,7 @@ function part(x, y, vx, vy, r, life, color, kind = "dot", drag = 4, g = 0, a = 1
   parts.push(p);
 }
 function ring(x, y, r0, r1, dur, color, width, alpha = 0.5, fill = 0) { rings.push({ x, y, r0, r1, dur, color, width, alpha, fill, t: 0 }); }
-function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, size, t: 0, dur: 0.9, dx: rand(-6, 6) }); }
+function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, size, t: 0, dur: size > 16 ? 0.9 : 0.7, dx: rand(-4, 4) }); }
 
 // Explosión al aplastar: anillo, gotitas del mismo color y una manchita en el piso que se desvanece
 function burst(b) {
@@ -3852,7 +3852,8 @@ let uiDirty = true;
 function addCoins(n, x, y, T) {
   if (multOn) n *= multOn.x; // multiplicador activo
   save.coins += n; save.earned += n;
-  floatText(x, y, "+" + n, multOn ? (multOn.x >= 4 ? "#7C5CE0" : "#C9962A") : T.label, n >= 25 ? 22 : n >= 10 ? 18 : 15);
+  // Texto chiquito y discreto (un poco más grande solo cuando vale mucho)
+  floatText(x, y, "+" + fmtShort(n), multOn ? (multOn.x >= 4 ? "#7C5CE0" : "#C9962A") : T.label, n >= 200 ? 13.5 : n >= 50 ? 12.5 : 11.5);
   uiDirty = true; coinBump = true;
   markSave();
 }
@@ -4441,15 +4442,16 @@ function render(dt) {
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
   for (const tt of texts) {
     const u = tt.t / tt.dur;
-    ctx.globalAlpha = u < 0.15 ? u / 0.15 : 1 - Math.pow((u - 0.15) / 0.85, 2);
-    ctx.font = `800 ${tt.size}px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif`;
-    const w = ctx.measureText(tt.text).width, cr = tt.size * 0.32, total = w + cr * 2 + 3;
-    const x = tt.x + tt.dx * u - total / 2, y = tt.y - 36 * easeOut(u);
+    const big = tt.size > 16; // los textos grandes (premios especiales) se quedan como estaban
+    ctx.globalAlpha = (u < 0.15 ? u / 0.15 : 1 - Math.pow((u - 0.15) / 0.85, 2)) * (big ? 1 : 0.82);
+    ctx.font = `${big ? 800 : 750} ${tt.size}px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif`;
+    const w = ctx.measureText(tt.text).width, cr = tt.size * 0.34, total = w + cr * 2 + 2;
+    const x = tt.x + tt.dx * u - total / 2, y = tt.y - (big ? 36 : 22) * easeOut(u);
     const ci = coinImg();
     if (ci) ctx.drawImage(ci, x, y - cr, cr * 2, cr * 2);
     else { ctx.fillStyle = "#F1C84D"; ctx.beginPath(); ctx.arc(x + cr, y, cr, 0, TAU); ctx.fill(); }
     ctx.fillStyle = tt.color;
-    ctx.fillText(tt.text, x + cr * 2 + 3, y);
+    ctx.fillText(tt.text, x + cr * 2 + 2, y);
   }
   // Lo que va en el cielo, encima de todo lo demás: nubes de ácido y sus gotas, jets y bombas cayendo
   drawSky();
