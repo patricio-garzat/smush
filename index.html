@@ -889,7 +889,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.17.1";
+const VERSION = "0.17.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -955,7 +955,6 @@ const UP = {
   boltH: { tab: "helpers", max: 10, cost: (l) => Math.round(1500 * 1.35 ** l) },  // nube eléctrica
   // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
   jet:   { tab: "helpers", world: 1, max: 6, cost: [10000, 6000, 10000, 16000, 25000, 40000] }, // jet bombardero
-  acidH: { tab: "helpers", world: 1, max: 6, cost: [15000, 8000, 13000, 20000, 30000, 45000] }, // tormenta ácida
   // Mejoras
   speed: { tab: "boosts",  max: 5,  cost: [150, 350, 700, 1300, 2200] },     // los ayudantes tocan más seguido
   power: { tab: "boosts",  max: 2,  cost: [1200, 4000] },                     // los ayudantes pegan más fuerte
@@ -964,10 +963,10 @@ const UP = {
   luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
   night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
 };
-const HELPER_KEYS = ["hire", "boltH", "jet", "acidH"]; // los que se pueden apagar
+const HELPER_KEYS = ["hire", "boltH", "jet"]; // los que se pueden apagar
 // Cuántos trabajan de verdad: los contratados, salvo que estén apagados
 const active = (k) => (save.off[k] ? 0 : save.up[k]);
-const UP_ORDER = ["hire", "boltH", "jet", "acidH", "speed", "power", "value", "crowd", "luck", "night"];
+const UP_ORDER = ["hire", "boltH", "jet", "speed", "power", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   helperInterval: (l) => 2.5 * 0.82 ** l,   // s entre toques de cada ayudante
@@ -979,7 +978,6 @@ const FX = {
   luckGap: (l) => SPAWN.yellowGap - 1.5 * l,
   nightHours: (l) => [0.5, 1, 2, 4, 8][l],  // horas que trabajan los ayudantes mientras no estás
   jetEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)],  // s entre que cae una bomba y pasa el siguiente jet
-  acidEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)], // s entre una tormenta y la siguiente
 };
 // Tipos de ayudante: every = multiplica la pausa entre golpes; targets = a cuántos alcanza en promedio
 const HELPER_KIND = {
@@ -1005,10 +1003,8 @@ const ICONS = {
   spray:  svgI(`<path ${SOFT} d="M12 21.5c-3.7 0-6.2-2.5-6.2-5.8 0-3.5 2.7-5.2 3.5-8.7 2 1.3 3.1 3.1 3.3 5 1.1-.8 1.9-2.1 2.1-3.7 2.1 2 3.5 4.5 3.5 7.4 0 3.3-2.5 5.8-6.2 5.8z"/><path d="M12 21.5c-1.7 0-2.8-1.1-2.8-2.7 0-1.7 1.2-2.6 1.7-4.1 1 .8 1.7 1.8 1.8 2.9.6-.4 1-1 1.1-1.8 1 .9 1.7 2.1 1.7 3.2 0 1.5-1.5 2.5-3.5 2.5z"/>`),
   bolt:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M13.6 2.5 5 13.6h6.1L10 21.5l9-11.7h-6.3z"/>`),
   bomb:   svgI(`<circle ${SOFT} cx="11" cy="14.5" r="6.5"/><path d="M14.8 9.6 16.6 7.8"/><path d="M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6" stroke-width="1.7"/><circle ${SOLID} cx="20.6" cy="5.4" r="1.2"/>`),
-  acid:   svgI(`<path ${SOFT} d="M7 13a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4A3.3 3.3 0 0 1 17.5 13z"/><path d="M8 16l-.9 2.4M12 16l-.9 2.4M16 16l-.9 2.4M10 20.2l-.6 1.4M14 20.2l-.6 1.4"/>`),
   wave:   svgI(`<path ${SOFT} d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9L3 17z"/><path d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9"/><path d="M2.5 20.5c2.2 0 2.2-1.5 4.4-1.5s2.2 1.5 4.4 1.5 2.2-1.5 4.4-1.5 2.2 1.5 4.4 1.5"/>`),
   jet:    svgI(`<path ${SOFT} d="M21 12c0-.8-.7-1.4-1.6-1.4H14L9.5 3.5H7.6l2.2 7.1H5.6L3.9 8.4H2.6l1 3.6-1 3.6h1.3l1.7-2.2h4.2l-2.2 7.1h1.9L14 13.4h5.4c.9 0 1.6-.6 1.6-1.4z"/>`),
-  acidH:  svgI(`<path ${SOFT} d="M7 13a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4A3.3 3.3 0 0 1 17.5 13z"/><path d="M8 16l-.9 2.4M12 16l-.9 2.4M16 16l-.9 2.4"/>`),
   meteor: svgI(`<circle ${SOFT} cx="15" cy="15" r="5.6"/><path d="M11 11 3.5 3.5M14.2 9.4 10 3M9.4 14.2 3 10"/><circle ${SOLID} cx="16.6" cy="13.4" r="1.1"/>`),
   hire:   svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/>`),
   boltH:  svgI(`<path ${SOFT} d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>`),
@@ -1023,8 +1019,8 @@ const ICONS = {
 };
 // El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
 const HUE = {
-  finger: "#7D8AA3", boot: "#4F86E8", spray: "#F0642E", bolt: "#F0A12E", bomb: "#4A5068", acid: "#6FB23A", meteor: "#EE7537", wave: "#2C9FC2",
-  jet: "#5C7CFA", acidH: "#6FB23A", aval: "#5E9BE0",
+  finger: "#7D8AA3", boot: "#4F86E8", spray: "#F0642E", bolt: "#F0A12E", bomb: "#4A5068", meteor: "#EE7537", wave: "#2C9FC2",
+  jet: "#5C7CFA", aval: "#5E9BE0",
   hire: "#8E99AE", boltH: "#6C7FA8", speed: "#22B07D", power: "#E5534B",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
 };
@@ -1036,7 +1032,6 @@ const HELPER_ART = {
   fingerSnow: { svg: "<svg width=\"100\" height=\"140\" viewBox=\"0 0 100 140\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"wr\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F07A6C\"/><stop offset=\"1\" stop-color=\"#C1413A\"/></linearGradient> <linearGradient id=\"wc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#43649A\"/><stop offset=\"1\" stop-color=\"#2A4270\"/></linearGradient> </defs> <g stroke=\"#5A1F1A\" stroke-opacity=\".45\" stroke-width=\"2.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"> <rect x=\"31\" y=\"50\" width=\"21\" height=\"84\" rx=\"10.5\" fill=\"url(#wr)\"/> <rect x=\"9\" y=\"42\" width=\"17\" height=\"38\" rx=\"8.5\" fill=\"url(#wr)\" transform=\"rotate(26 17.5 61)\"/> <rect x=\"21\" y=\"21\" width=\"63\" height=\"58\" rx=\"24\" fill=\"url(#wr)\"/> <circle cx=\"81\" cy=\"64\" r=\"9\" fill=\"url(#wr)\"/> <circle cx=\"71\" cy=\"74\" r=\"10.5\" fill=\"url(#wr)\"/> <circle cx=\"58\" cy=\"79\" r=\"11\" fill=\"url(#wr)\"/> <rect x=\"25\" y=\"3\" width=\"54\" height=\"24\" rx=\"9\" fill=\"url(#wc)\" stroke=\"#1C2B4A\"/> </g> <path d=\"M33 7v16M39 7v16M45 7v16M51 7v16M57 7v16M63 7v16M69 7v16\" stroke=\"#FFFFFF\" stroke-opacity=\".22\" stroke-width=\"2\" stroke-linecap=\"round\"/> <path d=\"M23.5 36h58\" stroke=\"#F4C24F\" stroke-width=\"7\" stroke-linecap=\"round\"/> <path d=\"M27 36l3-2.6 3 2.6 3-2.6 3 2.6 3-2.6 3 2.6 3-2.6 3 2.6 3-2.6 3 2.6 3-2.6 3 2.6 3-2.6 3 2.6 3-2.6 3 2.6 3-2.6\" stroke=\"#B9831C\" stroke-opacity=\".55\" stroke-width=\"1.3\" fill=\"none\" stroke-linejoin=\"round\"/> <path d=\"M33 50l2.5 2.5 2.5-2.5M45 50l2.5 2.5 2.5-2.5M57 50l2.5 2.5 2.5-2.5M69 50l2.5 2.5 2.5-2.5M39 61l2.5 2.5 2.5-2.5M51 61l2.5 2.5 2.5-2.5M63 61l2.5 2.5 2.5-2.5M37 92l2.5 2.5 2.5-2.5M37 106l2.5 2.5 2.5-2.5M37 120l2.5 2.5 2.5-2.5\" stroke=\"#7A2620\" stroke-opacity=\".3\" stroke-width=\"1.4\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> <path d=\"M37 88v30\" stroke=\"#FFFFFF\" stroke-opacity=\".4\" stroke-width=\"4\" stroke-linecap=\"round\"/> <path d=\"M30 46c3-6 8-8.5 14-9\" stroke=\"#FFFFFF\" stroke-opacity=\".35\" stroke-width=\"4\" stroke-linecap=\"round\" fill=\"none\"/> </svg>", w: 100, h: 140, ax: 41.5, ay: 135, size: 30 },
   jet:    { svg: "<svg width=\"130\" height=\"80\" viewBox=\"0 0 130 80\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"jb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C3CCDA\"/></linearGradient> <linearGradient id=\"jw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#BFC9D8\"/><stop offset=\"1\" stop-color=\"#EEF2F7\"/></linearGradient> <linearGradient id=\"jg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B9DCFA\"/><stop offset=\"1\" stop-color=\"#3E6FB8\"/></linearGradient></defs> <g stroke=\"#4A5468\" stroke-opacity=\".28\" stroke-width=\"1.2\" stroke-linejoin=\"round\"> <path d=\"M58 35 L38 5 Q37 3 40 3 L49 3 Q51 3 52 5 L80 35 Z\" fill=\"url(#jw)\"/> <path d=\"M58 45 L38 75 Q37 77 40 77 L49 77 Q51 77 52 75 L80 45 Z\" fill=\"url(#jw)\"/> <path d=\"M20 36 L9 21 L16 21 L31 36 Z\" fill=\"url(#jw)\"/> <path d=\"M20 44 L9 59 L16 59 L31 44 Z\" fill=\"url(#jw)\"/> <path d=\"M7 40 C7 35 13 33 23 33 L100 33 C114 33 124 37 127 40 C124 43 114 47 100 47 L23 47 C13 47 7 45 7 40 Z\" fill=\"url(#jb)\"/> </g> <path d=\"M30 40 H95\" stroke=\"#4F86E8\" stroke-width=\"2.6\" stroke-linecap=\"round\"/> <path d=\"M44 12 L50 12 M44 68 L50 68\" stroke=\"#4F86E8\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\".7\"/> <ellipse cx=\"105\" cy=\"40\" rx=\"9.5\" ry=\"4.4\" fill=\"url(#jg)\"/> <ellipse cx=\"102\" cy=\"38.6\" rx=\"4\" ry=\"1.4\" fill=\"#FFFFFF\" opacity=\".7\"/> </svg>", w: 130, h: 80, ax: 65, ay: 40, size: 200 },
   bomb:   { svg: "<svg width=\"60\" height=\"66\" viewBox=\"0 0 60 66\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><radialGradient id=\"bb\" cx=\".36\" cy=\".32\" r=\".78\"><stop offset=\"0\" stop-color=\"#727A92\"/><stop offset=\".5\" stop-color=\"#363B50\"/><stop offset=\"1\" stop-color=\"#1A1C26\"/></radialGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9AFC0\"/><stop offset=\"1\" stop-color=\"#5B6174\"/></linearGradient></defs> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#B88C55\" stroke-width=\"3.4\" stroke-linecap=\"round\"/> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#7C5A32\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-dasharray=\"2 4\" opacity=\".6\"/> <circle cx=\"28\" cy=\"41\" r=\"22\" fill=\"url(#bb)\"/> <rect x=\"21\" y=\"13\" width=\"14\" height=\"9\" rx=\"3\" fill=\"url(#bc)\" transform=\"rotate(14 28 17.5)\"/> <ellipse cx=\"19.5\" cy=\"31.5\" rx=\"7\" ry=\"4.2\" fill=\"#FFFFFF\" opacity=\".33\" transform=\"rotate(-38 19.5 31.5)\"/> </svg>", w: 60, h: 66, ax: 28, ay: 63, size: 66 },
-  acid:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"ac\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#C7D3C0\"/><stop offset=\".6\" stop-color=\"#7C8C74\"/><stop offset=\"1\" stop-color=\"#55654D\"/></linearGradient></defs> <g fill=\"url(#ac)\"><circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/><rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/></g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/> <path d=\"M26 76h80\" stroke=\"#9BE15D\" stroke-opacity=\".75\" stroke-width=\"3.5\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 66, ay: 78, size: 200 },
   bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 28 },
 };
 
@@ -1053,7 +1048,7 @@ const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
-  up: { hire: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
+  up: { hire: 0, boltH: 0, jet: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 2, // versión del guardado
   level: 0, // nivel actual (la meta del siguiente usa el total de aplastados, que nunca se reinicia)
@@ -1100,6 +1095,7 @@ function loadSave() {
     // La Lluvia ácida ya no existe, y los Meteoritos ahora son de The Slopes: se devuelve lo que costaron
     const refund = (l, prices) => { for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); } };
     refund(clamp(Math.floor(num(s.tools && s.tools.acid)), 0, 3), [20000, 35000, 60000]);
+    refund(clamp(Math.floor(num(s.up && s.up.acidH)), 0, 6), [15000, 8000, 13000, 20000, 30000, 45000]); // Tormenta ácida (ya no existe)
     if (d.level < 2 && d.tools.meteor) { refund(d.tools.meteor, [15000, 30000, 60000]); d.tools.meteor = 0; }
     // Partidas de antes de los niveles: lo que llevas aplastado cuenta para la meta de The Beach
     if (TOOLS[s.tool] && d.tools[s.tool] > 0 && (TOOLS[s.tool].world || 0) <= d.level) d.tool = s.tool;
@@ -1174,12 +1170,10 @@ const STR = {
   buy: ["Buy", "Comprar"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
   finger: ["Click", "Click"], spray: ["Flamethrower", "Lanzallamas"], bolt: ["Shock", "Descarga"],
   bomb: ["Bomb", "Bomba"], bombD: ["Place bombs anywhere, then press Detonate. Buy more to place up to 10 at once.", "Pon bombas donde quieras y luego presiona Detonar. Compra más para poner hasta 10 a la vez."],
-  acid: ["Acid rain", "Lluvia ácida"], acidD: ["Hold and move: a little acid cloud follows your finger and drips on the aliens below.", "Mantén y mueve: una nubecita de ácido sigue tu dedo y gotea sobre los marcianitos de abajo."],
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a row of 6 big bombs where the crowd is biggest.", "Pasa volando y suelta una fila de 6 bombas grandes donde hay más marcianitos."],
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
-  acidH: ["Acid storm", "Tormenta ácida"], acidHD: ["A storm cloud drifts across the beach, raining acid on its own.", "Una nube cruza la playa lloviendo ácido sola."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
   sprayD: ["Hold and drag: a jet of fire that burns everything in front of it.", "Mantén y arrastra: un chorro de fuego que quema todo lo que tiene enfrente."],
@@ -1192,7 +1186,7 @@ const STR = {
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
-  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs and the Tsunami, plus the Bomber jet and the Acid storm.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas y el Tsunami, además del Jet bombardero y la Tormenta ácida."],
+  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, the Tsunami and the Bomber jet.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, el Tsunami y el Jet bombardero."],
   snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
@@ -1253,9 +1247,9 @@ function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
     case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "dedo" : "dedos"}` : `${l} ${l === 1 ? "finger" : "fingers"}`;
-    case "jet": case "acidH": {
+    case "jet": {
       if (!l) return tx("notHired");
-      const s = n(k === "jet" ? FX.jetEvery(l) : FX.acidEvery(l));
+      const s = n(FX.jetEvery(l));
       return short ? `${s} s` : es ? `Pasa cada ${s} s` : `Every ${s}s`;
     }
     case "boltH": return short ? String(l) : es ? `${l} ${l === 1 ? "nube" : "nubes"}` : `${l} ${l === 1 ? "cloud" : "clouds"}`;
@@ -1485,8 +1479,6 @@ const Sound = (() => {
     },
     // Lluvia ácida: un trueno lejano al empezar, lluvia suave y un "tic" cuando una gota aplasta
     thunder() { tone(52, { dur: 1.1, vol: 0.09, attack: 0.15, slide: 0.8 }); noise({ dur: 1, vol: 0.05, freq: 300, q: 0.4, attack: 0.1, kind: "lowpass" }); },
-    rain(soft) { noise({ dur: 0.4, vol: soft ? 0.012 : 0.02, freq: vary(1700, 0.2), q: 0.5, attack: 0.12 }); },
-    drip() { tone(vary(820, 0.1), { dur: 0.05, vol: 0.02, slide: 0.6, attack: 0.002 }); },
     // Jet: pasa con un soplo que crece y se aleja
     jet() { breath({ dur: 1.6, vol: 0.05, from: 500, to: 2000 }); noise({ t: 0.5, dur: 1.1, vol: 0.03, freq: 380, q: 0.5, attack: 0.4, kind: "lowpass" }); },
     // Tsunami: el mar se retira (soplo que baja y un retumbo grave)…
@@ -2362,7 +2354,6 @@ function helperRate() {
   // Jets y tormentas (solo en The Beach): ~3 marcianitos por bomba, ~6 por tormenta
   if (save.level >= 1) {
     if (active("jet")) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
-    if (active("acidH")) rate += (6 / (FX.acidEvery(save.up.acidH) + 7)) * avgReward();
   }
   return rate;
 }
@@ -2601,7 +2592,7 @@ function travel() {
   const fresh = freshSave();
   save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.tool = "finger";
   helpers.length = 0; syncHelpers();
-  jetClock = 3; acidClock = 4;
+  jetClock = 3;
   for (const k in cdEnd) delete cdEnd[k];
   writeSave();
   shopTab = "tools";
@@ -2609,7 +2600,7 @@ function travel() {
   playTrip(from, n, save.level + 1, () => {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
-    meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+    meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
     if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
@@ -3261,7 +3252,7 @@ function puffSprite(dark) {
 
 /* ---------- Herramientas y ayudantes de The Beach: bombas, lluvia ácida, jets y tormentas ácidas ---------- */
 let seaShift = 0; // cuánto se mueve la orilla del mar (hoy se queda quieta)
-const BOMB_R = 82, JET_R = 96, JET_BOMBS = 6, ACID_HIT = 12; // JET_R: radio de cada bomba del jet
+const BOMB_R = 82, JET_R = 96, JET_BOMBS = 6; // JET_R: radio de cada bomba del jet
 const BOMB_SIZE = 40, JET_SIZE = 150; // alto de la bomba y largo del jet, en px
 // --- Explosiones: destello, bola de fuego, onda expansiva, humo, esquirlas y una marca en el piso
 const booms = [];
@@ -3369,89 +3360,9 @@ function updateDetonate() {
 }
 $("#detonate").addEventListener("click", () => { Sound.unlock(); detonate(); });
 
-// --- Lluvia ácida: una nube suelta gotas sobre un área; cada gota que cae aplasta a quien esté ahí
-const rains = [], drops = [];
-function startRain(o) {
-  rains.push(Object.assign({ t: 0, emit: 0, hiss: 0, vx: 0 }, o));
-}
-const rainAlt = (r) => 64 + r.R * 0.22; // qué tan arriba flota la nube sobre el piso
-function updateRains(dt) {
-  for (let i = rains.length - 1; i >= 0; i--) {
-    const r = rains[i];
-    r.t += dt;
-    r.x += r.vx * dt;
-    if (r.pid != null && r.life === Infinity) {
-      // Sigue al dedo con suavidad; al soltarlo, la nube se desvanece
-      const p = pointers.get(r.pid);
-      if (p && save.tool === "acid") { const k = Math.min(1, dt * 12); r.x += (p.x - r.x) * k; r.y += (p.y - r.y) * k; }
-      else r.life = r.t;
-    }
-    const raining = r.storm ? r.t > 0.3 && r.x > -r.R && r.x < W + r.R : r.t > 0.25 && r.t < r.life;
-    if (raining) {
-      r.emit += dt * r.rate;
-      while (r.emit >= 1) {
-        r.emit--;
-        const a = rand(0, TAU), d = Math.sqrt(Math.random()) * r.R, tx = r.x + Math.cos(a) * d, ty = r.y + Math.sin(a) * d * 0.55;
-        drops.push({ sx: r.x + (tx - r.x) * 0.75 + rand(-6, 6), sy: r.y - rainAlt(r) + 6, tx, ty, t: 0, dur: rand(0.26, 0.34), auto: r.auto, dmg: r.dmg || 999 });
-      }
-      r.hiss -= dt;
-      if (r.hiss <= 0) { Sound.rain(r.auto); r.hiss = 0.3; }
-    }
-    const done = r.storm ? (r.vx > 0 ? r.x > W + r.R * 1.6 : r.x < -r.R * 1.6) : r.t > r.life + 0.8;
-    if (done) { rains.splice(i, 1); if (r.storm) acidClock = FX.acidEvery(save.up.acidH); }
-  }
-  for (let i = drops.length - 1; i >= 0; i--) {
-    const d = drops[i];
-    d.t += dt;
-    if (d.t < d.dur) continue;
-    drops.splice(i, 1);
-    // Salpica, deja un charquito ácido y aplasta a quien esté justo ahí
-    ring(d.tx, d.ty, 1, 11, 0.35, "#8FD14F", 1.5, 0.6);
-    for (let k = 0; k < 3; k++) { const a = rand(Math.PI * 1.1, Math.PI * 1.9); part(d.tx, d.ty, Math.cos(a) * rand(30, 70), Math.sin(a) * rand(30, 70), rand(1, 1.8), 0.35, "#B6F07A", "dot", 4, 260); }
-    if (Math.random() < 0.35) splats.push({ x: d.tx, y: d.ty, rx: rand(5, 8), color: "#7FC241", t: 0, dur: 1.2, seed: Math.random() * 10 });
-    for (const b of balls) {
-      if (b.state === "die" || b.pull) continue;
-      if (Math.hypot(b.x - d.tx, b.y - d.ty) < ACID_HIT + b.r * 0.6) { hit(b, d.dmg, d.tx, d.ty - 10, true, d.auto); Sound.drip(); }
-    }
-  }
-}
-function drawRainsGround() {
-  // Mancha verde y la sombra de la nube en el piso, debajo de los marcianitos
-  for (const r of rains) {
-    const k = r.storm ? 1 : Math.min(1, r.t / 0.45) * (r.t > r.life ? Math.max(0, 1 - (r.t - r.life) / 0.8) : 1);
-    if (k <= 0) continue;
-    ctx.globalAlpha = 0.1 * k; ctx.fillStyle = "#7FC241";
-    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.R, r.R * 0.55, 0, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 0.14 * k; ctx.fillStyle = PAL.shadow;
-    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.R * 0.8, r.R * 0.32, 0, 0, TAU); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-function drawRainsSky() {
-  // Gotas como rayitas verdes que caen, y la nube encima
-  ctx.lineCap = "round";
-  for (const d of drops) {
-    const u = d.t / d.dur, x = d.sx + (d.tx - d.sx) * u, y = d.sy + (d.ty - d.sy) * easeIn(u);
-    ctx.globalAlpha = 0.9; ctx.strokeStyle = "#6FB23A"; ctx.lineWidth = 2.6;
-    ctx.beginPath(); ctx.moveTo(x - 1.5, y - 15); ctx.lineTo(x, y); ctx.stroke();
-    ctx.strokeStyle = "#D6FFA8"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x - 1, y - 11); ctx.lineTo(x, y - 2); ctx.stroke();
-  }
-  const img = helperSpr.acid, A = HELPER_ART.acid;
-  for (const r of rains) {
-    if (!img) break;
-    const k = r.storm ? 1 : easeOut(Math.min(1, r.t / 0.45)) * (r.t > r.life ? Math.max(0, 1 - (r.t - r.life) / 0.8) : 1);
-    if (k <= 0) continue;
-    const w = r.R * (r.storm ? 2.2 : 1.7) * (0.85 + 0.15 * k), s = w / A.w, x = r.x + Math.sin(r.t * 0.9) * 5, y = r.y - rainAlt(r) + Math.sin(r.t * 1.6) * 2;
-    ctx.globalAlpha = k * 0.92;
-    ctx.drawImage(img, x - (A.ax) * s, y - A.ay * s, A.w * s, A.h * s);
-  }
-  ctx.globalAlpha = 1;
-}
-
 // --- Jets bombarderos (ayudante): cruzan la playa y sueltan una bomba donde hay más marcianitos
 const jets = [], falling = [];
-let jetClock = 3, acidClock = 4;
+let jetClock = 3;
 function crowdTarget() {
   let best = null, bn = -1;
   for (const b of balls) {
@@ -3498,15 +3409,6 @@ function updateSky(dt) {
     const f = falling[i];
     f.t += dt;
     if (f.t >= f.dur) { falling.splice(i, 1); explode(f.x1, f.y1, JET_R, true); jetClock = FX.jetEvery(save.up.jet); }
-  }
-  // Tormentas ácidas
-  if (beach && active("acidH") > 0 && playing && !rains.some((r) => r.storm)) {
-    acidClock -= dt;
-    if (acidClock <= 0) {
-      const dir = Math.random() < 0.5 ? 1 : -1, R = 96, top = Math.max(shoreY(BALL_TYPES.green) + R * 0.6, H * 0.3);
-      startRain({ storm: true, auto: true, R, rate: 12, x: dir > 0 ? -R * 1.5 : W + R * 1.5, y: rand(top, Math.max(top, H * 0.78)), vx: dir * 62 });
-      acidClock = 999;
-    }
   }
 }
 function drawSky() {
@@ -3687,7 +3589,6 @@ function buyUp(k) {
   save.coins -= price; save.spent += price; save.up[k] = was + 1;
   if (k === "hire" || k === "boltH") syncHelpers();
   if (k === "jet") jetClock = Math.min(jetClock, 1.5);
-  if (k === "acidH") acidClock = Math.min(acidClock, 2);
   if (k === "crowd") updateTarget();
   afterBuy(Math.min(was, 2), k);
 }
@@ -3814,11 +3715,11 @@ function toolCard(id) {
 function upCard(k) {
   const l = save.up[k], u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
   const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
-  const hireLike = k === "hire" || k === "boltH" || ((k === "jet" || k === "acidH") && l === 0);
+  const hireLike = k === "hire" || k === "boltH" || (k === "jet" && l === 0);
   const btn = !ready
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
     : buyButton("up", k, price, hireLike ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade"));
-  const art = { hire: isSnow() ? "fingerSnow" : "finger", boltH: "bolt", jet: "jet", acidH: "acid" }[k];
+  const art = { hire: isSnow() ? "fingerSnow" : "finger", boltH: "bolt", jet: "jet" }[k];
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
   const on = !save.off[k], canOff = HELPER_KEYS.includes(k) && l > 0 && ready;
   const extra = canOff ? `<div class="hsw"><button class="switch sm" type="button" role="switch" aria-checked="${on}" data-off="${k}" aria-label="${tx(k)}"></button><span>${tx(on ? "working" : "turnedOff")}</span></div>` : "";
@@ -3838,7 +3739,7 @@ function renderShop(animate) {
       + sect("secSnow") + ["meteor", "aval"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "boltH"].map(upCard).join("")
-      + sect("secBeach") + ["jet", "acidH"].map(upCard).join("")
+      + sect("secBeach") + ["jet"].map(upCard).join("")
 
   } else {
     html = sect("secBoostWorld") + ["value", "crowd", "luck", "night"].map(upCard).join("")
@@ -3966,7 +3867,7 @@ confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]
 $("#btn-reset-yes").addEventListener("click", () => {
   save = freshSave(); writeSave();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; goos.length = 0; timers.length = 0;
-  helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+  helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
   applyLevel(); updateDetonate();
   for (const k in cdEnd) delete cdEnd[k];
@@ -4099,7 +4000,6 @@ function render(dt) {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill();
   }
   // Lluvia ácida: la mancha y la sombra de la nube en el piso
-  drawRainsGround();
   // Sombra donde va a caer cada meteorito
   for (const m of meteors) {
     if (m.t < 0 || m.hit) continue;
@@ -4214,7 +4114,6 @@ function render(dt) {
     ctx.fillText(tt.text, x + cr * 2 + 3, y);
   }
   // Lo que va en el cielo, encima de todo lo demás: nubes de ácido y sus gotas, jets y bombas cayendo
-  drawRainsSky();
   drawSky();
   drawSnowfall(dt || 0);
   // Burbuja del multiplicador (siempre visible para poder tocarla)
@@ -4273,7 +4172,6 @@ function loop(now) {
   updateBalls(dt);
   updateMeteors(dt);
   updateBombs(dt);
-  updateRains(dt);
   updateWaves(dt);
   updateSky(dt);
   updateHelpers(dt);
