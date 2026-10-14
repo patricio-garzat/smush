@@ -549,6 +549,17 @@ body::before {
 
 /* Ajustes: lista estilo iOS, con un mosaico de color por opción */
 .row .lbl { display: inline-flex; align-items: center; gap: 12px; }
+.row .lbl2 { display: flex; flex-direction: column; line-height: 1.2; }
+.row .lbl2 small { font-size: 12px; font-weight: 600; color: var(--muted); }
+/* Volumen de la música: una barra que se llena con el color de la música */
+.row.vol-row { min-height: 40px; gap: 12px; padding-top: 0; padding-bottom: 10px; border-top: 0; transition: opacity 0.25s ease; }
+.row.vol-row.off { opacity: 0.4; pointer-events: none; }
+.vol-row .vi { width: 18px; height: 18px; flex: none; color: var(--muted); }
+#music-vol { --v: 60%; flex: 1; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; touch-action: pan-x; cursor: pointer; }
+#music-vol::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #4A86D8 var(--v), var(--field) var(--v)); }
+#music-vol::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #4A86D8 var(--v), var(--field) var(--v)); }
+#music-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+#music-vol::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
 .si { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #FFFFFF; flex: none;
   background: linear-gradient(150deg, color-mix(in srgb, var(--c) 70%, #FFFFFF), var(--c)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
 .si svg { width: 18px; height: 18px; }
@@ -744,6 +755,8 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
     <div class="panel-body">
       <div class="group">
         <div class="row"><span class="lbl"><span class="si" style="--c:#F2557A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span><span data-i18n="sound">Sound</span></span><button class="switch" id="sw-sound" role="switch" type="button" aria-checked="true" aria-label="Sound"></button></div>
+        <div class="row"><span class="lbl"><span class="si" style="--c:#4A86D8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg></span><span class="lbl2"><span data-i18n="music">Music</span><small data-i18n="musicSub">Plays in The Slopes</small></span></span><button class="switch" id="sw-music" role="switch" type="button" aria-checked="true" aria-label="Music"></button></div>
+        <div class="row vol-row" id="music-vol-row"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M5 9.5h3L12 6v12l-4-3.5H5z"/></svg><input type="range" id="music-vol" min="0" max="100" step="1" value="60" aria-label="Music volume" data-i18n-aria="musicVol"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#8E7CE8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect fill="currentColor" fill-opacity=".35" x="8" y="4" width="8" height="16" rx="2"/><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/></svg></span><span data-i18n="vibration">Vibration</span></span><button class="switch" id="sw-vibe" role="switch" type="button" aria-checked="true" aria-label="Vibration"></button></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#4B5BD6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><path fill="currentColor" d="M12 4.5a7.5 7.5 0 0 1 0 15z"/></svg></span><span data-i18n="theme">Theme</span></span>
           <div class="seg" id="seg-theme"><button type="button" data-v="auto" data-i18n="auto">Auto</button><button type="button" data-v="light" data-i18n="light">Light</button><button type="button" data-v="dark" data-i18n="dark">Dark</button></div>
@@ -884,7 +897,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.20.1";
+const VERSION = "0.21.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1157,7 +1170,7 @@ function writeSave() {
 function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
 setInterval(() => { if (!document.hidden) writeSave(); }, 15000); // "sigo aquí" para calcular el tiempo fuera
 
-const settings = { sound: true, vibe: true, theme: "auto", lang: "en" };
+const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 0.6 };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); } catch (e) {}
 const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} };
 
@@ -1174,6 +1187,7 @@ const STR = {
   noteBoosts: ["Permanent upgrades that make every smush count more.", "Mejoras permanentes para que cada aplastón rinda más."],
   settings: ["Settings", "Ajustes"],
   sound: ["Sound", "Sonido"],
+  music: ["Music", "Música"], musicSub: ["Plays in The Slopes", "Suena en The Slopes"], musicVol: ["Music volume", "Volumen de la música"],
   vibration: ["Vibration", "Vibración"],
   theme: ["Theme", "Tema"],
   auto: ["Auto", "Auto"], light: ["Light", "Claro"], dark: ["Dark", "Oscuro"],
@@ -1441,6 +1455,18 @@ const Sound = (() => {
       if (settings.sound && !isNativeApp()) primeMedia();
       ensure();
     },
+    // Para la música: el mismo audio, pero sin depender del interruptor de Sonido (la música tiene el suyo)
+    ctxAny() {
+      if (!unlocked) return null;
+      if (ctx && !healthy()) rebuild();
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try { build(new AC()); watch(ctx); } catch (e) { return null; }
+      }
+      if (ctx.state !== "running") ctx.resume().catch(() => {});
+      return ctx;
+    },
     whenRunning(cb) {
       const c = ensure(); if (!c) return;
       if (c.state === "running") { cb(); return; }
@@ -1556,6 +1582,60 @@ const Sound = (() => {
       P(587.33, { t: 2.07, vol: 0.03, dur: 1.8 });
       B({ t: 2.8, dur: 0.9, vol: 0.012, from: 1800, to: 3200 });
     },
+  };
+})();
+
+/* ---------- 4b. Música: en The Slopes suena una canción en repeat. Antes de que termine, vuelve a empezar
+   y las dos se funden (fade de 4 s), así suena como si nunca acabara. Se apaga suave al salir de la app o del nivel. ---------- */
+const MUSIC = { src: "audio/slopes.m4a", fade: 4, levels: ["snow"] };
+let musicReady = false; // suena hasta que terminan las intros
+const Music = (() => {
+  let buf = null, loading = false, failed = false, c = null, out = null, voices = [], cur = null, on = false;
+  const target = () => (settings.music ? settings.musicVol : 0) * 0.9;
+  function load(ctx) {
+    if (buf || loading || failed) return;
+    loading = true;
+    fetch(MUSIC.src).then((r) => { if (!r.ok) throw new Error("music"); return r.arrayBuffer(); })
+      .then((a) => new Promise((res, rej) => ctx.decodeAudioData(a, res, rej)))
+      .then((b) => { buf = b; loading = false; tick(); })
+      .catch(() => { loading = false; failed = true; });
+  }
+  // Una vuelta de la canción: entra subiendo y sale bajando (así se cruza con la siguiente)
+  function voice(at) {
+    const s = c.createBufferSource(), g = c.createGain(), F = Math.min(MUSIC.fade, buf.duration / 4), end = at + buf.duration;
+    s.buffer = buf;
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(1, at + F);
+    g.gain.setValueAtTime(1, end - F); g.gain.linearRampToValueAtTime(0, end);
+    s.connect(g).connect(out); s.start(at); s.stop(end + 0.05);
+    const v = { s, g, end, F };
+    voices.push(v); s.onended = () => { voices = voices.filter((x) => x !== v); };
+    return v;
+  }
+  function stopAll() { for (const v of voices) { try { v.s.stop(); } catch (e) {} } voices = []; cur = null; }
+  function tick() {
+    const want = musicReady && settings.music && settings.musicVol > 0 && MUSIC.levels.includes(lvl().id) && !document.hidden;
+    const ctx = want || on ? Sound.ctxAny() : null;
+    if (ctx && ctx !== c) { c = ctx; voices = []; cur = null; out = c.createGain(); out.gain.value = 0; out.connect(c.destination); } // audio nuevo
+    if (!c) return;
+    const now = c.currentTime;
+    if (want) {
+      load(c);
+      if (!buf) return;
+      if (!on) { on = true; out.gain.cancelScheduledValues(now); out.gain.setTargetAtTime(target(), now, 0.5); }
+      // La siguiente vuelta empieza justo cuando esta empieza a desvanecerse
+      if (!cur) cur = voice(now + 0.05);
+      else if (now >= cur.end - cur.F - 0.8) cur = voice(Math.max(now + 0.05, cur.end - cur.F));
+    } else if (on) {
+      on = false; out.gain.cancelScheduledValues(now); out.gain.setTargetAtTime(0, now, 0.35);
+      const cc = c; setTimeout(() => { if (!on && c === cc) stopAll(); }, 1800);
+    }
+  }
+  setInterval(tick, 250);
+  document.addEventListener("visibilitychange", tick);
+  return {
+    tick,
+    setVolume() { if (c && out && on) out.gain.setTargetAtTime(target(), c.currentTime, 0.12); },
+    info: () => ({ on, voices: voices.length, left: cur && c ? Math.round(cur.end - c.currentTime) : null, vol: out ? Math.round(out.gain.value * 100) / 100 : 0 }), // para revisar
   };
 })();
 
@@ -4114,6 +4194,9 @@ function closeSheet(el) {
 function syncSettingsUI() {
   $("#sw-sound").setAttribute("aria-checked", settings.sound);
   $("#sw-vibe").setAttribute("aria-checked", settings.vibe);
+  $("#sw-music").setAttribute("aria-checked", settings.music);
+  const mv = $("#music-vol"); mv.value = Math.round(settings.musicVol * 100); mv.style.setProperty("--v", mv.value + "%");
+  $("#music-vol-row").classList.toggle("off", !settings.music);
   document.querySelectorAll("#seg-theme button").forEach((b) => b.classList.toggle("on", b.dataset.v === settings.theme));
   document.querySelectorAll("#seg-lang button").forEach((b) => b.classList.toggle("on", b.dataset.v === LANG));
   $("#version").textContent = VERSION;
@@ -4177,6 +4260,13 @@ $("#shop-list").addEventListener("click", (e) => {
   if (b.dataset.kind === "tool") buyTool(b.dataset.key); else buyUp(b.dataset.key);
 });
 $("#sw-sound").addEventListener("click", () => { Sound.set(!settings.sound); syncSettingsUI(); Sound.toggle(true); });
+$("#sw-music").addEventListener("click", () => { Sound.unlock(); settings.music = !settings.music; saveSettings(); syncSettingsUI(); Sound.toggle(settings.music); Music.tick(); });
+$("#music-vol").addEventListener("input", (e) => {
+  Sound.unlock();
+  settings.musicVol = e.target.value / 100; e.target.style.setProperty("--v", e.target.value + "%");
+  Music.setVolume(); Music.tick();
+});
+$("#music-vol").addEventListener("change", () => { saveSettings(); buzz(6); });
 $("#sw-vibe").addEventListener("click", () => { settings.vibe = !settings.vibe; saveSettings(); syncSettingsUI(); Sound.toggle(settings.vibe); buzz(12); });
 $("#seg-theme").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; settings.theme = b.dataset.v; saveSettings(); applyTheme(); syncSettingsUI(); Sound.tick(); });
 $("#seg-lang").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; LANG = settings.lang = b.dataset.v; saveSettings(); applyLang(); syncSettingsUI(); Sound.tick(); });
@@ -4704,6 +4794,7 @@ function renderHome() {
 }
 // Entra al Inicio: el juego se pausa (lo que hagan los ayudantes se cuenta como tiempo fuera)
 function showHome(first) {
+  musicReady = true;
   if (inGame) { inGame = false; homeAt = Date.now(); }
   cancelAnimationFrame(raf); raf = 0; pointers.clear(); hover = null;
   writeSave();
