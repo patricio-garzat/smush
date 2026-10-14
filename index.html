@@ -951,7 +951,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.29.4";
+const VERSION = "0.29.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1062,7 +1062,11 @@ const UP = {
 const HELPER_MAX = 5; // ayudantes como máximo (se usa al cargar el guardado: tiene que estar definido antes)
 const HELPER_KEYS = ["hire", "jet"]; // los que se pueden apagar
 // Cuántos trabajan de verdad: los contratados, salvo que estén apagados
-const active = (k) => (save.off[k] ? 0 : save.up[k]);
+// En el celular caben menos: máximo 3 ayudantes (dedos o nubes). Si ya tenías más, siguen siendo tuyos, pero ahí trabajan 3
+const HELPER_MAX_PHONE = 3;
+const helperCap = () => (W && W < PHONE_WIDTH ? HELPER_MAX_PHONE : HELPER_MAX);
+const upMax = (k) => (k === "hire" ? helperCap() : UP[k].max);
+const active = (k) => (save.off[k] ? 0 : k === "hire" ? Math.min(save.up.hire, helperCap()) : save.up[k]);
 const UP_ORDER = ["hire", "cloud", "fspeed", "farea", "fmove", "carea", "cchain", "jet", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
@@ -1403,7 +1407,7 @@ function statShort(id, lvl) {
 function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
-    case "hire": return short ? String(l) : es ? `${l} de ${HELPER_MAX} ${l === 1 ? "ayudante" : "ayudantes"}` : `${l} of ${HELPER_MAX} ${l === 1 ? "helper" : "helpers"}`;
+    case "hire": return short ? String(l) : es ? `${l} de ${helperCap()} ${l === 1 ? "ayudante" : "ayudantes"}` : `${l} of ${helperCap()} ${l === 1 ? "helper" : "helpers"}`;
     case "cloud": return !l ? (es ? "Bloqueadas" : "Locked") : save.hmode === "cloud" ? (es ? "Usando nubes" : "Using clouds") : es ? "Usando dedos" : "Using fingers";
     case "fspeed": { const r = FX.fingerRate(l); return short ? `${r}/s` : es ? `${r} toques por segundo` : `${r} taps per second`; }
     case "fmove": return !l ? (es ? "Se quedan en su lugar" : "Stay in their spot") : es ? "Persiguen marcianitos" : "Chase aliens";
@@ -1949,6 +1953,7 @@ function resize() {
   buildBackground();
   for (const b of balls) keepInside(b);
   for (const h of helpers) { h.x = clamp(h.x, 0, W); h.y = clamp(h.y, 0, H); }
+  if (helpers.length !== active("hire")) { syncHelpers(); if (typeof renderShop === "function") renderShop(); }
   updateTarget();
 }
 function updateTarget() {
@@ -6209,7 +6214,7 @@ function priceOf(id) {
 }
 function upPrice(k) {
   const u = UP[k], l = save.up[k];
-  if (l >= u.max) return null;
+  if (l >= upMax(k)) return null;
   return typeof u.cost === "function" ? u.cost(l) : u.cost[l];
 }
 // Las conversiones necesitan algo que convertir: un dedo para hacer una bota, una bota para hacer una nube
@@ -6366,8 +6371,8 @@ function toolCard(id) {
   });
 }
 function upCard(k) {
-  const l = save.up[k], u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
-  const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
+  const mx = upMax(k), l = Math.min(save.up[k], mx), u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
+  const stat = l >= mx ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
   const hireLike = k === "hire" || (k === "jet" && l === 0);
   const btn = !ready
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
@@ -6382,7 +6387,7 @@ function upCard(k) {
   return shopCard({
     key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : "") + (canOff && !on ? " off" : ""), icon, name: tx(k), extra,
     tags: wl ? `<span class="tag">${LEVELS[wl].name}</span>` : "",
-    lv: `<span class="lv">${tx("lvShort")} ${l}/${u.max}</span>`, desc: tx(k + "D"), stat, bar: segs(l, u.max), btn,
+    lv: `<span class="lv">${tx("lvShort")} ${l}/${mx}</span>`, desc: tx(k + "D"), stat, bar: segs(l, mx), btn,
   });
 }
 function renderShop(animate) {
