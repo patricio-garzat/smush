@@ -912,7 +912,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.22.0";
+const VERSION = "0.22.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -967,7 +967,8 @@ const curve = (a, b, lv, k = 1) => a + (b - a) * Math.pow((lv - 1) / (LV_MAX - 1
 const geo = (a, b, lv) => a * (b / a) ** ((lv - 1) / (LV_MAX - 1));                        // igual, pero creciendo en proporción
 const TOOLS = {
   // The Void
-  finger: { price: 0, max: 20, upgrades: ups(150, 1.42), radius: L20((v) => (v === 1 ? 0 : Math.round(30 * 4 ** ((v - 2) / 18)))), slop: 10 }, // nivel 1: uno a la vez; luego un área de 30 a 120 px
+  // Click: 10 niveles. El 1 aplasta uno a la vez; luego un área de 24 a 90 px (máximo 90 en cualquier pantalla)
+  finger: { price: 0, max: 10, upgrades: ups(150, 1.8).slice(0, 9), radius: Array.from({ length: 10 }, (_, i) => (i === 0 ? 0 : Math.round(24 * (90 / 24) ** ((i - 1) / 8)))), slop: 10 },
   bolt:   { price: 1200, max: 20, upgrades: ups(2000, 1.42), chains: L20((v) => 2 + Math.floor((v - 1) * 0.55)), range: L20((v) => Math.round(curve(130, 230, v))), hop: 0.05 }, // de 2 a 12 en cadena
   saw:    { price: 10000, max: 20, upgrades: ups(12000, 1.4), radius: L20((v) => Math.round(geo(22, 72, v))) }, // sierra: mantén y arrastra; crece de 44 a 144 px
   // The Beach
@@ -992,7 +993,7 @@ const UP = {
   cloud:  { tab: "helpers", max: 1, cost: [3000] },                              // desbloquea las nubes eléctricas
   // Mejoras de los dedos
   fspeed: { tab: "helpers", max: 20, cost: upCost(200, 1.4) },   // toques por segundo (2 → 10)
-  farea:  { tab: "helpers", max: 20, cost: upCost(500, 1.42) },  // área de cada toque (hasta 5 veces más grande)
+  farea:  { tab: "helpers", max: 10, cost: upCost(500, 1.6) },   // área de cada toque (22 → 90 px, 10 niveles)
   fmove:  { tab: "helpers", max: 1, cost: [25000] },             // los dedos dejan su lugar y persiguen marcianitos
   // Mejoras de las nubes
   carea:  { tab: "helpers", max: 20, cost: upCost(800, 1.42) },  // qué tan lejos alcanzan
@@ -1012,7 +1013,7 @@ const UP_ORDER = ["hire", "cloud", "fspeed", "farea", "fmove", "carea", "cchain"
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   fingerRate: (l) => Math.round((2 + 0.4 * l) * 10) / 10,  // toques por segundo de cada dedo (2 → 10)
-  fingerArea: (l) => Math.round(26 * 5 ** (l / 20)),       // radio del área de cada dedo: hasta 5 veces el de inicio (26 → 130 px)
+  fingerArea: (l) => Math.round(22 * (90 / 22) ** (l / 10)), // radio del área de cada dedo (22 → 90 px, igual en cualquier pantalla)
   cloudArea: (l) => Math.round(64 * 2.4 ** (l / 20)),      // qué tan lejos alcanza cada nube (64 → 154 px)
   cloudHits: (l) => 2 + Math.floor((l * 8) / 20),          // a cuántos marcianitos llega cada descarga (2 → 10)
   cloudJump: (l) => 100 + 4 * l,                           // qué tan lejos salta la descarga de uno a otro (px)
@@ -1302,7 +1303,7 @@ const fmt1 = (n) => (n < 10 ? n.toLocaleString(loc(), { maximumFractionDigits: 1
 const px = (v) => Math.round(v * RS);
 function statText(id, lvl) {
   const i = lvl - 1, es = LANG === "es";
-  if (id === "finger") { const r = px(TOOLS.finger.radius[i]); return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
+  if (id === "finger") { const r = TOOLS.finger.radius[i]; return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
 
   if (id === "saw") { const r = Math.max(16, px(TOOLS.saw.radius[i])) * 2; return es ? `Sierra de ${r} px` : `${r} px blade`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]); return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
@@ -1312,7 +1313,7 @@ function statText(id, lvl) {
 }
 function statShort(id, lvl) {
   const i = lvl - 1;
-  if (id === "finger") return `${px(TOOLS.finger.radius[i])} px`;
+  if (id === "finger") return `${TOOLS.finger.radius[i]} px`;
 
   if (id === "saw") return `${Math.max(16, px(TOOLS.saw.radius[i])) * 2} px`;
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${px(TOOLS.bolt.range[i])} px`;
@@ -1331,7 +1332,7 @@ function upText(k, l, short) {
     case "fmove": return !l ? (es ? "Se quedan en su lugar" : "Stay in their spot") : es ? "Persiguen marcianitos" : "Chase aliens";
     case "carea": { const r = px(FX.cloudArea(l)); return short ? `${r} px` : es ? `Alcance de ${r} px` : `${r} px reach`; }
     case "cchain": { const r = FX.cloudHits(l), j = px(FX.cloudJump(l)); return short ? `${r} · ${j} px` : es ? `${r} marcianitos por descarga · saltos de ${j} px` : `${r} aliens per shock · ${j} px jumps`; }
-    case "farea": { const r = px(FX.fingerArea(l)); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
+    case "farea": { const r = FX.fingerArea(l); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
     case "jet": {
       if (!l) return tx("notHired");
       const s = n(FX.jetEvery(l));
@@ -2211,7 +2212,7 @@ function notReady(x, y) { ring(x, y, 4, 20, 0.35, PAL.text, 1.5, 0.25); Sound.no
 function useTool(x, y, pid) {
   const id = save.tool, L = lvlOf(id) - 1;
   if (id === "finger") {
-    const R = TOOLS.finger.radius[L] * RS;
+    const R = TOOLS.finger.radius[L]; // el área de los dedos mide lo mismo en cualquier pantalla (máximo 90 px)
     if (!R) {
       const b = pick(x, y, TOOLS.finger.slop);
       if (b) hit(b, 1, x, y);
@@ -2411,7 +2412,7 @@ const HELPER_MAX = 5;
 // Lugares de inicio (en fracciones del área de juego) antes de que los muevas
 const SPOT0 = [[0.3, 0.45], [0.7, 0.45], [0.5, 0.66], [0.24, 0.8], [0.76, 0.8]];
 const helperKind = () => (save.hmode === "cloud" && save.up.cloud ? "bolt" : "finger");
-const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) : FX.fingerArea(save.up.farea)) * RS;
+const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) * RS : FX.fingerArea(save.up.farea));
 const CLOUD_RATE = 2; // descargas por segundo de cada nube
 const helperRateNow = () => (helperKind() === "bolt" ? CLOUD_RATE : FX.fingerRate(save.up.fspeed));
 // Dónde va cada ayudante en px (dentro del área y nunca en el mar ni en los picos)
@@ -4620,7 +4621,7 @@ function drawCursor(x, y) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else if (id === "saw" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = (id === "finger" ? TOOLS.finger.radius[L] : id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
+    const R = id === "finger" ? TOOLS.finger.radius[L] : (id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
