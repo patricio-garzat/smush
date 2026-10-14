@@ -915,7 +915,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.22.3";
+const VERSION = "0.22.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1010,6 +1010,7 @@ const UP = {
   luck:   { tab: "boosts", max: 20, cost: upCost(200, 1.45) },   // más dorados
   night:  { tab: "boosts", max: 20, cost: upCost(300, 1.5) },    // más horas fuera
 };
+const HELPER_MAX = 5; // ayudantes como máximo (se usa al cargar el guardado: tiene que estar definido antes)
 const HELPER_KEYS = ["hire", "jet"]; // los que se pueden apagar
 // Cuántos trabajan de verdad: los contratados, salvo que estén apagados
 const active = (k) => (save.off[k] ? 0 : save.up[k]);
@@ -1112,6 +1113,9 @@ function loadSave() {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (!s || typeof s !== "object") return d;
     const num = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
+    // Lo esencial primero: nivel y progreso (si algo de abajo fallara, esto nunca se pierde)
+    d.level = clamp(Math.floor(num(s.level)), 0, LEVELS.length - 1);
+    if (Number.isFinite(s.lastSeen)) d.lastSeen = s.lastSeen;
     d.coins = num(s.coins); d.earned = num(s.earned); d.smushed = Math.floor(num(s.smushed)); d.awayEarned = num(s.awayEarned); d.escaped = Math.floor(num(s.escaped));
     // Partidas guardadas antes de contar lo gastado: lo gastado es lo ganado menos lo que hay ahora
     d.spent = Number.isFinite(s.spent) ? num(s.spent) : Math.max(0, d.earned - d.coins);
@@ -1151,7 +1155,9 @@ function loadSave() {
       back(clamp(Math.floor(num(u.power)), 0, 2), (l) => [1200, 4000][l]);
       d.up.hire = 0;
     } else {
-      if (Array.isArray(s.spots)) d.spots = s.spots.slice(0, HELPER_MAX).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)).map((p) => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1) }));
+      try {
+        if (Array.isArray(s.spots)) d.spots = s.spots.slice(0, HELPER_MAX).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)).map((p) => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1) }));
+      } catch (e) {}
       if (s.hmode === "cloud" && d.up.cloud) d.hmode = "cloud";
     }
     delete d.up.boltH;
@@ -1163,7 +1169,6 @@ function loadSave() {
       }
     }
     d.v = 4;
-    d.level = clamp(Math.floor(num(s.level)), 0, LEVELS.length - 1);
     // La Lluvia ácida ya no existe, y los Meteoritos ahora son de The Slopes: se devuelve lo que costaron
     const refund = (l, prices) => { for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); } };
     refund(clamp(Math.floor(num(s.tools && s.tools.acid)), 0, 3), [20000, 35000, 60000]);
@@ -1175,9 +1180,10 @@ function loadSave() {
     d.hinted = !!s.hinted;
     if (Number.isInteger(s.readyAsked)) d.readyAsked = s.readyAsked;
     if (s.off && typeof s.off === "object") for (const k of HELPER_KEYS) if (s.off[k] === true) d.off[k] = true;
-    if (Number.isFinite(s.lastSeen)) d.lastSeen = s.lastSeen;
     if (s.pending && Number.isFinite(s.pending.coins) && s.pending.coins > 0) d.pending = { coins: Math.floor(s.pending.coins), aliens: Math.floor(num(s.pending.aliens)), away: num(s.pending.away), secs: num(s.pending.secs) };
-  } catch (e) {}
+  } catch (e) {
+    try { localStorage.setItem(SAVE_KEY + "-backup", localStorage.getItem(SAVE_KEY) || ""); } catch (e2) {}
+  }
   return d;
 }
 let save = loadSave();
@@ -1188,7 +1194,8 @@ function writeSave() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
 }
 function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
-setInterval(() => { if (!document.hidden) writeSave(); }, 15000); // "sigo aquí" para calcular el tiempo fuera
+setInterval(() => { if (!document.hidden) writeSave(); }, 15000);
+window.addEventListener("pagehide", () => writeSave()); // "sigo aquí" para calcular el tiempo fuera
 
 const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 0.6 };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); } catch (e) {}
@@ -2412,7 +2419,6 @@ function updateMeteors(dt) {
    Son dedos (aplastan el área bajo ellos) o nubes eléctricas (electrocutan al que pase cerca, en cadena): uno u otro. ---------- */
 const helpers = [];
 const helperImg = {};
-const HELPER_MAX = 5;
 // Lugares de inicio (en fracciones del área de juego) antes de que los muevas
 const SPOT0 = [[0.3, 0.45], [0.7, 0.45], [0.5, 0.66], [0.24, 0.8], [0.76, 0.8]];
 const helperKind = () => (save.hmode === "cloud" && save.up.cloud ? "bolt" : "finger");
