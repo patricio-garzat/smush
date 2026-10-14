@@ -813,7 +813,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.15.3";
+const VERSION = "0.15.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1753,6 +1753,7 @@ function jag(x1, y1, x2, y2) {
   return pts;
 }
 function updateFx(dt) {
+  if (flames.length || smokes.length) updateFlames(dt);
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
     p.t += dt;
@@ -1911,14 +1912,14 @@ function sprayTick(p, dt) {
   if (mv > 1.2) p.ang += angDiff(Math.atan2(my, mx), p.ang) * Math.min(1, dt * 9 + 0.04);
   const ca = Math.cos(p.ang), sa = Math.sin(p.ang);
   p.ox = p.x + ca * 10; p.oy = p.y + sa * 10; // la boquilla, justo delante del dedo
-  p.emit = (p.emit || 0) + dt * (lowFx ? 70 : 140);
+  p.emit = (p.emit || 0) + dt * (lowFx ? 95 : 190);
   while (p.emit >= 1) {
     p.emit--;
-    const a = p.ang + rand(-0.2, 0.2), s = rand(R * 7.5, R * 10);
-    part(p.ox + rand(-2, 2), p.oy + rand(-2, 2), Math.cos(a) * s, Math.sin(a) * s, rand(1.6, 2.6), rand(0.32, 0.46), "", "fire", 6.2, -50, 1);
+    const a = p.ang + rand(-0.13, 0.13), s = rand(R * 6.6, R * 8.4);
+    flame(p.ox + rand(-1.5, 1.5), p.oy + rand(-1.5, 1.5), Math.cos(a) * s, Math.sin(a) * s, rand(8, 12.5), rand(0.38, 0.56));
   }
-  // Chispas que saltan del chorro
-  if (Math.random() < dt * 16) { const a = p.ang + rand(-0.6, 0.6), s = rand(160, 280); part(p.ox, p.oy, Math.cos(a) * s, Math.sin(a) * s, rand(1, 1.8), rand(0.4, 0.7), "#FFC34D", "dot", 2.5, 160); }
+  // Chispas que saltan del chorro y suben parpadeando
+  if (Math.random() < dt * (lowFx ? 8 : 18)) { const a = p.ang + rand(-0.5, 0.5), s = rand(R * 2.5, R * 4.5); ember(p.ox + Math.cos(p.ang) * R * 0.5, p.oy + Math.sin(p.ang) * R * 0.5, Math.cos(a) * s, Math.sin(a) * s); }
   // Daño: la zona de la llama, delante de la boquilla
   const zx = p.ox + ca * R * 0.75, zy = p.oy + sa * R * 0.75, zr = R * 0.6;
   for (const b of balls) {
@@ -1926,44 +1927,133 @@ function sprayTick(p, dt) {
     if (Math.hypot(b.x - zx, b.y - zy) < zr + b.r * 0.5) {
       b.lastSpray = time;
       // Se prende un poquito: llamitas y humo encima
-      for (let k = 0; k < 3; k++) part(b.x + rand(-b.r * 0.6, b.r * 0.6), b.y - rand(0, b.r), rand(-15, 15), -rand(30, 70), rand(2.5, 4), rand(0.3, 0.5), "", "fire", 3, -60, 1);
-      part(b.x, b.y - b.r, rand(-10, 10), -rand(20, 40), rand(4, 6), 0.8, PAL.onDark ? "#77726A" : "#BDB6AA", "smoke", 2, -10, 0.35);
+      for (let k = 0; k < 5; k++) flame(b.x + rand(-b.r * 0.6, b.r * 0.6), b.y - rand(0, b.r), rand(-15, 15), -rand(30, 80), rand(5, 8), rand(0.3, 0.45));
+      smokes.push({ x: b.x, y: b.y - b.r, vx: rand(-8, 8), vy: -rand(20, 40), r: rand(6, 9), t: 0, life: 1 });
       hit(b, 1, p.ox, p.oy, true);
     }
   }
   p.hiss = (p.hiss || 0) - dt;
   if (p.hiss <= 0) { Sound.flame(); p.hiss = 0.13; buzz(4); }
 }
-// Fuego: blanco en la boquilla, luego amarillo, naranja, rojo y al final humo
-const FIRE = ["#FFF7DE", "#FFE9A0", "#FFCF5C", "#FFAA45", "#FF8A3D", "#F46E3A"];
-function drawFire(p, u) {
-  // Cada lengüita se estira en la dirección en que va (rápida = más larga) y crece al enfriarse
-  const r = p.r * (1 + u * 3.4), sp = Math.hypot(p.vx, p.vy), ang = Math.atan2(p.vy, p.vx);
-  if (u > 0.72) { ctx.globalAlpha = 0.3 * (1 - u) / 0.28; ctx.fillStyle = PAL.onDark ? "#5E5850" : "#A39B90"; }
-  else { ctx.globalAlpha = 0.8 * (1 - u * 0.75); ctx.fillStyle = FIRE[Math.min(FIRE.length - 1, Math.floor((u / 0.72) * FIRE.length))]; }
-  ctx.beginPath(); ctx.ellipse(p.x, p.y, r * (1 + Math.min(1.6, sp / 260)), r, ang, 0, TAU); ctx.fill();
+// Fuego (lanzallamas): partículas suaves que se suman en su propia capa (donde se enciman se forma el núcleo
+// blanco-amarillo; en las orillas queda naranja y rojo). Suben por el calor, se mueven con turbulencia,
+// y al apagarse dejan humo. Abajo, la boquilla tiene una base azul y el piso se ilumina.
+const flames = [], smokes = [];
+// Del más caliente (boquilla) al más frío (puntas). De día el núcleo es amarillo (el blanco no se vería sobre la arena)
+const FIRE_TEMPS = { dark: [[255, 248, 232], [255, 226, 150], [255, 190, 86], [255, 140, 48], [232, 84, 28], [160, 40, 16]],
+  light: [[255, 230, 140], [255, 200, 70], [255, 158, 46], [248, 112, 34], [220, 70, 26], [160, 44, 20]] };
+let fireSpr = null, smokeSpr = null, fireCv = null, fctx = null, fireK = 1;
+function glowSprite(c, stops) {
+  const s = document.createElement("canvas"); s.width = s.height = 64;
+  const g = s.getContext("2d"), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  for (const [o, a] of stops) gr.addColorStop(o, `rgba(${c[0]},${c[1]},${c[2]},${a})`);
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return s;
 }
-// Brillo en la boquilla mientras sale el fuego
-function drawFlameGlow() {
-  if (save.tool !== "spray") return;
-  for (const p of pointers.values()) {
+function buildFire() {
+  fireSpr = FIRE_TEMPS[PAL.onDark ? "dark" : "light"].map((c) => glowSprite(c, PAL.onDark ? [[0, 1], [0.32, 0.65], [0.65, 0.18], [1, 0]] : [[0, 1], [0.42, 0.88], [0.74, 0.32], [1, 0]]));
+  fireSpr.core = glowSprite([255, 250, 225], [[0, 1], [0.4, 0.55], [1, 0]]);
+  fireSpr.blue = glowSprite([90, 150, 255], [[0, 0.9], [0.4, 0.35], [1, 0]]);
+  smokeSpr = glowSprite(PAL.onDark ? [150, 145, 140] : [140, 132, 124], [[0, 0.45], [0.5, 0.2], [1, 0]]);
+  // La capa del fuego va a 3/4 de resolución: el fuego es suave, así cuesta casi la mitad
+  fireK = Math.max(1, Math.min(DPR, 2) * 0.75);
+  fireCv = fireCv || document.createElement("canvas");
+  fireCv.width = Math.ceil(W * fireK); fireCv.height = Math.ceil(H * fireK);
+  fctx = fireCv.getContext("2d");
+}
+const flame = (x, y, vx, vy, r, life) => { if (flames.length < (lowFx ? 220 : 420)) flames.push({ x, y, vx, vy, r, life, t: 0, s: Math.random() * 100, ember: false }); };
+const ember = (x, y, vx, vy) => { if (flames.length < 460) flames.push({ x, y, vx, vy, r: rand(1.1, 2), life: rand(0.6, 1.1), t: 0, s: Math.random() * 100, ember: true }); };
+function updateFlames(dt) {
+  for (let i = flames.length - 1; i >= 0; i--) {
+    const f = flames[i], u = f.t / f.life;
+    f.t += dt;
+    if (f.t >= f.life) {
+      // Algunas puntas se vuelven humo
+      if (!f.ember && Math.random() < (lowFx ? 0.05 : 0.1)) smokes.push({ x: f.x, y: f.y, vx: f.vx * 0.2 + rand(-8, 8), vy: -rand(18, 40), r: rand(7, 11), t: 0, life: rand(0.9, 1.4) });
+      flames[i] = flames[flames.length - 1]; flames.pop(); continue;
+    }
+    const dr = Math.exp(-(f.ember ? 2.2 : 5.4) * dt);
+    f.vx *= dr; f.vy *= dr;
+    // Turbulencia (más fuerte al alejarse de la boquilla) y el calor que las hace subir
+    const turb = (f.ember ? 140 : 190) * Math.min(1, u * 1.5);
+    f.vx += Math.sin(time * 13 + f.s * 7 + f.y * 0.045) * turb * dt;
+    f.vy += Math.cos(time * 11 + f.s * 5 + f.x * 0.045) * turb * dt - (f.ember ? 90 : 70 + 220 * u) * dt;
+    f.x += f.vx * dt; f.y += f.vy * dt;
+  }
+  for (let i = smokes.length - 1; i >= 0; i--) {
+    const s = smokes[i];
+    s.t += dt;
+    if (s.t >= s.life) { smokes[i] = smokes[smokes.length - 1]; smokes.pop(); continue; }
+    s.x += (s.vx + Math.sin(time * 2 + s.y * 0.05) * 10) * dt; s.y += s.vy * dt; s.vy *= Math.exp(-0.6 * dt);
+  }
+}
+function drawFlames() {
+  const firing = save.tool === "spray" && [...pointers.values()].some((p) => p.ox != null);
+  if (!flames.length && !smokes.length && !firing) return;
+  if (!fctx || !smokeSpr || fireCv.width !== Math.ceil(W * fireK) || fireCv.height !== Math.ceil(H * fireK)) buildFire();
+  // 1) Luz cálida sobre el piso, debajo del chorro
+  if (save.tool === "spray") for (const p of pointers.values()) {
     if (p.ox == null) continue;
-    // Un cono de calor continuo debajo de las llamas: así se lee como chorro y no como bolitas sueltas
-    const L = TOOLS.spray.radius[lvlOf("spray") - 1], ca = Math.cos(p.ang), sa = Math.sin(p.ang), nx = -sa, ny = ca;
-    const ex = p.ox + ca * L * 1.35, ey = p.oy + sa * L * 1.35, wEnd = L * 0.38 * (1 + 0.06 * Math.sin(time * 25));
-    const cone = ctx.createLinearGradient(p.ox, p.oy, ex, ey);
-    cone.addColorStop(0, "rgba(255,250,225,0.85)"); cone.addColorStop(0.35, "rgba(255,200,90,0.55)"); cone.addColorStop(0.75, "rgba(255,120,50,0.22)"); cone.addColorStop(1, "rgba(240,90,40,0)");
-    ctx.globalAlpha = 1; ctx.fillStyle = cone;
-    ctx.beginPath(); ctx.moveTo(p.ox + nx * 3, p.oy + ny * 3);
-    ctx.quadraticCurveTo(p.ox + ca * L * 0.5 + nx * wEnd * 0.9, p.oy + sa * L * 0.5 + ny * wEnd * 0.9, ex + nx * wEnd * 0.4, ey + ny * wEnd * 0.4);
-    ctx.lineTo(ex - nx * wEnd * 0.4, ey - ny * wEnd * 0.4);
-    ctx.quadraticCurveTo(p.ox + ca * L * 0.5 - nx * wEnd * 0.9, p.oy + sa * L * 0.5 - ny * wEnd * 0.9, p.ox - nx * 3, p.oy - ny * 3);
-    ctx.closePath(); ctx.fill();
-    const g = ctx.createRadialGradient(p.ox, p.oy, 0, p.ox, p.oy, 26);
-    g.addColorStop(0, "rgba(255,245,215,0.9)"); g.addColorStop(0.45, "rgba(255,170,70,0.35)"); g.addColorStop(1, "rgba(255,120,50,0)");
-    ctx.globalAlpha = 0.85 + 0.15 * Math.sin(time * 30); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.ox, p.oy, 26, 0, TAU); ctx.fill();
+    const R = TOOLS.spray.radius[lvlOf("spray") - 1], cx = p.ox + Math.cos(p.ang) * R * 0.6, cy = p.oy + Math.sin(p.ang) * R * 0.6 + 10, rr = R * 1.15;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+    const a = (PAL.onDark ? 0.26 : 0.16) * (0.85 + 0.15 * Math.sin(time * 31) * Math.sin(time * 17));
+    g.addColorStop(0, `rgba(255,150,60,${a})`); g.addColorStop(1, "rgba(255,150,60,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.55); ctx.translate(-cx, -cy); ctx.beginPath(); ctx.arc(cx, cy, rr, 0, TAU); ctx.fill(); ctx.restore();
+  }
+  // 2) Humo (normal, detrás de las llamas)
+  for (const s of smokes) {
+    const u = s.t / s.life, r = s.r * (1 + u * 2.4);
+    ctx.globalAlpha = (PAL.onDark ? 0.45 : 0.3) * Math.min(1, u * 4) * (1 - u);
+    ctx.drawImage(smokeSpr, s.x - r, s.y - r, r * 2, r * 2);
   }
   ctx.globalAlpha = 1;
+  // 3) Las llamas: se suman en su capa y luego la capa se pega encima del juego
+  const g = fctx, k = fireK;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, fireCv.width, fireCv.height);
+  g.setTransform(k, 0, 0, k, 0, 0);
+  // De noche las llamas suman su luz (brillan); de día se apilan de las más viejas (rojas) a las nuevas (amarillas)
+  const glow = PAL.onDark;
+  g.globalCompositeOperation = glow ? "lighter" : "source-over";
+  if (!glow) flames.sort((a, b) => b.t / b.life - a.t / a.life);
+  for (const f of flames) {
+    const u = f.t / f.life;
+    if (f.ember) {
+      const tw = 0.6 + 0.4 * Math.sin(time * 40 + f.s * 9);
+      g.globalAlpha = (1 - u) * tw; const r = f.r * 2.6;
+      g.drawImage(fireSpr[1], f.x - r, f.y - r, r * 2, r * 2);
+      continue;
+    }
+    const ti = Math.min(5, Math.floor(Math.pow(u, 0.85) * 6));
+    const flick = 0.85 + 0.3 * Math.sin(time * 38 + f.s * 11);
+    const r = f.r * (0.55 + 2.6 * u) * flick;
+    g.globalAlpha = Math.min(1, u / 0.07) * Math.pow(1 - u, glow ? 1.25 : 1.1) * (glow ? 0.55 : 0.68);
+    // Cada lengua se estira en la dirección en que va (más rápida = más larga)
+    const sp = Math.hypot(f.vx, f.vy), c = sp ? f.vx / sp : 1, s = sp ? f.vy / sp : 0, st = 1 + Math.min(1.1, sp / 360);
+    g.setTransform(k * c * st, k * s * st, -k * s, k * c, k * f.x, k * f.y);
+    g.drawImage(fireSpr[ti], -r, -r, r * 2, r * 2);
+  }
+  g.setTransform(k, 0, 0, k, 0, 0);
+  // De día: un núcleo luminoso adentro del chorro (las llamas más nuevas)
+  if (!glow) {
+    g.globalCompositeOperation = "lighter";
+    for (const f of flames) {
+      const u = f.t / f.life;
+      if (f.ember || u > 0.4) continue;
+      const r = f.r * (0.5 + 1.4 * u);
+      g.globalAlpha = (1 - u / 0.4) * 0.32;
+      g.drawImage(fireSpr.core, f.x - r, f.y - r, r * 2, r * 2);
+    }
+  }
+  // Base azul y núcleo blanco en la boquilla
+  if (firing) for (const p of pointers.values()) {
+    if (p.ox == null) continue;
+    const fl = 0.9 + 0.1 * Math.sin(time * 45);
+    g.globalAlpha = 0.75; g.drawImage(fireSpr.blue, p.ox - 11 * fl, p.oy - 11 * fl, 22 * fl, 22 * fl);
+    g.globalAlpha = 0.9; g.drawImage(fireSpr[0], p.ox - 8, p.oy - 8, 16, 16);
+  }
+  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
+  ctx.globalAlpha = 1;
+  ctx.drawImage(fireCv, 0, 0, W, H);
 }
 const meteors = [];
 // Meteoritos: caen en diagonal y al tocar el piso aplastan todo alrededor
@@ -2235,7 +2325,7 @@ const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" str
 function applyLevel() {
   const root = document.documentElement;
   if (lvl().id === "void") delete root.dataset.level; else root.dataset.level = lvl().id;
-  readPalette(); if (W) { buildSprites(); buildBackground(); }
+  readPalette(); if (W) { buildSprites(); buildBackground(); smokeSpr = null; fctx = null; }
   syncThemeColor();
   levelShown = "";
 }
@@ -3614,7 +3704,7 @@ function applyLang() {
 function applyTheme() {
   const root = document.documentElement;
   if (settings.theme === "auto") delete root.dataset.theme; else root.dataset.theme = settings.theme;
-  readPalette(); if (W) { buildSprites(); buildBackground(); }
+  readPalette(); if (W) { buildSprites(); buildBackground(); smokeSpr = null; fctx = null; }
   syncThemeColor();
 }
 function nativeBar() {
@@ -3846,13 +3936,12 @@ function render(dt) {
     ctx.strokeStyle = g.color; ctx.lineWidth = g.width * (1 - u * 0.6);
     ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, TAU); ctx.stroke();
   }
-  // Lanzallamas: el cono de calor va debajo de las llamas
-  drawFlameGlow();
+  // Lanzallamas: luz en el piso, humo y fuego (encima de los marcianitos)
+  drawFlames();
   // Partículas
   for (const p of parts) {
     if (p.kind === "mist") continue;
     const u = p.t / p.life;
-    if (p.kind === "fire") { drawFire(p, u); continue; }
     if (p.kind === "smoke") { ctx.globalAlpha = p.a * (1 - u) * Math.min(1, u * 6); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill(); continue; }
     ctx.globalAlpha = p.a * (1 - u * u);
     ctx.fillStyle = p.color;
