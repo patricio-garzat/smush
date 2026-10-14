@@ -937,7 +937,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.27.3";
+const VERSION = "0.28.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1594,6 +1594,8 @@ const Sound = (() => {
     // Láser: un zumbido suave mientras se arrastra
     // Agujero negro: un soplo que baja y un tono grave que respira
     whoosh() { breath({ dur: 0.35, vol: 0.035, from: 1800, to: 500 }); },
+    // Cambiar de nivel en el Inicio: un soplido y un "uuuh" que baja (se caen de la isla)
+    homeSwap() { breath({ dur: 0.45, vol: 0.04, from: 1500, to: 450 }); tone(620, { t: 0.06, dur: 0.5, vol: 0.025, type: "triangle", slide: 0.5, attack: 0.03 }); },
     // El carro: un claxon suavecito y el motor que pasa de lejos a cerca y se va
     car() {
       for (const t of [0, 0.15]) { tone(392, { t, dur: 0.1, vol: 0.03, type: "triangle", attack: 0.004 }); tone(494, { t, dur: 0.1, vol: 0.025, type: "triangle", attack: 0.004 }); }
@@ -3177,21 +3179,47 @@ function resetWorld() {
   meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   cars.length = 0; roadkills.length = 0; skids.length = 0; saws.length = 0; slashes.length = 0;
 }
-function goWorld(to, kicker, swap, after) {
-  closeSheet($("#sheet-levels"));
+// Cambia el mundo por debajo (el campo, la Tienda, la barra y el tema del nivel)
+function applyWorld(swap) {
   placing = -1; toPlace.length = 0; $("#place-hint").classList.remove("on");
   shopTab = "tools";
+  swap();
+  if (!save.tools[save.tool] || !toolHere(save.tool)) save.tool = "finger";
+  helpers.length = 0; syncHelpers(); jetClock = 3;
+  for (const k in cdEnd) delete cdEnd[k];
+  resetWorld();
+  applyLevel(); updateTarget(); renderToolbar(); renderShop(); renderRecords(); updateDetonate(); renderVisit(); uiDirty = true;
+  populate();
+}
+function goWorld(to, kicker, swap, after) {
+  closeSheet($("#sheet-levels"));
   playTrip(lvl(), LEVELS[to], to + 1, () => {
-    swap();
-    if (!save.tools[save.tool] || !toolHere(save.tool)) save.tool = "finger";
-    helpers.length = 0; syncHelpers(); jetClock = 3;
-    for (const k in cdEnd) delete cdEnd[k];
-    resetWorld();
-    applyLevel(); updateTarget(); renderToolbar(); renderShop(); renderRecords(); updateDetonate(); renderVisit(); uiDirty = true;
+    applyWorld(swap);
     if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
-    populate();
     if (after) after();
   }, kicker);
+}
+// Desde el Inicio (deslizando el escenario): cambia de nivel sin el viaje en avión. Regresar a tu nivel o visitar
+// uno completado, con las mismas reglas de las visitas. El tiempo en el Inicio ya cuenta como tiempo fuera.
+function setWorldFromHome(i) {
+  const mine = real || save;
+  if (i < 0 || i > mine.level || i === save.level) return false;
+  if (real && i === real.level) {
+    const since = save.visitAt || Date.now();
+    applyWorld(() => { save = real; real = null; });
+    homeAt = Math.min(homeAt || Date.now(), since);
+    writeSave();
+  } else {
+    writeSave();
+    const since = real ? save.visitAt || Date.now() : Date.now();
+    applyWorld(() => {
+      if (!real) real = save;
+      save = JSON.parse(JSON.stringify(real));
+      save.level = i; save.pending = null; save.readyAsked = i; save.visitAt = since;
+    });
+  }
+  renderHome();
+  return true;
 }
 // Se puede ir a cualquier nivel completado, aunque ya estés de visita en otro (cada visita empieza de tu progreso real)
 function visitLevel(i) {
@@ -6467,14 +6495,130 @@ const Hero = (() => {
     if (!hraf) hraf = requestAnimationFrame(frame);
   }
   function stop() { cancelAnimationFrame(hraf); hraf = 0; }
+  // --- Deslizar el escenario para cambiar de nivel: la isla sigue al dedo; al soltar, se ladea, los marcianitos
+  // brincan del susto y se caen dando vueltas, y la isla del otro nivel entra y se acomoda suave
+  const drag = { on: false, id: null, x0: 0, ox: 0, vx: 0, lastX: 0, lastT: 0, back: false, from: 0, bt: 0 };
+  let sw = null;
+  const fallers = [];
+  const LVL_COL = ["#7C5CE0", "#2FA3C4", "#4A86D8", "#E2604F"];
+  const maxLvl = () => (real || save).level;
+  const canGo = (d) => { const i = save.level + d; return i >= 0 && i <= maxLvl(); };
+  const pivot = (e) => [e.cx, e.cy + e.ry * 0.5];
+  cvh.style.touchAction = "none";
+  cvh.addEventListener("pointerdown", (ev) => {
+    if (sw) return;
+    drag.on = true; drag.id = ev.pointerId; drag.x0 = drag.lastX = ev.clientX; drag.lastT = performance.now(); drag.vx = 0; drag.back = false;
+    try { cvh.setPointerCapture(ev.pointerId); } catch (e) {}
+  });
+  cvh.addEventListener("pointermove", (ev) => {
+    if (!drag.on || ev.pointerId !== drag.id) return;
+    const now = performance.now(), dx = ev.clientX - drag.x0;
+    drag.vx = ((ev.clientX - drag.lastX) / Math.max(1, now - drag.lastT)) * 1000; drag.lastX = ev.clientX; drag.lastT = now;
+    const d = dx < 0 ? 1 : -1, k = canGo(d) ? 0.85 : 0.22; // si no hay nivel de ese lado, se resiste
+    drag.ox = clamp(dx * k, -w * 0.6, w * 0.6);
+  });
+  const release = (ev) => {
+    if (!drag.on || (ev && ev.pointerId !== drag.id)) return;
+    drag.on = false;
+    const d = drag.ox < 0 ? 1 : -1, fling = Math.abs(drag.vx) > 550 && Math.sign(drag.vx) === -d;
+    if (canGo(d) && (Math.abs(drag.ox) > w * 0.16 || (fling && Math.abs(drag.ox) > 10))) commit(d);
+    else if (drag.ox) { drag.back = true; drag.from = drag.ox; drag.bt = 0; }
+  };
+  cvh.addEventListener("pointerup", release); cvh.addEventListener("pointercancel", release);
+  function commit(d) {
+    if (sw || !canGo(d)) return false;
+    const out = -d, rot0 = (drag.ox / Math.max(1, w)) * 0.22, old = actors.filter((a) => !a.die && !(a.wait > 0));
+    const S = { t: 0, out, oldLid: lvl().id, old, ox0: drag.ox, rot0, oox: drag.ox, orot: rot0, nox: -out * w * 1.05, nrot: -out * 0.1 };
+    old.forEach((a) => { a.detach = rand(0.03, 0.17); });
+    drag.ox = 0; drag.back = false; hgoos.length = 0;
+    if (!setWorldFromHome(save.level + d)) return false;
+    actors = KINDS.map((k, i) => { const a = make(k); a.born = 1; a.wait = 0.7 + i * 0.075; a.dropY = hh * 0.7 + rand(0, 30); a.dropV = 0; return a; });
+    Sound.homeSwap(); buzz(10);
+    if (reduceMotion) { actors.forEach((a) => { a.wait = 0; a.dropY = 0; }); return true; }
+    sw = S;
+    return true;
+  }
+  function stepSwap(dt, e) {
+    const S = sw; S.t += dt;
+    const T = S.t, u = clamp(T / 0.62, 0, 1);
+    // La isla de antes: se ladea hacia donde se va y sale de la pantalla
+    S.oox = S.ox0 + (S.out * w * 1.08 - S.ox0) * u * u * u;
+    S.orot = S.rot0 + (S.out * 0.42 - S.rot0) * easeOut(clamp(T / 0.38, 0, 1));
+    const [px, py] = pivot(e), c = Math.cos(S.orot), sn = Math.sin(S.orot);
+    for (let i = S.old.length - 1; i >= 0; i--) {
+      const a = S.old[i];
+      if (T < a.detach) continue;
+      S.old.splice(i, 1);
+      const rx = a.x - px, ry = a.y - py;
+      fallers.push({ k: a.k, skin: a.skin, x: px + S.oox + rx * c - ry * sn, y: py + rx * sn + ry * c, vx: S.out * rand(70, 210) + rand(-50, 50), vy: -rand(180, 340), rot: S.orot, spin: S.out * rand(4, 9) * (Math.random() < 0.2 ? -1 : 1), flip: a.flip || 1, t: 0, ph: rand(0, TAU) });
+    }
+    // La isla nueva entra desde el otro lado y se acomoda (sin rebote)
+    const v = clamp((T - 0.24) / 0.64, 0, 1), k = 1 - Math.pow(1 - v, 3);
+    S.nox = -S.out * w * 1.05 * (1 - k); S.nrot = -S.out * 0.1 * (1 - k);
+    if (T > 1 && !S.old.length && !fallers.length && actors.every((a) => !(a.wait > 0) && !(a.dropY > 0))) sw = null;
+  }
+  function stepFallers(dt) {
+    for (let i = fallers.length - 1; i >= 0; i--) {
+      const f = fallers[i];
+      f.t += dt; f.vy += 1500 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.spin * dt;
+      if (f.y > hh + 90) fallers.splice(i, 1);
+    }
+  }
+  // Los que se caen: dan vueltas, se estiran y aplastan como si manotearan, y les sale un "!" del susto
+  function drawFallers() {
+    for (const f of fallers) {
+      const T = BALL_TYPES[f.k], im = alienImg[f.skin || f.k];
+      if (!im) continue;
+      const hgt = T.baseR * 2.9, wid = hgt * (im.width / im.height), wob = Math.sin(f.t * 22 + f.ph) * 0.1;
+      g.globalAlpha = 1; g.save(); g.translate(f.x, f.y - hgt * 0.45); g.rotate(f.rot);
+      g.scale(Math.sign(f.flip) * (1 + wob), 1 - wob); g.drawImage(im, -wid / 2, -hgt * 0.55, wid, hgt); g.restore();
+      if (f.t < 0.42) {
+        const k = Math.min(1, f.t / 0.08) * (1 - Math.max(0, (f.t - 0.3) / 0.12));
+        g.globalAlpha = k; g.fillStyle = PAL.dark ? "#FFFFFF" : "#242521";
+        g.font = `800 ${Math.round(T.baseR * 0.9)}px Outfit, -apple-system, system-ui, sans-serif`; g.textAlign = "center"; g.textBaseline = "bottom";
+        g.fillText("!", f.x + T.baseR * 0.6, f.y - hgt * 1.05);
+      }
+    }
+    g.globalAlpha = 1;
+  }
+  // Puntitos abajo (en qué nivel estás) y flechitas tenues a los lados donde hay más niveles
+  function drawDots(e) {
+    const n = maxLvl() + 1;
+    if (n < 2) return;
+    const cur = save.level, y = hh - 9, gap = 12, total = (n - 1) * gap + 14;
+    let x = w / 2 - total / 2;
+    for (let i = 0; i < n; i++) {
+      const on = i === cur, ww = on ? 18 : 6;
+      g.globalAlpha = on ? 0.95 : PAL.dark ? 0.35 : 0.25; g.fillStyle = on ? LVL_COL[i] || PAL.text : PAL.dark ? "#FFFFFF" : "#242521";
+      g.beginPath(); g.roundRect(x, y - 3, ww, 6, 3); g.fill();
+      x += ww + gap - 6;
+    }
+    if (!sw && !drag.on) {
+      g.strokeStyle = PAL.dark ? "#FFFFFF" : "#242521"; g.lineWidth = 2.4; g.lineCap = "round"; g.lineJoin = "round";
+      for (const d of [-1, 1]) {
+        if (!canGo(d)) continue;
+        const cx = d > 0 ? w - 12 - Math.sin(t * 2.2) * 2 : 12 + Math.sin(t * 2.2) * 2, cy = e.cy;
+        g.globalAlpha = PAL.dark ? 0.32 : 0.22;
+        g.beginPath(); g.moveTo(cx - 4 * d, cy - 8); g.lineTo(cx + 4 * d, cy); g.lineTo(cx - 4 * d, cy + 8); g.stroke();
+      }
+    }
+    g.globalAlpha = 1;
+  }
   function frame(now) {
     hraf = requestAnimationFrame(frame);
     const dt = hlast ? Math.min(0.05, (now - hlast) / 1000) : 1 / 60;
     hlast = now; t += dt;
     const e = ground();
+    if (sw) stepSwap(dt, e);
+    if (fallers.length) stepFallers(dt);
+    if (drag.back) { drag.bt += dt; const k = easeOut(Math.min(1, drag.bt / 0.32)); drag.ox = drag.from * (1 - k); if (k >= 1) { drag.back = false; drag.ox = 0; } }
     for (let i = 0; i < actors.length; i++) {
       const a = actors[i];
       a.born = Math.min(1, a.born + dt * 2.5);
+      // Los del nivel nuevo caen desde arriba y aterrizan con un aplastoncito
+      if (a.wait > 0) { a.wait -= dt; continue; }
+      if (a.dropY > 0) { a.dropV += 1500 * dt; a.dropY -= a.dropV * dt; if (a.dropY <= 0) { a.dropY = 0; a.dropV = 0; a.land = 0.0001; Sound.hit(true); buzz(5); } continue; }
+      if (a.land) { a.land += dt; if (a.land > 0.24) a.land = 0; }
       if (a.die) { a.die += dt; if (a.die > HDIE) actors[i] = make(a.k, true); continue; }
       a.h += Math.sin(t * 0.7 + a.walk * 0.3) * 0.8 * dt;
       // Se quedan dentro de la isla: si se acercan a la orilla, giran hacia el centro
@@ -6487,7 +6631,7 @@ const Hero = (() => {
       a.walk += dt * (5 + a.sp * 0.08);
     }
     // Que no se enciman: se empujan suave entre ellos y le sacan la vuelta a los pinos
-    const solid = actors.filter((a) => !a.die);
+    const solid = actors.filter((a) => !a.die && !(a.wait > 0) && !(a.dropY > 0));
     for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) {
       const A = solid[i], B = solid[j], dx = B.x - A.x, dy = (B.y - A.y) * 1.6, min = (BALL_TYPES[A.k].baseR + BALL_TYPES[B.k].baseR) * 1.2, d = Math.hypot(dx, dy) || 0.01;
       if (d >= min) continue;
@@ -6526,10 +6670,10 @@ const Hero = (() => {
     }
     // Cada tanto, un toque invisible aplasta a uno (una pequeña muestra del juego)
     popClock -= dt;
-    if (popClock <= 0 && !reduceMotion) {
+    if (popClock <= 0 && !reduceMotion && !sw && !drag.on) {
       popClock = rand(2.8, 4.2);
       const a = actors[Math.floor(Math.random() * actors.length)];
-      if (a && !a.die && a.born >= 1) {
+      if (a && !a.die && a.born >= 1 && !(a.wait > 0) && !(a.dropY > 0)) {
         a.die = 0.0001;
         const T = BALL_TYPES[a.k];
         const C = (a.skin && SKIN_COLOR[a.skin]) || T;
@@ -6541,7 +6685,21 @@ const Hero = (() => {
   }
   function draw(e) {
     g.clearRect(0, 0, w, hh);
-    const dark = PAL.dark, lid = lvl().id, beach = lid === "beach";
+    if (sw) {
+      if (sw.oox * sw.out < w * 1.07) drawWorld(e, sw.oldLid, sw.old, sw.oox, sw.orot, false);
+      drawWorld(e, lvl().id, actors, sw.nox, sw.nrot, true);
+      drawFallers();
+    } else {
+      drawWorld(e, lvl().id, actors, drag.ox, (drag.ox / Math.max(1, w)) * 0.22, true);
+      if (fallers.length) drawFallers();
+    }
+    drawDots(e);
+  }
+  // Un mundo completo (la isla con sus cosas y sus marcianitos), movido y ladeado si se está deslizando
+  function drawWorld(e, lid, list0, ox, rot, live) {
+    g.save();
+    if (ox || rot) { const [px, py] = pivot(e); g.translate(px + ox, py); g.rotate(rot); g.translate(-px, -py); }
+    const dark = PAL.dark, beach = lid === "beach";
     if (lid === "snow") {
       // Una islita nevada en agua helada: nieve con sombras azules, brillo en la orilla y pinos
       const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
@@ -6633,9 +6791,9 @@ const Hero = (() => {
       g.globalAlpha = 1;
     }
     // Charquitos en el piso (detrás de los marcianitos)
-    if (hgoos.length) drawGooGround(hgoos, g);
+    if (live && hgoos.length) drawGooGround(hgoos, g);
     // Marcianitos, del fondo hacia el frente, con su sombra
-    const list = actors.slice();
+    const list = list0.slice();
     // En la nieve, los pinos se acomodan entre los marcianitos según la profundidad
     if (lid === "snow") for (const [px, py, ph] of HERO_PINES) list.push({ pine: true, x: e.cx + px * e.rx, y: e.cy + py * e.ry, h: ph * Math.min(e.ry, 70) });
     if (lid === "city") { const C = heroCity(e); for (const B of C.blds) list.push({ bld: B, y: B.y }); for (const L of C.lamps) list.push({ lamp: L, y: L.y }); }
@@ -6653,18 +6811,20 @@ const Hero = (() => {
       }
       if (a.lamp) { const L = a.lamp; g.globalAlpha = 1; paintLamp(g, L.x, L.y, L.hp, 0, L.dir, 0, L.hp * 0.3, dark); continue; }
       const T = BALL_TYPES[a.k], im = alienImg[(lid === "snow" && a.skin) || a.k];
-      if (!im) continue;
+      if (!im || a.wait > 0) continue;
+      const lift = a.dropY || 0;
       const hgt = T.baseR * 2.9, wid = hgt * (im.width / im.height);
       let sx = 1, sy = 1, al = a.born;
+      if (a.land) { const k = Math.sin(Math.min(1, a.land / 0.24) * Math.PI); sx *= 1 + 0.16 * k; sy *= 1 - 0.2 * k; }
       // Aplastado como en el juego: se aplasta de golpe y se funde con el charco
       if (a.die) { const u = a.die / HDIE; if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.5 * k; sy = 1 - 0.62 * k; } else { const k = easeIn((u - 0.35) / 0.65); sx = 1.5 + 0.3 * k; sy = 0.38 * (1 - 0.75 * k); al = 1 - k; } }
-      const ski = lid === "snow" && a.ride && !a.die;
+      const ski = lid === "snow" && a.ride && !a.die && !lift; // los esquís aparecen ya que aterrizó
       const bob = a.die || ski ? 0 : Math.abs(Math.sin(a.walk)) * 2.2, tilt = a.die ? 0 : ski ? Math.sin(t * 1.3 + a.walk) * 0.12 : Math.sin(a.walk) * 0.045;
       if (ski) drawRide(g, a.x, a.y, Math.atan2(Math.sin(a.h) * 0.33, Math.cos(a.h)), T.baseR * 0.82, a.ride, al);
-      g.globalAlpha = al * (dark ? 0.4 : 0.14); g.fillStyle = "#000000";
+      g.globalAlpha = al * (dark ? 0.4 : 0.14) * Math.max(0.15, 1 - lift / (hh * 0.7)); g.fillStyle = "#000000";
       g.beginPath(); g.ellipse(a.x, a.y + 1, T.baseR * 0.95 * sx, T.baseR * 0.26, 0, 0, TAU); g.fill();
       g.globalAlpha = al;
-      g.save(); g.translate(a.x, a.y - bob); g.rotate(tilt);
+      g.save(); g.translate(a.x, a.y - bob - lift); g.rotate(tilt);
       g.scale(Math.sign(a.flip || 1) * Math.max(0.45, Math.abs(a.flip)) * sx * (0.5 + 0.5 * a.born), sy * (0.5 + 0.5 * a.born));
       g.drawImage(im, -wid / 2, -hgt, wid, hgt);
       // El destello blanco del golpe
@@ -6674,7 +6834,7 @@ const Hero = (() => {
     }
     g.globalAlpha = 1;
     // Gotitas volando y el destello del impacto
-    if (hgoos.length) drawGooAir(hgoos, g);
+    if (live && hgoos.length) drawGooAir(hgoos, g);
     g.globalAlpha = 1;
     // Copos cayendo sobre la isla nevada
     if (lid === "snow") {
@@ -6686,9 +6846,17 @@ const Hero = (() => {
       }
       g.globalAlpha = 1;
     }
+    g.restore();
   }
-  return { start, stop, size };
+  // Para las flechas del teclado
+  function swipe(d) { if (!sw && !drag.on) commit(d); }
+  return { start, stop, size, swipe };
 })();
+// En compu, las flechas ← → cambian de nivel desde el Inicio
+document.addEventListener("keydown", (ev) => {
+  if (homeEl.hidden || document.querySelector(".sheet.open, .dialog.open") || !$("#travel").hidden) return;
+  if (ev.key === "ArrowRight") Hero.swipe(1); else if (ev.key === "ArrowLeft") Hero.swipe(-1);
+});
 
 function renderHome() {
   const n = nextLvl();
