@@ -937,7 +937,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.26.3";
+const VERSION = "0.26.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3079,7 +3079,7 @@ function renderLevels(animate) {
     const here = i === cur, done = i < cur, isNext = !real && i === cur + 1, visitingThis = !!real && i === save.level;
     const status = visitingThis ? `<span class="lvl-status visit">${tx("visitingNow")}</span>` : here ? `<span class="lvl-status">${tx("youAreHere")}</span>` : done ? `<span class="lvl-status done">${tx("completed")}</span>` : `<span class="lvl-status lock">${tx("lockedLvl")}</span>`;
     let req = "";
-    if (done && !real) req = `<button class="travel-btn visit" type="button" data-visit="${i}">${tx("visitLvl")} ${L.name}</button><p class="fresh">${tx("visitNote")}</p>`;
+    if (done && !visitingThis) req = `<button class="travel-btn visit" type="button" data-visit="${i}">${tx("visitLvl")} ${L.name}</button>${real ? "" : `<p class="fresh">${tx("visitNote")}</p>`}`;
     else if (here && real) req = `<button class="travel-btn go" type="button" data-return>${tx("backTo")} ${L.name}</button>`;
     if (isNext) {
       const s = Math.min(save.smushed, L.smush), okS = s >= L.smush, okC = save.coins >= L.cost;
@@ -3187,12 +3187,15 @@ function goWorld(to, kicker, swap, after) {
     if (after) after();
   }, kicker);
 }
+// Se puede ir a cualquier nivel completado, aunque ya estés de visita en otro (cada visita empieza de tu progreso real)
 function visitLevel(i) {
-  if (real || !(i >= 0 && i < save.level)) return;
+  const mine = real || save;
+  if (!(i >= 0 && i < mine.level) || (real && i === save.level)) return;
   writeSave(); // tu progreso real queda guardado tal cual
-  const since = Date.now();
+  const since = real ? save.visitAt || Date.now() : Date.now();
   goWorld(i, tx("visitKicker"), () => {
-    real = save; save = JSON.parse(JSON.stringify(real));
+    if (!real) real = save;
+    save = JSON.parse(JSON.stringify(real));
     save.level = i; save.pending = null; save.readyAsked = i; save.visitAt = since;
   });
 }
