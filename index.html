@@ -898,7 +898,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.21.7";
+const VERSION = "0.21.8";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1284,25 +1284,27 @@ const fmt = (n) => {
 const fmtFull = (n) => Math.floor(n).toLocaleString(loc()); // con todos los dígitos (las monedas que tienes)
 const fmt1 = (n) => (n < 10 ? n.toLocaleString(loc(), { maximumFractionDigits: 1 }) : fmt(n));
 // Texto de la estadística de cada herramienta en un nivel (1–3)
+// Los px que se muestran son los de esta pantalla (en el celular las áreas son más chicas)
+const px = (v) => Math.round(v * RS);
 function statText(id, lvl) {
   const i = lvl - 1, es = LANG === "es";
-  if (id === "finger") { const r = TOOLS.finger.radius[i]; return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
+  if (id === "finger") { const r = px(TOOLS.finger.radius[i]); return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
 
-  if (id === "saw") { const r = TOOLS.saw.radius[i] * 2; return es ? `Sierra de ${r} px` : `${r} px blade`; }
-  if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = TOOLS.bolt.range[i]; return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
+  if (id === "saw") { const r = Math.max(16, px(TOOLS.saw.radius[i])) * 2; return es ? `Sierra de ${r} px` : `${r} px blade`; }
+  if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]); return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
-  if (id === "bomb") { const n = TOOLS.bomb.count[i], r = TOOLS.bomb.radius[i]; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} · ${r} px` : `${n} ${n === 1 ? "bomb" : "bombs"} · ${r} px`; }
+  if (id === "bomb") { const n = TOOLS.bomb.count[i], r = px(TOOLS.bomb.radius[i]); return es ? `${n} ${n === 1 ? "bomba" : "bombas"} · ${r} px` : `${n} ${n === 1 ? "bomb" : "bombs"} · ${r} px`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
 function statShort(id, lvl) {
   const i = lvl - 1;
-  if (id === "finger") return `${TOOLS.finger.radius[i]} px`;
+  if (id === "finger") return `${px(TOOLS.finger.radius[i])} px`;
 
-  if (id === "saw") return `${TOOLS.saw.radius[i] * 2} px`;
-  if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${TOOLS.bolt.range[i]} px`;
+  if (id === "saw") return `${Math.max(16, px(TOOLS.saw.radius[i])) * 2} px`;
+  if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${px(TOOLS.bolt.range[i])} px`;
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval") return `${TOOLS[id].cooldown[i]}${s}`;
-  if (id === "bomb") return `${TOOLS.bomb.count[i]} · ${TOOLS.bomb.radius[i]} px`;
+  if (id === "bomb") return `${TOOLS.bomb.count[i]} · ${px(TOOLS.bomb.radius[i])} px`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
@@ -1313,9 +1315,9 @@ function upText(k, l, short) {
     case "cloud": return !l ? (es ? "Bloqueadas" : "Locked") : save.hmode === "cloud" ? (es ? "Usando nubes" : "Using clouds") : es ? "Usando dedos" : "Using fingers";
     case "fspeed": { const r = FX.fingerRate(l); return short ? `${r}/s` : es ? `${r} toques por segundo` : `${r} taps per second`; }
     case "fmove": return !l ? (es ? "Se quedan en su lugar" : "Stay in their spot") : es ? "Persiguen marcianitos" : "Chase aliens";
-    case "carea": { const r = FX.cloudArea(l); return short ? `${r} px` : es ? `Alcance de ${r} px` : `${r} px reach`; }
-    case "cchain": { const r = FX.cloudHits(l), j = FX.cloudJump(l); return short ? `${r} · ${j} px` : es ? `${r} marcianitos por descarga · saltos de ${j} px` : `${r} aliens per shock · ${j} px jumps`; }
-    case "farea": { const r = FX.fingerArea(l); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
+    case "carea": { const r = px(FX.cloudArea(l)); return short ? `${r} px` : es ? `Alcance de ${r} px` : `${r} px reach`; }
+    case "cchain": { const r = FX.cloudHits(l), j = px(FX.cloudJump(l)); return short ? `${r} · ${j} px` : es ? `${r} marcianitos por descarga · saltos de ${j} px` : `${r} aliens per shock · ${j} px jumps`; }
+    case "farea": { const r = px(FX.fingerArea(l)); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
     case "jet": {
       if (!l) return tx("notHired");
       const s = n(FX.jetEvery(l));
@@ -1811,7 +1813,9 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2); // más de 2× no se nota y cuesta batería
   const changedDpr = dpr !== DPR;
   W = r.width; H = r.height; DPR = dpr;
+  const rs0 = RS;
   RS = clamp(Math.sqrt((W * H) / RS_REF), 0.5, 1);
+  if (Math.abs(RS - rs0) > 0.01 && typeof renderShop === "function") renderShop(); // los px de la Tienda son los de esta pantalla
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   // En el celular los marcianitos se ven más chicos
