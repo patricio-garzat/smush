@@ -678,7 +678,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.8.1";
+const VERSION = "0.9.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -721,10 +721,10 @@ const TOOLS = {
   finger: { price: 0,     upgrades: [50, 200],     damage: [1, 2, 3], slop: 10 },
   boot:   { price: 100,   upgrades: [200, 600],    radius: [45, 65, 85] },
   bolt:   { price: 1200,  upgrades: [2500, 6000],  chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
-  spray:  { price: 10000, upgrades: [15000, 30000], radius: [50, 60, 72], interval: [0.45, 0.36, 0.28] },
+  spray:  { price: 10000, upgrades: [15000, 30000], radius: [72, 86, 100], interval: [0.45, 0.36, 0.28] }, // lanzallamas: largo de la llama y cada cuánto quema
   // The Beach
   bomb:   { price: 8000,  world: 1, max: 10, upgrades: (l) => Math.round(2500 * 1.35 ** (l - 1)) }, // nivel = cuántas bombas puedes poner
-  acid:   { price: 20000, world: 1, upgrades: [35000, 60000], radius: [85, 105, 125], rate: [8, 11, 14], life: 10, cooldown: [16, 13, 10] },
+  acid:   { price: 20000, world: 1, upgrades: [35000, 60000], radius: [60, 75, 90], rate: [5, 7, 9], damage: 1 }, // mantén y mueve: la nube te sigue
   meteor: { price: 15000, world: 1, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
 };
 const TOOL_ORDER = ["finger", "boot", "bolt", "spray", "bomb", "acid", "meteor"];
@@ -788,7 +788,7 @@ const SOFT = 'fill="currentColor" fill-opacity=".28"', SOLID = 'fill="currentCol
 const ICONS = {
   finger: svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/><path d="M5.2 6.6a5 5 0 0 1 1.4-2.3M17.4 4.3a5 5 0 0 1 1.4 2.3" opacity=".65"/>`),
   boot:   svgI(`<path ${SOFT} d="M7 3.5h6.2v7.2l4.4 2a3.4 3.4 0 0 1 2 3.1V18H5.6V4.9A1.4 1.4 0 0 1 7 3.5z"/><path d="M5 21h15M9.4 7h3.8M9.4 10h3.8"/>`),
-  spray:  svgI(`<rect ${SOFT} x="5" y="9.5" width="9" height="11.5" rx="2.5"/><path d="M7.2 9.5V6.6h4.6v2.9M9.5 6.6V4.2h3"/><circle ${SOLID} cx="17.6" cy="5" r="1.1"/><circle ${SOLID} cx="20.2" cy="8.2" r="1.1"/><circle ${SOLID} cx="17.2" cy="9.8" r="1.1"/><circle ${SOLID} cx="20.4" cy="12.6" r="1.1"/>`),
+  spray:  svgI(`<path ${SOFT} d="M12 21.5c-3.7 0-6.2-2.5-6.2-5.8 0-3.5 2.7-5.2 3.5-8.7 2 1.3 3.1 3.1 3.3 5 1.1-.8 1.9-2.1 2.1-3.7 2.1 2 3.5 4.5 3.5 7.4 0 3.3-2.5 5.8-6.2 5.8z"/><path d="M12 21.5c-1.7 0-2.8-1.1-2.8-2.7 0-1.7 1.2-2.6 1.7-4.1 1 .8 1.7 1.8 1.8 2.9.6-.4 1-1 1.1-1.8 1 .9 1.7 2.1 1.7 3.2 0 1.5-1.5 2.5-3.5 2.5z"/>`),
   bolt:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M13.6 2.5 5 13.6h6.1L10 21.5l9-11.7h-6.3z"/>`),
   bomb:   svgI(`<circle ${SOFT} cx="11" cy="14.5" r="6.5"/><path d="M14.8 9.6 16.6 7.8"/><path d="M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6" stroke-width="1.7"/><circle ${SOLID} cx="20.6" cy="5.4" r="1.2"/>`),
   acid:   svgI(`<path ${SOFT} d="M7 13a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4A3.3 3.3 0 0 1 17.5 13z"/><path d="M8 16l-.9 2.4M12 16l-.9 2.4M16 16l-.9 2.4M10 20.2l-.6 1.4M14 20.2l-.6 1.4"/>`),
@@ -809,7 +809,7 @@ const ICONS = {
 };
 // El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
 const HUE = {
-  finger: "#7D8AA3", boot: "#4F86E8", spray: "#22AE9C", bolt: "#F0A12E", bomb: "#4A5068", acid: "#6FB23A", meteor: "#EE7537",
+  finger: "#7D8AA3", boot: "#4F86E8", spray: "#F0642E", bolt: "#F0A12E", bomb: "#4A5068", acid: "#6FB23A", meteor: "#EE7537",
   jet: "#5C7CFA", acidH: "#6FB23A",
   hire: "#8E99AE", bootH: "#4F86E8", boltH: "#6C7FA8", speed: "#22B07D", power: "#E5534B",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", calm: "#8E7CE8", night: "#4B5BD6",
@@ -819,7 +819,7 @@ const HUE = {
 const HELPER_ART = {
   finger: { svg: "<svg width=\"100\" height=\"140\" viewBox=\"0 0 100 140\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"gw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#E4E0D8\"/></linearGradient> <linearGradient id=\"gc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F7F4EE\"/><stop offset=\"1\" stop-color=\"#DCD7CD\"/></linearGradient> </defs> <g stroke=\"#4A4540\" stroke-opacity=\".5\" stroke-width=\"2.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"> <rect x=\"25\" y=\"5\" width=\"54\" height=\"22\" rx=\"9\" fill=\"url(#gc)\"/> <rect x=\"31\" y=\"50\" width=\"21\" height=\"84\" rx=\"10.5\" fill=\"url(#gw)\"/> <rect x=\"9\" y=\"42\" width=\"17\" height=\"38\" rx=\"8.5\" fill=\"url(#gw)\" transform=\"rotate(26 17.5 61)\"/> <rect x=\"21\" y=\"21\" width=\"63\" height=\"58\" rx=\"24\" fill=\"url(#gw)\"/> <circle cx=\"81\" cy=\"64\" r=\"9\" fill=\"url(#gw)\"/> <circle cx=\"71\" cy=\"74\" r=\"10.5\" fill=\"url(#gw)\"/> <circle cx=\"58\" cy=\"79\" r=\"11\" fill=\"url(#gw)\"/> </g> <path d=\"M35 12h34M35 19h34\" stroke=\"#4A4540\" stroke-opacity=\".22\" stroke-width=\"2\" stroke-linecap=\"round\"/> <path d=\"M37 90v34\" stroke=\"#FFFFFF\" stroke-width=\"4\" stroke-linecap=\"round\"/> <path d=\"M30 42c4-9 12-13 21-13\" stroke=\"#FFFFFF\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>", w: 100, h: 140, ax: 41.5, ay: 135, size: 30 },
   boot:   { svg: "<svg width=\"130\" height=\"120\" viewBox=\"0 0 130 120\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"bb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#8FB0EA\"/><stop offset=\"1\" stop-color=\"#4E6FB0\"/></linearGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6E8ED0\"/><stop offset=\"1\" stop-color=\"#4B68A6\"/></linearGradient> </defs> <path d=\"M30 14q0-9 9-9h34q9 0 9 9v52l24 8q18 6 18 22v4H24V14z\" fill=\"url(#bb)\"/> <rect x=\"26\" y=\"4\" width=\"60\" height=\"16\" rx=\"8\" fill=\"url(#bc)\"/> <rect x=\"20\" y=\"96\" width=\"98\" height=\"16\" rx=\"8\" fill=\"#3B3F4C\"/> <path d=\"M28 104h86\" stroke=\"#FFFFFF\" stroke-opacity=\".12\" stroke-width=\"3\" stroke-linecap=\"round\"/> <path d=\"M40 30v52\" stroke=\"#FFFFFF\" stroke-opacity=\".45\" stroke-width=\"6\" stroke-linecap=\"round\"/> <path d=\"M86 78q14 3 22 10\" stroke=\"#FFFFFF\" stroke-opacity=\".35\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>",  w: 130, h: 120, ax: 69,   ay: 112, size: 30 },
-  jet:    { svg: "<svg width=\"130\" height=\"80\" viewBox=\"0 0 130 80\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"jb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C3CCDA\"/></linearGradient> <linearGradient id=\"jw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#BFC9D8\"/><stop offset=\"1\" stop-color=\"#EEF2F7\"/></linearGradient> <linearGradient id=\"jg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B9DCFA\"/><stop offset=\"1\" stop-color=\"#3E6FB8\"/></linearGradient></defs> <g stroke=\"#4A5468\" stroke-opacity=\".28\" stroke-width=\"1.2\" stroke-linejoin=\"round\"> <path d=\"M58 35 L38 5 Q37 3 40 3 L49 3 Q51 3 52 5 L80 35 Z\" fill=\"url(#jw)\"/> <path d=\"M58 45 L38 75 Q37 77 40 77 L49 77 Q51 77 52 75 L80 45 Z\" fill=\"url(#jw)\"/> <path d=\"M20 36 L9 21 L16 21 L31 36 Z\" fill=\"url(#jw)\"/> <path d=\"M20 44 L9 59 L16 59 L31 44 Z\" fill=\"url(#jw)\"/> <path d=\"M7 40 C7 35 13 33 23 33 L100 33 C114 33 124 37 127 40 C124 43 114 47 100 47 L23 47 C13 47 7 45 7 40 Z\" fill=\"url(#jb)\"/> </g> <path d=\"M30 40 H95\" stroke=\"#4F86E8\" stroke-width=\"2.6\" stroke-linecap=\"round\"/> <path d=\"M44 12 L50 12 M44 68 L50 68\" stroke=\"#4F86E8\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\".7\"/> <ellipse cx=\"105\" cy=\"40\" rx=\"9.5\" ry=\"4.4\" fill=\"url(#jg)\"/> <ellipse cx=\"102\" cy=\"38.6\" rx=\"4\" ry=\"1.4\" fill=\"#FFFFFF\" opacity=\".7\"/> </svg>", w: 130, h: 80, ax: 65, ay: 40, size: 80 },
+  jet:    { svg: "<svg width=\"130\" height=\"80\" viewBox=\"0 0 130 80\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"jb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C3CCDA\"/></linearGradient> <linearGradient id=\"jw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#BFC9D8\"/><stop offset=\"1\" stop-color=\"#EEF2F7\"/></linearGradient> <linearGradient id=\"jg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B9DCFA\"/><stop offset=\"1\" stop-color=\"#3E6FB8\"/></linearGradient></defs> <g stroke=\"#4A5468\" stroke-opacity=\".28\" stroke-width=\"1.2\" stroke-linejoin=\"round\"> <path d=\"M58 35 L38 5 Q37 3 40 3 L49 3 Q51 3 52 5 L80 35 Z\" fill=\"url(#jw)\"/> <path d=\"M58 45 L38 75 Q37 77 40 77 L49 77 Q51 77 52 75 L80 45 Z\" fill=\"url(#jw)\"/> <path d=\"M20 36 L9 21 L16 21 L31 36 Z\" fill=\"url(#jw)\"/> <path d=\"M20 44 L9 59 L16 59 L31 44 Z\" fill=\"url(#jw)\"/> <path d=\"M7 40 C7 35 13 33 23 33 L100 33 C114 33 124 37 127 40 C124 43 114 47 100 47 L23 47 C13 47 7 45 7 40 Z\" fill=\"url(#jb)\"/> </g> <path d=\"M30 40 H95\" stroke=\"#4F86E8\" stroke-width=\"2.6\" stroke-linecap=\"round\"/> <path d=\"M44 12 L50 12 M44 68 L50 68\" stroke=\"#4F86E8\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\".7\"/> <ellipse cx=\"105\" cy=\"40\" rx=\"9.5\" ry=\"4.4\" fill=\"url(#jg)\"/> <ellipse cx=\"102\" cy=\"38.6\" rx=\"4\" ry=\"1.4\" fill=\"#FFFFFF\" opacity=\".7\"/> </svg>", w: 130, h: 80, ax: 65, ay: 40, size: 140 },
   bomb:   { svg: "<svg width=\"60\" height=\"66\" viewBox=\"0 0 60 66\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><radialGradient id=\"bb\" cx=\".36\" cy=\".32\" r=\".78\"><stop offset=\"0\" stop-color=\"#727A92\"/><stop offset=\".5\" stop-color=\"#363B50\"/><stop offset=\"1\" stop-color=\"#1A1C26\"/></radialGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9AFC0\"/><stop offset=\"1\" stop-color=\"#5B6174\"/></linearGradient></defs> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#B88C55\" stroke-width=\"3.4\" stroke-linecap=\"round\"/> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#7C5A32\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-dasharray=\"2 4\" opacity=\".6\"/> <circle cx=\"28\" cy=\"41\" r=\"22\" fill=\"url(#bb)\"/> <rect x=\"21\" y=\"13\" width=\"14\" height=\"9\" rx=\"3\" fill=\"url(#bc)\" transform=\"rotate(14 28 17.5)\"/> <ellipse cx=\"19.5\" cy=\"31.5\" rx=\"7\" ry=\"4.2\" fill=\"#FFFFFF\" opacity=\".33\" transform=\"rotate(-38 19.5 31.5)\"/> </svg>", w: 60, h: 66, ax: 28, ay: 63, size: 66 },
   acid:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"ac\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#C7D3C0\"/><stop offset=\".6\" stop-color=\"#7C8C74\"/><stop offset=\"1\" stop-color=\"#55654D\"/></linearGradient></defs> <g fill=\"url(#ac)\"><circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/><rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/></g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/> <path d=\"M26 76h80\" stroke=\"#9BE15D\" stroke-opacity=\".75\" stroke-width=\"3.5\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 66, ay: 78, size: 200 },
   bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 28 },
@@ -931,16 +931,16 @@ const STR = {
   welcome: ["Welcome back!", "¡Qué bueno verte!"],
   collect: ["Collect", "Recoger"],
   buy: ["Buy", "Comprar"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
-  finger: ["Click", "Click"], boot: ["Boot", "Bota"], spray: ["Spray", "Spray"], bolt: ["Shock", "Descarga"],
+  finger: ["Click", "Click"], boot: ["Boot", "Bota"], spray: ["Flamethrower", "Lanzallamas"], bolt: ["Shock", "Descarga"],
   bomb: ["Bomb", "Bomba"], bombD: ["Place bombs anywhere, then press Detonate. Buy more to place up to 10 at once.", "Pon bombas donde quieras y luego presiona Detonar. Compra más para poner hasta 10 a la vez."],
-  acid: ["Acid rain", "Lluvia ácida"], acidD: ["A cloud rains acid for 10 seconds. Every drop smushes.", "Una nube llueve ácido durante 10 segundos. Cada gota aplasta."],
+  acid: ["Acid rain", "Lluvia ácida"], acidD: ["Hold and move: a little acid cloud follows your finger and drips on the aliens below.", "Mantén y mueve: una nubecita de ácido sigue tu dedo y gotea sobre los marcianitos de abajo."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a bomb where the crowd is biggest.", "Pasa volando y suelta una bomba donde hay más marcianitos."],
   acidH: ["Acid storm", "Tormenta ácida"], acidHD: ["A storm cloud drifts across the beach, raining acid on its own.", "Una nube cruza la playa lloviendo ácido sola."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap an alien to smush it.", "Toca un marcianito para aplastarlo."],
   bootD: ["Stomps every alien in a circle.", "Aplasta a todos los marcianitos de un círculo."],
-  sprayD: ["Hold to mist an area.", "Mantén presionado para rociar un área."],
+  sprayD: ["Hold and drag: a jet of fire that burns everything in front of it.", "Mantén y arrastra: un chorro de fuego que quema todo lo que tiene enfrente."],
   boltD: ["Zaps an alien and arcs to its neighbors.", "Electrocuta a un marcianito y salta a los cercanos."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
@@ -987,7 +987,7 @@ function statText(id, lvl) {
   const i = lvl - 1, es = LANG === "es";
   if (id === "finger") { const d = TOOLS.finger.damage[i]; return es ? `${d} de daño por toque` : `${d} damage per tap`; }
   if (id === "boot") { const r = TOOLS.boot.radius[i]; return es ? `Radio de ${r} px` : `${r} px radius`; }
-  if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · hits every ${v}s`; }
+  if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Llama de ${r} px · quema cada ${v} s` : `${r} px flame · burns every ${v}s`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
   if (id === "bomb") { const n = lvl; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} a la vez` : `${n} ${n === 1 ? "bomb" : "bombs"} at once`; }
   if (id === "acid") { const r = TOOLS.acid.radius[i], v = TOOLS.acid.rate[i]; return es ? `Radio ${r} px · ${v} gotas/s` : `${r} px · ${v} drops/s`; }
@@ -1191,6 +1191,7 @@ const Sound = (() => {
     },
     hit(soft) { thump({ vol: soft ? 0.05 : 0.11 }); },
     stomp(k = 1) { tone(120, { dur: 0.16, vol: 0.2 * k, slide: 0.6, attack: 0.003 }); noise({ dur: 0.14, vol: 0.1 * k, freq: 320, q: 0.5, attack: 0.003, kind: "lowpass" }); },
+    flame() { noise({ dur: 0.2, vol: 0.05, freq: vary(480, 0.1), q: 0.5, attack: 0.04, kind: "lowpass" }); noise({ dur: 0.16, vol: 0.012, freq: vary(1500, 0.1), q: 0.8, attack: 0.03 }); },
     hiss() { noise({ dur: 0.2, vol: 0.022, freq: vary(2300, 0.08), q: 0.8, attack: 0.06 }); },
     zap(soft) {
       const k = soft ? 0.5 : 1;
@@ -1680,7 +1681,7 @@ const cdLeft = (id) => Math.max(0, (cdEnd[id] || 0) - time);
 function startCd(id, s) { cdEnd[id] = time + s; cdLen[id] = s; }
 function notReady(x, y) { ring(x, y, 4, 20, 0.35, PAL.text, 1.5, 0.25); Sound.nope(); }
 
-function useTool(x, y) {
+function useTool(x, y, pid) {
   const id = save.tool, L = lvlOf(id) - 1;
   if (id === "finger") {
     const b = pick(x, y, TOOLS.finger.slop);
@@ -1693,11 +1694,9 @@ function useTool(x, y) {
   } else if (id === "bomb") {
     placeBomb(x, y);
   } else if (id === "acid") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    startCd(id, TOOLS.acid.cooldown[L]);
-    const R = TOOLS.acid.radius[L];
-    startRain({ x: clamp(x, R * 0.4, W - R * 0.4), y: clamp(y, Math.max(shoreY(BALL_TYPES.green), 0) + R * 0.3, H - R * 0.3), R, rate: TOOLS.acid.rate[L], life: TOOLS.acid.life, auto: false });
-    Sound.thunder(); buzz([14, 60, 14]);
+    // Una nubecita aparece sobre el dedo y lo sigue mientras lo mantengas presionado
+    startRain({ x, y, R: TOOLS.acid.radius[L], rate: TOOLS.acid.rate[L], dmg: TOOLS.acid.damage, life: Infinity, auto: false, pid });
+    Sound.rain(); buzz(8);
   } else if (id === "bolt") {
     const b = pick(x, y, 16);
     if (!b) { ring(x, y, 3, 18, 0.3, PAL.text, 1.5, 0.2); sparks(x, y, 3); Sound.miss(); return; }
@@ -1717,21 +1716,69 @@ function useTool(x, y) {
 function sparks(x, y, n) {
   for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 160); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2), 0.25, PAL.onDark ? "#FFFFFF" : "#7EA0F2", "dot", 7, 0); }
 }
-// Spray: mientras se mantiene presionado, niebla suave y daño a intervalos controlados (por marcianito)
+// Lanzallamas: mientras se mantiene presionado, un chorro de fuego sale hacia donde se mueve el dedo
+// (si está quieto, hacia arriba) y quema a intervalos a todo lo que tiene enfrente.
 function sprayTick(p, dt) {
   const L = lvlOf("spray") - 1, R = TOOLS.spray.radius[L], iv = TOOLS.spray.interval[L];
-  p.emit = (p.emit || 0) + dt * (lowFx ? 45 : 85);
+  const mx = p.x - (p.fx == null ? p.x : p.fx), my = p.y - (p.fy == null ? p.y : p.fy), mv = Math.hypot(mx, my);
+  p.fx = p.x; p.fy = p.y;
+  if (p.ang == null) p.ang = -Math.PI / 2;
+  if (mv > 1.2) p.ang += angDiff(Math.atan2(my, mx), p.ang) * Math.min(1, dt * 9 + 0.04);
+  const ca = Math.cos(p.ang), sa = Math.sin(p.ang);
+  p.ox = p.x + ca * 10; p.oy = p.y + sa * 10; // la boquilla, justo delante del dedo
+  p.emit = (p.emit || 0) + dt * (lowFx ? 70 : 140);
   while (p.emit >= 1) {
     p.emit--;
-    const a = rand(0, TAU), s = rand(R * 0.6, R * 2.1);
-    part(p.x + Math.cos(a) * rand(0, R * 0.25), p.y + Math.sin(a) * rand(0, R * 0.25), Math.cos(a) * s, Math.sin(a) * s, rand(2.5, 5), rand(0.4, 0.65), PAL.mist, "mist", 4.2, -12, 0.26);
+    const a = p.ang + rand(-0.2, 0.2), s = rand(R * 7.5, R * 10);
+    part(p.ox + rand(-2, 2), p.oy + rand(-2, 2), Math.cos(a) * s, Math.sin(a) * s, rand(1.6, 2.6), rand(0.32, 0.46), "", "fire", 6.2, -50, 1);
   }
+  // Chispas que saltan del chorro
+  if (Math.random() < dt * 16) { const a = p.ang + rand(-0.6, 0.6), s = rand(160, 280); part(p.ox, p.oy, Math.cos(a) * s, Math.sin(a) * s, rand(1, 1.8), rand(0.4, 0.7), "#FFC34D", "dot", 2.5, 160); }
+  // Daño: la zona de la llama, delante de la boquilla
+  const zx = p.ox + ca * R * 0.75, zy = p.oy + sa * R * 0.75, zr = R * 0.6;
   for (const b of balls) {
     if (b.state === "die" || b.pull || time - b.lastSpray < iv) continue;
-    if (Math.hypot(b.x - p.x, b.y - p.y) < R + b.r * 0.5) { b.lastSpray = time; hit(b, 1, p.x, p.y); }
+    if (Math.hypot(b.x - zx, b.y - zy) < zr + b.r * 0.5) {
+      b.lastSpray = time;
+      // Se prende un poquito: llamitas y humo encima
+      for (let k = 0; k < 3; k++) part(b.x + rand(-b.r * 0.6, b.r * 0.6), b.y - rand(0, b.r), rand(-15, 15), -rand(30, 70), rand(2.5, 4), rand(0.3, 0.5), "", "fire", 3, -60, 1);
+      part(b.x, b.y - b.r, rand(-10, 10), -rand(20, 40), rand(4, 6), 0.8, PAL.onDark ? "#77726A" : "#BDB6AA", "smoke", 2, -10, 0.35);
+      hit(b, 1, p.ox, p.oy, true);
+    }
   }
   p.hiss = (p.hiss || 0) - dt;
-  if (p.hiss <= 0) { Sound.hiss(); p.hiss = 0.16; buzz(4); }
+  if (p.hiss <= 0) { Sound.flame(); p.hiss = 0.13; buzz(4); }
+}
+// Fuego: blanco en la boquilla, luego amarillo, naranja, rojo y al final humo
+const FIRE = ["#FFF7DE", "#FFE9A0", "#FFCF5C", "#FFAA45", "#FF8A3D", "#F46E3A"];
+function drawFire(p, u) {
+  // Cada lengüita se estira en la dirección en que va (rápida = más larga) y crece al enfriarse
+  const r = p.r * (1 + u * 3.4), sp = Math.hypot(p.vx, p.vy), ang = Math.atan2(p.vy, p.vx);
+  if (u > 0.72) { ctx.globalAlpha = 0.3 * (1 - u) / 0.28; ctx.fillStyle = PAL.onDark ? "#5E5850" : "#A39B90"; }
+  else { ctx.globalAlpha = 0.8 * (1 - u * 0.75); ctx.fillStyle = FIRE[Math.min(FIRE.length - 1, Math.floor((u / 0.72) * FIRE.length))]; }
+  ctx.beginPath(); ctx.ellipse(p.x, p.y, r * (1 + Math.min(1.6, sp / 260)), r, ang, 0, TAU); ctx.fill();
+}
+// Brillo en la boquilla mientras sale el fuego
+function drawFlameGlow() {
+  if (save.tool !== "spray") return;
+  for (const p of pointers.values()) {
+    if (p.ox == null) continue;
+    // Un cono de calor continuo debajo de las llamas: así se lee como chorro y no como bolitas sueltas
+    const L = TOOLS.spray.radius[lvlOf("spray") - 1], ca = Math.cos(p.ang), sa = Math.sin(p.ang), nx = -sa, ny = ca;
+    const ex = p.ox + ca * L * 1.35, ey = p.oy + sa * L * 1.35, wEnd = L * 0.38 * (1 + 0.06 * Math.sin(time * 25));
+    const cone = ctx.createLinearGradient(p.ox, p.oy, ex, ey);
+    cone.addColorStop(0, "rgba(255,250,225,0.85)"); cone.addColorStop(0.35, "rgba(255,200,90,0.55)"); cone.addColorStop(0.75, "rgba(255,120,50,0.22)"); cone.addColorStop(1, "rgba(240,90,40,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = cone;
+    ctx.beginPath(); ctx.moveTo(p.ox + nx * 3, p.oy + ny * 3);
+    ctx.quadraticCurveTo(p.ox + ca * L * 0.5 + nx * wEnd * 0.9, p.oy + sa * L * 0.5 + ny * wEnd * 0.9, ex + nx * wEnd * 0.4, ey + ny * wEnd * 0.4);
+    ctx.lineTo(ex - nx * wEnd * 0.4, ey - ny * wEnd * 0.4);
+    ctx.quadraticCurveTo(p.ox + ca * L * 0.5 - nx * wEnd * 0.9, p.oy + sa * L * 0.5 - ny * wEnd * 0.9, p.ox - nx * 3, p.oy - ny * 3);
+    ctx.closePath(); ctx.fill();
+    const g = ctx.createRadialGradient(p.ox, p.oy, 0, p.ox, p.oy, 26);
+    g.addColorStop(0, "rgba(255,245,215,0.9)"); g.addColorStop(0.45, "rgba(255,170,70,0.35)"); g.addColorStop(1, "rgba(255,120,50,0)");
+    ctx.globalAlpha = 0.85 + 0.15 * Math.sin(time * 30); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.ox, p.oy, 26, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 }
 const meteors = [];
 // Meteoritos: caen en diagonal y al tocar el piso aplastan todo alrededor
@@ -2183,8 +2230,8 @@ function drawBackground(dt) {
 
 /* ---------- Herramientas y ayudantes de The Beach: bombas, lluvia ácida, jets y tormentas ácidas ---------- */
 let seaShift = 0; // cuánto se mueve la orilla del mar (hoy se queda quieta)
-const BOMB_R = 72, JET_R = 66, ACID_HIT = 12;
-const BOMB_SIZE = 28, JET_SIZE = 66; // alto de la bomba y largo del jet, en px
+const BOMB_R = 82, JET_R = 80, ACID_HIT = 12;
+const BOMB_SIZE = 40, JET_SIZE = 104; // alto de la bomba y largo del jet, en px
 // --- Explosiones: destello, bola de fuego, onda expansiva, humo, esquirlas y una marca en el piso
 const booms = [];
 function explode(x, y, R, auto) {
@@ -2266,17 +2313,17 @@ function drawBombs() {
     else sx = sy = sx * (1 + 0.02 * Math.sin(time * 3 + b.seed));
     // Sombra (más chica mientras cae)
     ctx.globalAlpha = 0.25 + 0.75 * land; ctx.fillStyle = PAL.shadow;
-    ctx.beginPath(); ctx.ellipse(b.x, b.y, 11 * (0.6 + 0.4 * land), 3.6 * (0.6 + 0.4 * land), 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(b.x, b.y, 16 * (0.6 + 0.4 * land), 5 * (0.6 + 0.4 * land), 0, 0, TAU); ctx.fill();
     // Brillo rojo debajo cuando ya va a explotar
-    if (b.lit) { const k = Math.min(1, (time - b.lit) / (b.at - b.lit)); const g = ctx.createRadialGradient(b.x, b.y - 8, 0, b.x, b.y - 8, 34); g.addColorStop(0, `rgba(255,90,60,${0.45 * k})`); g.addColorStop(1, "rgba(255,90,60,0)"); ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y - 8, 34, 0, TAU); ctx.fill(); }
+    if (b.lit) { const k = Math.min(1, (time - b.lit) / (b.at - b.lit)); const g = ctx.createRadialGradient(b.x, b.y - 12, 0, b.x, b.y - 12, 48); g.addColorStop(0, `rgba(255,90,60,${0.45 * k})`); g.addColorStop(1, "rgba(255,90,60,0)"); ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y - 12, 48, 0, TAU); ctx.fill(); }
     ctx.save(); ctx.translate(b.x + dx, b.y - drop); ctx.scale(sx, sy);
     drawBombSprite(0, 0, 1, 0, Math.min(1, land * 3));
     ctx.restore();
     // Chispa de la mecha
     const [fx, fy] = fuseTip(b.x + dx, b.y - drop, sx);
-    const fl = 0.7 + 0.3 * Math.sin(time * 40 + b.seed), g = ctx.createRadialGradient(fx, fy, 0, fx, fy, 7 * fl);
+    const fl = 0.7 + 0.3 * Math.sin(time * 40 + b.seed), g = ctx.createRadialGradient(fx, fy, 0, fx, fy, 9 * fl);
     g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.35, "rgba(255,210,110,0.9)"); g.addColorStop(1, "rgba(255,150,60,0)");
-    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, 7 * fl, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, 9 * fl, 0, TAU); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
@@ -2302,13 +2349,19 @@ function updateRains(dt) {
     const r = rains[i];
     r.t += dt;
     r.x += r.vx * dt;
-    const raining = r.storm ? r.t > 0.3 && r.x > -r.R && r.x < W + r.R : r.t > 0.45 && r.t < r.life;
+    if (r.pid != null && r.life === Infinity) {
+      // Sigue al dedo con suavidad; al soltarlo, la nube se desvanece
+      const p = pointers.get(r.pid);
+      if (p && save.tool === "acid") { const k = Math.min(1, dt * 12); r.x += (p.x - r.x) * k; r.y += (p.y - r.y) * k; }
+      else r.life = r.t;
+    }
+    const raining = r.storm ? r.t > 0.3 && r.x > -r.R && r.x < W + r.R : r.t > 0.25 && r.t < r.life;
     if (raining) {
       r.emit += dt * r.rate;
       while (r.emit >= 1) {
         r.emit--;
         const a = rand(0, TAU), d = Math.sqrt(Math.random()) * r.R, tx = r.x + Math.cos(a) * d, ty = r.y + Math.sin(a) * d * 0.55;
-        drops.push({ sx: r.x + (tx - r.x) * 0.75 + rand(-6, 6), sy: r.y - rainAlt(r) + 6, tx, ty, t: 0, dur: rand(0.26, 0.34), auto: r.auto });
+        drops.push({ sx: r.x + (tx - r.x) * 0.75 + rand(-6, 6), sy: r.y - rainAlt(r) + 6, tx, ty, t: 0, dur: rand(0.26, 0.34), auto: r.auto, dmg: r.dmg || 999 });
       }
       r.hiss -= dt;
       if (r.hiss <= 0) { Sound.rain(r.auto); r.hiss = 0.3; }
@@ -2327,7 +2380,7 @@ function updateRains(dt) {
     if (Math.random() < 0.35) splats.push({ x: d.tx, y: d.ty, rx: rand(5, 8), color: "#7FC241", t: 0, dur: 1.2, seed: Math.random() * 10 });
     for (const b of balls) {
       if (b.state === "die" || b.pull) continue;
-      if (Math.hypot(b.x - d.tx, b.y - d.ty) < ACID_HIT + b.r * 0.6) { hit(b, 999, d.tx, d.ty - 10, true, d.auto); Sound.drip(); }
+      if (Math.hypot(b.x - d.tx, b.y - d.ty) < ACID_HIT + b.r * 0.6) { hit(b, d.dmg, d.tx, d.ty - 10, true, d.auto); Sound.drip(); }
     }
   }
 }
@@ -2358,7 +2411,7 @@ function drawRainsSky() {
     if (!img) break;
     const k = r.storm ? 1 : easeOut(Math.min(1, r.t / 0.45)) * (r.t > r.life ? Math.max(0, 1 - (r.t - r.life) / 0.8) : 1);
     if (k <= 0) continue;
-    const w = r.R * 1.7 * (0.85 + 0.15 * k), s = w / A.w, x = r.x + Math.sin(r.t * 0.9) * 5, y = r.y - rainAlt(r) + Math.sin(r.t * 1.6) * 2;
+    const w = r.R * (r.storm ? 2.2 : 1.7) * (0.85 + 0.15 * k), s = w / A.w, x = r.x + Math.sin(r.t * 0.9) * 5, y = r.y - rainAlt(r) + Math.sin(r.t * 1.6) * 2;
     ctx.globalAlpha = k * 0.92;
     ctx.drawImage(img, x - (A.ax) * s, y - A.ay * s, A.w * s, A.h * s);
   }
@@ -2395,7 +2448,7 @@ function updateSky(dt) {
     j.t += dt; j.x += j.vx * dt; j.y += j.vy * dt;
     j.trail.push({ x: j.x, y: j.y, t: time });
     while (j.trail.length && time - j.trail[0].t > 0.6) j.trail.shift();
-    if (!j.dropped && j.t >= j.dropAt) { j.dropped = true; falling.push({ x0: j.x, y0: j.y - 40, x1: j.tx, y1: j.ty, t: 0, dur: 0.55, rot: rand(-0.5, 0.5) }); Sound.whoosh(); }
+    if (!j.dropped && j.t >= j.dropAt) { j.dropped = true; falling.push({ x0: j.x, y0: j.y - 56, x1: j.tx, y1: j.ty, t: 0, dur: 0.55, rot: rand(-0.5, 0.5) }); Sound.whoosh(); }
     if ((j.vx > 0 && j.x > W + 120) || (j.vx < 0 && j.x < -120)) jets.splice(i, 1);
   }
   for (let i = falling.length - 1; i >= 0; i--) {
@@ -2407,8 +2460,8 @@ function updateSky(dt) {
   if (beach && save.up.acidH > 0 && playing && !rains.some((r) => r.storm)) {
     acidClock -= dt;
     if (acidClock <= 0) {
-      const dir = Math.random() < 0.5 ? 1 : -1, R = 68, top = Math.max(shoreY(BALL_TYPES.green) + R * 0.6, H * 0.3);
-      startRain({ storm: true, auto: true, R, rate: 9, x: dir > 0 ? -R * 1.5 : W + R * 1.5, y: rand(top, Math.max(top, H * 0.78)), vx: dir * 62 });
+      const dir = Math.random() < 0.5 ? 1 : -1, R = 96, top = Math.max(shoreY(BALL_TYPES.green) + R * 0.6, H * 0.3);
+      startRain({ storm: true, auto: true, R, rate: 12, x: dir > 0 ? -R * 1.5 : W + R * 1.5, y: rand(top, Math.max(top, H * 0.78)), vx: dir * 62 });
       acidClock = 999;
     }
   }
@@ -2418,7 +2471,7 @@ function drawSky() {
   for (const f of falling) {
     const u = f.t / f.dur, x = f.x0 + (f.x1 - f.x0) * u, y = f.y0 + (f.y1 - f.y0) * easeIn(u);
     ctx.globalAlpha = 0.15 + 0.5 * u; ctx.fillStyle = PAL.shadow;
-    ctx.beginPath(); ctx.ellipse(f.x1, f.y1, 6 + 6 * u, 2 + 2 * u, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(f.x1, f.y1, 9 + 8 * u, 3 + 2.5 * u, 0, 0, TAU); ctx.fill();
     drawBombSprite(x, y, 1.7 - 0.7 * u, f.rot * (1 - u));
   }
   // Jets: estela, sombra en el piso y el avión
@@ -2427,19 +2480,19 @@ function drawSky() {
     ctx.lineCap = "round"; ctx.strokeStyle = "#FFFFFF";
     for (let k = 1; k < j.trail.length; k++) {
       const p0 = j.trail[k - 1], p1 = j.trail[k], age = (time - p1.t) / 0.6;
-      ctx.globalAlpha = 0.55 * (1 - age); ctx.lineWidth = 3 + age * 6;
+      ctx.globalAlpha = 0.55 * (1 - age); ctx.lineWidth = 4 + age * 8;
       ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
     }
     if (!img) continue;
     const ang = Math.atan2(j.vy, j.vx), s = JET_SIZE / A.w;
-    ctx.globalAlpha = 0.16; ctx.save(); ctx.translate(j.x + 18, j.y + 46); ctx.rotate(ang); ctx.fillStyle = "#000000";
+    ctx.globalAlpha = 0.16; ctx.save(); ctx.translate(j.x + 26, j.y + 64); ctx.rotate(ang); ctx.fillStyle = "#000000";
     ctx.beginPath(); ctx.ellipse(0, 0, JET_SIZE * 0.42, JET_SIZE * 0.2, 0, 0, TAU); ctx.fill(); ctx.restore();
     ctx.globalAlpha = 1; ctx.save(); ctx.translate(j.x, j.y); ctx.rotate(ang);
     ctx.drawImage(img, -A.w * s * 0.5, -A.h * s * 0.5, A.w * s, A.h * s);
     // Fuego del motor
-    const g = ctx.createRadialGradient(-A.w * s * 0.47, 0, 0, -A.w * s * 0.47, 0, 9);
+    const g = ctx.createRadialGradient(-A.w * s * 0.47, 0, 0, -A.w * s * 0.47, 0, 13);
     g.addColorStop(0, "rgba(255,240,200,0.95)"); g.addColorStop(0.5, "rgba(255,170,80,0.6)"); g.addColorStop(1, "rgba(255,120,60,0)");
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(-A.w * s * 0.47, 0, 9, 0, TAU); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(-A.w * s * 0.47, 0, 13, 0, TAU); ctx.fill();
     ctx.restore();
   }
   ctx.globalAlpha = 1;
@@ -2567,7 +2620,7 @@ function renderToolbar() {
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
 const cdShown = {};
 function updateCooldownUI() {
-  for (const id of ["acid", "meteor"]) {
+  for (const id of ["meteor"]) {
     const el = toolEls[id]; if (!el) continue;
     const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
     if (cdShown[id] === p) continue;
@@ -2777,7 +2830,7 @@ cv.addEventListener("pointerdown", (e) => {
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
   pointers.set(e.pointerId, { id: e.pointerId, x: p.x, y: p.y, lx: null, ly: null, emit: 0, hiss: 0 });
   if (e.pointerType === "mouse") hover = p;
-  useTool(p.x, p.y);
+  useTool(p.x, p.y, e.pointerId);
   if (save.tool === "spray") sprayTick(pointers.get(e.pointerId), 0);
   if (save.tool === "bomb") pointers.delete(e.pointerId);
 });
@@ -2904,10 +2957,13 @@ function render(dt) {
     ctx.strokeStyle = g.color; ctx.lineWidth = g.width * (1 - u * 0.6);
     ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, TAU); ctx.stroke();
   }
+  // Lanzallamas: el cono de calor va debajo de las llamas
+  drawFlameGlow();
   // Partículas
   for (const p of parts) {
     if (p.kind === "mist") continue;
     const u = p.t / p.life;
+    if (p.kind === "fire") { drawFire(p, u); continue; }
     if (p.kind === "smoke") { ctx.globalAlpha = p.a * (1 - u) * Math.min(1, u * 6); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill(); continue; }
     ctx.globalAlpha = p.a * (1 - u * u);
     ctx.fillStyle = p.color;
