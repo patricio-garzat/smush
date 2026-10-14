@@ -899,16 +899,16 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.18.3";
+const VERSION = "0.18.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
 // Marcianitos. r = radio del cuerpo en px; speed = px/s; hp = puntos de daño; weight = probabilidad de aparecer
 const BALL_TYPES = {
-  green:  { color: "#6BCB9B", r: 19, speed: 48, hp: 1, reward: 1,  weight: 58, pitch: 330 },
-  orange: { color: "#FF9E55", r: 14, speed: 150, hp: 1, reward: 3,  weight: 26, pitch: 440 }, // siempre el más rápido
-  purple: { color: "#A584E8", r: 26, speed: 37, hp: 3, reward: 10, weight: 10, pitch: 230 },
-  yellow: { color: "#F1C84D", r: 17, speed: 82, hp: 1, reward: 25, weight: 3,  pitch: 392 },
+  green:  { color: "#6BCB9B", r: 19, speed: 48, hp: 1, reward: 5,  weight: 58, pitch: 330 },
+  orange: { color: "#FF9E55", r: 14, speed: 150, hp: 1, reward: 15, weight: 26, pitch: 440 }, // siempre el más rápido
+  purple: { color: "#A584E8", r: 26, speed: 37, hp: 3, reward: 30, weight: 10, pitch: 230 },
+  yellow: { color: "#F1C84D", r: 17, speed: 82, hp: 1, reward: 60, weight: 3,  pitch: 392 },
 };
 const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
 for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia en el celular (PHONE_SCALE)
@@ -1184,7 +1184,7 @@ const STR = {
   how1: ["Tap the aliens to smush them and earn coins.", "Toca los marcianitos para aplastarlos y ganar monedas."],
   how2: ["Spend coins in the Shop on tools, helpers and boosts.", "Usa tus monedas en la Tienda: herramientas, ayudantes y mejoras."],
   how3: ["Switch tools anytime from the bar below. Hold and drag to use the Flamethrower.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar el Lanzallamas."],
-  how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 25.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 25."],
+  how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 60.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 60."],
   how5: ["Hire up to 5 helpers and place them anywhere: they tap their spot on their own, even while you're away. Make them fingers or shock clouds.", "Contrata hasta 5 ayudantes y acomódalos donde quieras: tocan su lugar solos, incluso cuando no estás. Pueden ser dedos o nubes eléctricas."],
   how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there: your coins and your smush count come with you.", "Cada marcianito que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marcianito vale más. Ahí empiezas de cero: viajan tus monedas y tu cuenta de aplastados."],
   how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
