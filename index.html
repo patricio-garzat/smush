@@ -134,6 +134,7 @@ a { color: inherit; }
 #coin-egg { position: relative; cursor: pointer; }
 #coin-egg::after { content: ""; position: absolute; inset: -12px; } /* área de toque más grande que la monedita */
 #coins { display: inline-block; transform-origin: left center; }
+#coins.long { font-size: 25px; } #coins.xlong { font-size: 21px; } /* con muchos dígitos se achica para que siempre quepa */
 .sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* Chip del nivel: nombre, progreso hacia el siguiente y un anillito */
 #lvl-chip {
@@ -897,7 +898,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.21.3";
+const VERSION = "0.21.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1280,6 +1281,7 @@ const fmt = (n) => {
   if (n < 100000) return n.toLocaleString(loc());
   return new Intl.NumberFormat(loc(), { notation: "compact", maximumFractionDigits: 1 }).format(n);
 };
+const fmtFull = (n) => Math.floor(n).toLocaleString(loc()); // con todos los dígitos (las monedas que tienes)
 const fmt1 = (n) => (n < 10 ? n.toLocaleString(loc(), { maximumFractionDigits: 1 }) : fmt(n));
 // Texto de la estadística de cada herramienta en un nivel (1–3)
 function statText(id, lvl) {
@@ -2957,7 +2959,7 @@ function renderLevels(animate) {
   mountArts(list, "lv");
   list.classList.toggle("enter", !!animate);
   [...list.children].forEach((c, i) => c.style.setProperty("--i", i));
-  $("#levels-coins").textContent = fmt(save.coins);
+  $("#levels-coins").textContent = fmtFull(save.coins);
 }
 $("#lvl-chip").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-levels")); });
 
@@ -4017,8 +4019,8 @@ let shownCoins = save.coins, shownText = "";
 function tweenCoins(dt) {
   const d = save.coins - shownCoins;
   if (Math.abs(d) < 0.5) shownCoins = save.coins; else shownCoins += d * Math.min(1, dt * 9);
-  const t = fmt(Math.round(shownCoins));
-  if (t !== shownText) { shownText = t; coinsEl.textContent = t; }
+  const t = fmtFull(Math.round(shownCoins));
+  if (t !== shownText) { shownText = t; coinsEl.textContent = t; coinsEl.classList.toggle("long", t.length > 10); coinsEl.classList.toggle("xlong", t.length > 13); }
 }
 let coinBump = false, bumpAnim = null, shopTab = "tools";
 const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p && toolHere(id); };
@@ -4026,7 +4028,7 @@ const canUp = (k) => { const p = upPrice(k); return p != null && save.coins >= p
 let shopShownN = 0;
 function updateUI() {
   uiDirty = false;
-  shopCoinsEl.textContent = fmt(save.coins);
+  shopCoinsEl.textContent = fmtFull(save.coins);
   const rate = helperRate();
   $("#rate").classList.toggle("on", rate > 0);
   if (rate > 0) $("#rate-v").textContent = "+" + fmt1(rate) + "/s";
@@ -4176,7 +4178,7 @@ function renderRecords() {
     `<div class="row"><span>${tx("currentLevel")}</span><span class="val">${save.level + 1} · ${lvl().name}</span></div>`,
     `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.earned)}</span></div>`,
     `<div class="row"><span>${tx("coinsSpent")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.spent)}</span></div>`,
-    `<div class="row"><span>${tx("coinsNow")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.coins)}</span></div>`,
+    `<div class="row"><span>${tx("coinsNow")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmtFull(save.coins)}</span></div>`,
     `<div class="row"><span>${tx("escaped")}</span><span class="val">${fmt(save.escaped)}</span></div>`,
     `<div class="row"><span>${tx("awayEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.awayEarned)}</span></div>`,
   ];
@@ -4813,7 +4815,7 @@ const Hero = (() => {
 function renderHome() {
   const n = nextLvl();
   $("#home-level-name").textContent = `${tx("level")} ${save.level + 1} · ${lvl().name}`;
-  $("#home-coins").textContent = fmt(save.coins);
+  $("#home-coins").textContent = fmtFull(save.coins);
   $("#play-label").textContent = save.smushed > 0 ? tx("continue") : tx("play");
   $("#play-sub").textContent = lvl().name;
   $("#hc-levels").textContent = n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("max");
