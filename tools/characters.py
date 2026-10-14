@@ -1,8 +1,9 @@
 # Generador de los disfraces de SMUSH! (por nivel) y de sus capas animadas.
 # Uso: python3 tools/characters.py <carpeta de salida>
-#   - board5.html / big5.html: el tablero de propuestas (para revisar)
+#   - board5.html / big5.html / front_board.html: tableros para revisar
 #   - rig.json: las capas que van en index.html como `const RIG = ...;` (pegar en una sola línea)
-# Lee los marcianitos originales (ALIENS) de index.html. Las coordenadas (u, v) van de 0 a 10 sobre la caja del cuerpo.
+# Lee los marcianitos originales (ALIENS) de index.html y los de frente de tools/front/ (dibujos del usuario).
+# Las coordenadas (u, v) van de 0 a 10 sobre la caja del cuerpo.
 import re, json, math, sys
 D = sys.argv[1]
 s = open(__import__('os').path.join(__import__('os').path.dirname(__file__), '..', 'index.html')).read()
@@ -11,9 +12,10 @@ A = json.loads(re.search(r'^const ALIENS = (\{.*?\});\s*$', s, re.M).group(1))
 BODY = {"green": (5, 5.0, 5.0, 4.9, "#14684C"), "orange": (5, 4.95, 5.0, 4.9, "#B0401A"), "purple": (5, 4.95, 5.0, 4.9, "#3E248F"), "yellow": (5.1, 5.15, 4.9, 4.75, "#A87406")}
 
 class Ch:
-    def __init__(self, k, tag):
-        v = A[k]; self.k = k; self.vb = v['vb']; self.bx, self.by, self.bw, self.bh = v['body']
+    def __init__(self, k, tag, AA=None):
+        v = AA or A[k]; self.k = k; self.vb = v['vb']; self.bx, self.by, self.bw, self.bh = v['body']
         inner = re.sub(r'^<svg[^>]*>', '', v['svg']); inner = re.sub(r'</svg>\s*$', '', inner)
+        inner = re.sub(r'(class="|\.)(st\d+)', lambda m: m.group(1) + tag + m.group(2), inner)
         self.inner = re.sub(r'(id="|#)(radial-gradient|linear-gradient)', lambda m: m.group(1) + tag + '-' + m.group(2), inner)
         self.tag = tag; self.back = []; self.front = []; self.defs = []; self.n = 0; self.S = self.bw / 10
         if k in BODY:
@@ -25,7 +27,7 @@ class Ch:
     def strip(self, keys):
         for key in keys:
             n0 = len(self.inner)
-            self.inner = re.sub(r'<(path|ellipse)\b[^>]*' + re.escape(key) + r'[^>]*>\s*</\1>', '', self.inner, count=1)
+            self.inner = re.sub(r'<(path|ellipse)\b[^>]*' + re.escape(key) + r'[^>]*?(?:/>|>\s*</\1>)', '', self.inner, count=1)
             assert len(self.inner) < n0, key
     def P(self, u, v): return (self.bx + self.bw * u / 10, self.by + self.bh * v / 10)
     def p(self, u, v): x, y = self.P(u, v); return f"{x:.1f},{y:.1f}"
@@ -530,10 +532,11 @@ def export(c, base, expand):
     defs = {}
     for blk in re.findall(r'<defs>(.*?)</defs>', inner, re.S) + ["".join(c.defs)]:
         for m in DEF_RE.finditer(blk): defs[m.group(2)] = m.group(0)
+    styles = ''.join(re.findall(r'<style>.*?</style>', inner, re.S))
     content = re.sub(r'<defs>.*?</defs>', '', inner, flags=re.S)
     layers = []
     def svg(body): return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="{X0:.1f} {Y0:.1f} {W0:.1f} {H0:.1f}" width="{W0:.0f}" height="{H0:.0f}">'
-                           f'<defs>{prune(defs, body)}</defs>{body}</svg>')
+                           f'<defs>{styles if "class=" in body else ""}{prune(defs, body + (styles if "class=" in body else ""))}</defs>{body}</svg>')
     buf = []
     def flush():
         if buf: layers.append({"s": svg(''.join(buf)), "a": None}); buf.clear()
@@ -575,3 +578,207 @@ for lid in ["beach", "snow", "city", "jungle"]:
         RIG[lid + k.capitalize()] = export(ch[(lid, k)], k, True)
 json.dump(RIG, open(D + '/rig.json', 'w'), separators=(',', ':'))
 print("rig", len(RIG), sum(len(v['layers']) for v in RIG.values()), "layers", len(json.dumps(RIG, separators=(',', ':'))) // 1024, "KB")
+
+# ===================== De frente: el instante en que voltean (un solo dibujo, sin piezas que se muevan) =====================
+FRONT_DIR = __import__('os').path.join(__import__('os').path.dirname(__file__), 'front')
+FB = json.load(open(FRONT_DIR + '/bbox.json'))
+FBODY = {"green": 11, "orange": 5, "purple": 8, "yellow": 2}  # cuál elemento es el cuerpo
+def load_front(k):
+    raw = open(FRONT_DIR + '/' + k + '.svg').read()
+    raw = re.sub(r'<\?xml.*?\?>', '', raw, flags=re.S); raw = re.sub(r'<metadata>.*?</metadata>', '', raw, flags=re.S); raw = re.sub(r'<!--.*?-->', '', raw, flags=re.S)
+    x0, y0, x1, y1 = FB[k]['all']; m = 12
+    vb = [x0 - m, y0 - m, (x1 - x0) + 2 * m, (y1 - y0) + 2 * m]
+    raw = re.sub(r'<svg[^>]*>', f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="{vb[0]} {vb[1]} {vb[2]} {vb[3]}">', raw.strip(), count=1)
+    b = FB[k]['list'][FBODY[k]][2]
+    return {"svg": raw, "vb": vb, "body": [b[0], b[1], b[2] - b[0], b[3] - b[1]], "pad": m}
+FA_ = {k: load_front(k) for k in ['green', 'orange', 'purple', 'yellow']}
+fch = {}
+def FC(k, tag): c = Ch(k, tag, FA_[k]); return c
+for k in ['green', 'orange', 'purple', 'yellow']: fch[('void', k)] = FC(k, 'fv' + k)
+
+# --- Playa
+c = FC('green', 'fbg'); S = c.S
+for sd in (-1, 1):
+    st = f'M{c.p(5 + sd*2.3, 5.9)} Q{c.p(5 + sd*3.8, 5.6)} {c.p(5 + sd*5.0, 5.4)}'
+    c.shadow_stroke(st, S * 0.45); F(c, path(st, stroke="#1C6A82", w=S * 0.45))
+mx, my = c.P(2.6, 4.8); mw, mh = c.bw * 0.48, c.bh * 0.28
+mask = f'M{mx+mh*0.45:.1f},{my:.1f} H{mx+mw-mh*0.45:.1f} Q{mx+mw:.1f},{my:.1f} {mx+mw:.1f},{my+mh*0.45:.1f} V{my+mh*0.6:.1f} Q{mx+mw:.1f},{my+mh:.1f} {mx+mw-mh*0.45:.1f},{my+mh:.1f} H{mx+mw*0.6:.1f} Q{mx+mw*0.5:.1f},{my+mh*0.8:.1f} {mx+mw*0.4:.1f},{my+mh:.1f} H{mx+mh*0.45:.1f} Q{mx:.1f},{my+mh:.1f} {mx:.1f},{my+mh*0.6:.1f} V{my+mh*0.45:.1f} Q{mx:.1f},{my:.1f} {mx+mh*0.45:.1f},{my:.1f} Z'
+c.shadow(mask); F(c, path(mask, fill=c.lin([(0, "#5CC8E2"), (0.55, "#2FA3C4"), (1, "#1D7C9E")])))
+gx, gy, gw, gh = mx + S * 0.35, my + S * 0.32, mw - S * 0.7, mh - S * 0.9
+F(c, f'<rect x="{gx:.1f}" y="{gy:.1f}" width="{gw:.1f}" height="{gh:.1f}" rx="{gh*0.4:.1f}" fill="#E2F7FF" opacity=".16" stroke="#E9FAFF" stroke-width="{S*0.13:.1f}"/>',
+  f'<path d="M{gx+gw*0.15:.1f},{gy+gh:.1f} L{gx+gw*0.32:.1f},{gy:.1f}" stroke="#fff" stroke-width="{S*0.4:.1f}" opacity=".5"/>')
+tube = f'M{c.p(2.9,7.4)} Q{c.p(1.4,7.8)} {c.p(1.3,5.6)} L{c.p(1.2,0.6)} Q{c.p(1.2,-0.8)} {c.p(2.3,-0.9)}'
+F(c, path(tube, stroke="#E9673F", w=S * 0.66), path(tube, stroke="#FF8A65", w=S * 0.5), path(tube, stroke="#FFFFFF", w=S * 0.52, extra=f'stroke-dasharray="{S*0.55:.1f} {S*1.35:.1f}" opacity=".95"'))
+fch[('beach', 'green')] = c
+
+c = FC('orange', 'fbo'); S = c.S
+c.strip(['M439.7,547.9', 'M306.9,523.7', 'M390.2,523.2'])
+B(c, *[crableg(u, 8.3, dx, dx < 0) for (u, dx) in [(2.2, -1.9), (3.2, -1.3), (4.2, -0.6), (5.8, 0.6), (6.8, 1.3), (7.8, 1.9)]])
+F(c, claw3(c, (0.9, 6.6), (-1.5, 3.4), -14, 1.15, -1), claw3(c, (9.1, 6.6), (11.5, 3.4), 14, 1.15, 1))
+fch[('beach', 'orange')] = c
+
+c = FC('purple', 'fbp'); S = c.S; c.padb = 0.12; c.padk = 0.42
+c.strip(['M282.7,669.5', 'M669.2,745', 'M485.3,679.4'])
+for pts, curl, dark in [([(1.4, 7.0), (0.2, 9.0), (-1.2, 10.3), (-2.4, 10.1)], 1, True), ([(8.6, 7.0), (9.8, 9.0), (11.2, 10.3), (12.4, 10.1)], -1, True),
+                        ([(2.8, 7.6), (2.0, 9.8), (0.9, 11.2)], 1, False), ([(7.2, 7.6), (8.0, 9.8), (9.1, 11.2)], -1, False),
+                        ([(4.3, 7.8), (4.1, 10.2), (3.3, 11.8)], -1, False), ([(5.7, 7.8), (5.9, 10.2), (6.7, 11.8)], 1, False)]:
+    B(c, tentacle(c, pts, curl, S * 1.05, dark))
+fch[('beach', 'purple')] = c
+
+c = FC('yellow', 'fby'); S = c.S
+cx, cy = c.P(5.0, 8.3); R1x, R1y = c.bw * 0.6, c.bh * 0.22; R0x, R0y = c.bw * 0.42, c.bh * 0.11
+tube = c.lin([(0, "#FFFFFF"), (1, "#E7E1D8")], 0, 0, 0, 1); coral = c.lin([(0, "#FFA27F"), (1, "#E9633F")], 0, 0, 0, 1)
+for i in range(8):
+    a0 = i * 2 * math.pi / 8 + 0.2; a1 = a0 + 2 * math.pi / 8; mid = (a0 + a1) / 2
+    (F if math.sin(mid) > 0 else B)(c, f'<path d="{seg(a0, a1)}" fill="{coral if i % 2 else tube}"/>')
+c.shadow(seg(math.pi * 0.05, math.pi * 0.95), 0, -0.55, 0.35)
+F(c, f'<path d="M{cx-R1x*0.72:.1f},{cy+R1y*0.45:.1f} A{(R1x+R0x)/2:.1f},{(R1y+R0y)/2:.1f} 0 0 0 {cx+R1x*0.2:.1f},{cy+(R1y+R0y)/2*0.98:.1f}" stroke="#fff" stroke-width="{S*0.28:.1f}" fill="none" opacity=".7" stroke-linecap="round"/>')
+for u in (3.6, 6.6):
+    x, y = c.P(u, 3.4); lens = c.lin([(0, "#4B3C7A"), (0.6, "#2A2148"), (1, "#3E8FA8")], 0, 0, 0.3, 1)
+    F(c, f'<path d="M{x-S*1.25:.1f},{y-S*0.65:.1f} H{x+S*1.25:.1f} Q{x+S*1.35:.1f},{y+S*0.9:.1f} {x:.1f},{y+S*0.85:.1f} Q{x-S*1.35:.1f},{y+S*0.9:.1f} {x-S*1.25:.1f},{y-S*0.65:.1f} Z" fill="{lens}" stroke="#1C1631" stroke-width="{S*0.14:.1f}"/>',
+      f'<path d="M{x-S*0.8:.1f},{y+S*0.35:.1f} L{x-S*0.15:.1f},{y-S*0.4:.1f}" stroke="#fff" stroke-width="{S*0.18:.1f}" stroke-linecap="round" opacity=".55"/>')
+F(c, path(f'M{c.p(4.85,3.05)} Q{c.p(5.1,2.75)} {c.p(5.35,3.05)}', stroke="#1C1631", w=S * 0.22))
+fch[('beach', 'yellow')] = c
+
+# --- Nieve
+c = FC('green', 'fsg'); S = c.S
+dome = f'M{c.p(-0.2,3.9)} C{c.p(-0.5,-1.3)} {c.p(2.6,-2.4)} {c.p(5,-2.4)} C{c.p(7.4,-2.4)} {c.p(10.5,-1.3)} {c.p(10.2,3.9)} Z'
+c.shadow(dome, 0, 0.5, 0.4); F(c, path(dome, fill=c.rad([(0, "#FFB9A3"), (0.6, "#F57A5A"), (1, "#D35A3E")], .45, .25, .85)))
+c.defs.append(f'<clipPath id="fsg-dome"><path d="{dome}"/></clipPath>')
+st = [f'<path d="M{c.p(-1,0.8)} Q{c.p(5,-0.4)} {c.p(11,0.8)} L{c.p(11,1.55)} Q{c.p(5,0.35)} {c.p(-1,1.55)} Z" fill="#FFF3EA"/>']
+for row in range(8):
+    for i in range(22):
+        u = -0.4 + i * 0.52 + (row % 2) * 0.26; v = -1.6 + row * 0.6; x, y = c.P(u, v + 0.75 * ((u - 5) / 5) ** 2 * 0.9)
+        st.append(f'<path d="M{x-S*0.16:.1f},{y-S*0.12:.1f} L{x:.1f},{y+S*0.12:.1f} L{x+S*0.16:.1f},{y-S*0.12:.1f}" stroke="#B9452C" stroke-width="{S*0.07:.1f}" fill="none" opacity=".35"/>')
+F(c, f'<g clip-path="url(#fsg-dome)">{"".join(st)}</g>')
+cuff = f'M{c.p(-0.45,2.9)} Q{c.p(5,2.0)} {c.p(10.45,2.9)} L{c.p(10.4,4.4)} Q{c.p(5,3.5)} {c.p(-0.4,4.4)} Z'
+c.shadow(cuff, 0, 0.45, 0.45); F(c, path(cuff, fill=c.lin([(0, "#FFFBF6"), (1, "#E7DCCD")])))
+for i in range(21):
+    u = -0.1 + i * 0.5; t = (u - 5) / 5.5; F(c, path(f'M{c.p(u,3.0 - (1 - t*t) * 0.9 + 0.12)} L{c.p(u,4.35 - (1 - t*t) * 0.9)}', stroke="#D6C8B4", w=S * 0.1))
+F(c, fluff(c, 5.0, -2.5, 1.2, "#FFF6EE", "#E2D3C2", 10))
+sc = f'M{c.p(0.4,7.7)} Q{c.p(5,9.5)} {c.p(9.6,7.7)} L{c.p(9.45,9.1)} Q{c.p(5,10.9)} {c.p(0.55,9.1)} Z'
+c.shadow(sc, 0, -0.45, 0.35); F(c, path(sc, fill=c.lin([(0, "#5CC8E2"), (1, "#238FB2")])))
+tail = f'M{c.p(5.8,9.6)} Q{c.p(6.0,10.6)} {c.p(5.9,11.6)} L{c.p(7.3,11.5)} Q{c.p(7.2,10.5)} {c.p(7.1,9.5)} Z'
+F(c, path(tail, fill=c.lin([(0, "#2FA3C4"), (1, "#1C7898")])), path(f'M{c.p(5.95,10.6)} L{c.p(7.2,10.55)}', stroke="#F57A5A", w=S * 0.22))
+fch[('snow', 'green')] = c
+
+c = FC('orange', 'fso'); S = c.S
+hel = f'M{c.p(0.4,3.4)} C{c.p(0.2,-1.6)} {c.p(9.8,-1.6)} {c.p(9.6,3.4)} Q{c.p(5,2.2)} {c.p(0.4,3.4)} Z'
+c.shadow(hel, 0, 0.45, 0.45); F(c, path(hel, fill=c.rad([(0, "#6E7BA8"), (0.55, "#3A4468"), (1, "#232A44")], .4, .25, .85)))
+F(c, path(f'M{c.p(0.6,2.5)} Q{c.p(5,1.2)} {c.p(9.4,2.5)}', stroke="#F1C84D", w=S * 0.42))
+gx, gy = c.P(1.8, 1.1); gw, gh = c.bw * 0.64, c.bh * 0.27
+F(c, f'<rect x="{gx:.1f}" y="{gy:.1f}" width="{gw:.1f}" height="{gh:.1f}" rx="{gh*0.48:.1f}" fill="#1E2336"/>',
+  f'<rect x="{gx+S*0.28:.1f}" y="{gy+S*0.26:.1f}" width="{gw-S*0.56:.1f}" height="{gh-S*0.52:.1f}" rx="{gh*0.36:.1f}" fill="{c.lin([(0,"#FFD27A"),(0.35,"#FF8A65"),(0.7,"#A584E8"),(1,"#5BC6E0")],0,0,1,1)}"/>',
+  f'<path d="M{gx+S*1.0:.1f},{gy+gh-S*0.45:.1f} L{gx+S*1.8:.1f},{gy+S*0.45:.1f}" stroke="#fff" stroke-width="{S*0.3:.1f}" stroke-linecap="round" opacity=".7"/>')
+fch[('snow', 'orange')] = c
+
+c = FC('yellow', 'fsy'); S = c.S
+band = f'M{c.p(0.3,4.6)} C{c.p(0.0,-2.2)} {c.p(10.0,-2.2)} {c.p(9.7,4.6)}'
+c.shadow_stroke(band, S * 0.55, 0, 0.45)
+F(c, path(band, stroke="#C24E7D", w=S * 0.62), path(band, stroke=c.lin([(0, "#FFB6D2"), (1, "#E0679B")], 0, 0, 1, 0), w=S * 0.46))
+F(c, fluff(c, 0.2, 4.9, 1.4, "#FFE6F0", "#F2A9C7", 11), fluff(c, 9.8, 4.9, 1.4, "#FFE6F0", "#F2A9C7", 11))
+fch[('snow', 'yellow')] = c
+
+# --- Ciudad
+c = FC('green', 'fcg'); S = c.S
+for sd in (-1, 1):
+    stp = f'M{c.p(5 + sd*3.4, 1.4)} Q{c.p(5 + sd*3.9, 4.5)} {c.p(5 + sd*3.6, 8.2)}'
+    c.shadow_stroke(stp, S * 0.5); F(c, path(stp, stroke="#C9512C", w=S * 0.55), path(stp, stroke="#F07A50", w=S * 0.36))
+crown = f'M{c.p(1.5,2.6)} C{c.p(1.3,-1.4)} {c.p(8.7,-1.4)} {c.p(8.5,2.6)} Q{c.p(5,1.9)} {c.p(1.5,2.6)} Z'
+c.shadow(crown, 0, 0.45, 0.45); F(c, path(crown, fill=c.rad([(0, "#7FD5EC"), (0.6, "#2FA3C4"), (1, "#1A6E90")], .4, .25, .85)))
+for u in (3.3, 5.0, 6.7): F(c, path(f'M{c.p(u,2.3)} Q{c.p(u+(5-u)*0.4,0.5)} {c.p(5,-0.6)}', stroke="#17607F", w=S * 0.07, extra='opacity=".55"'))
+brim = f'M{c.p(1.8,2.3)} Q{c.p(5,1.7)} {c.p(8.2,2.3)} Q{c.p(8.6,3.3)} {c.p(5,3.5)} Q{c.p(1.4,3.3)} {c.p(1.8,2.3)} Z'
+c.shadow(brim, 0, 0.5, 0.45); F(c, path(brim, fill=c.lin([(0, "#2386A8"), (1, "#145A78")])))
+F(c, circ(c, 5.0, -0.65, 0.3, "#1A6E90"))
+sx_, sy_ = c.P(5.0, 0.9); F(c, f'<polygon points="' + ' '.join(f'{sx_+math.cos(-math.pi/2+i*math.pi/5)*S*(0.5 if i%2==0 else 0.22):.1f},{sy_+math.sin(-math.pi/2+i*math.pi/5)*S*(0.5 if i%2==0 else 0.22):.1f}' for i in range(10)) + '" fill="#F1C84D"/>')
+fch[('city', 'green')] = c
+
+c = FC('orange', 'fco'); S = c.S
+stp = f'M{c.p(1.6,2.2)} L{c.p(8.6,8.0)}'
+c.shadow_stroke(stp, S * 0.5); F(c, path(stp, stroke="#1E2336", w=S * 0.5))
+x, y = c.P(8.2, 7.4)
+F(c, f'<rect x="{x:.1f}" y="{y:.1f}" width="{S*2.8:.1f}" height="{S*2.3:.1f}" rx="{S*0.5:.1f}" fill="{c.lin([(0,"#79D6A9"),(1,"#2F9E73")])}"/><rect x="{x:.1f}" y="{y:.1f}" width="{S*2.8:.1f}" height="{S*0.95:.1f}" rx="{S*0.45:.1f}" fill="#268A63"/><rect x="{x+S*1.1:.1f}" y="{y+S*0.7:.1f}" width="{S*0.6:.1f}" height="{S*0.5:.1f}" rx="{S*0.12:.1f}" fill="#F1C84D"/>')
+hel = f'M{c.p(0.6,3.0)} C{c.p(0.3,-1.9)} {c.p(9.7,-1.9)} {c.p(9.4,3.0)} Q{c.p(5,2.0)} {c.p(0.6,3.0)} Z'
+c.shadow(hel, 0, 0.45, 0.45); F(c, path(hel, fill=c.rad([(0, "#FFFFFF"), (0.55, "#E6F4F8"), (1, "#A8D4E3")], .4, .25, .85)))
+F(c, path(f'M{c.p(0.7,2.85)} Q{c.p(5,1.9)} {c.p(9.3,2.85)}', stroke="#2FA3C4", w=S * 0.32))
+for (u, v) in [(3.0, 0.2), (5.0, -0.4), (7.0, 0.2)]:
+    x, y = c.P(u, v); F(c, f'<rect x="{x-S*0.18:.1f}" y="{y-S*0.6:.1f}" width="{S*0.36:.1f}" height="{S*1.2:.1f}" rx="{S*0.18:.1f}" transform="rotate({(u-5)*12:.0f} {x:.1f} {y:.1f})" fill="#2E3448" opacity=".8"/>')
+fch[('city', 'orange')] = c
+
+c = FC('purple', 'fcp'); S = c.S
+ex, ey = c.P(5.0, 4.95)
+c.defs.append(f'<clipPath id="fcp-clip"><ellipse cx="{ex:.1f}" cy="{ey:.1f}" rx="{c.bw*0.5:.1f}" ry="{c.bh*0.49:.1f}"/></clipPath>')
+vest = c.lin([(0, "#FFB070"), (1, "#EE6F22")])
+F(c, f'<g clip-path="url(#fcp-clip)">', path(f'M{c.p(-1,7.4)} Q{c.p(5,8.6)} {c.p(11,7.4)} L{c.p(11,12)} L{c.p(-1,12)} Z', fill=vest),
+  path(f'M{c.p(-1,8.6)} Q{c.p(5,9.8)} {c.p(11,8.6)}', stroke="#E8ECF2", w=S * 0.5), path(f'M{c.p(-1,9.5)} Q{c.p(5,10.7)} {c.p(11,9.5)}', stroke="#E8ECF2", w=S * 0.5), '</g>')
+hh = f'M{c.p(1.4,2.3)} C{c.p(1.4,-1.8)} {c.p(8.6,-1.8)} {c.p(8.6,2.3)} Z'
+c.shadow(hh, 0, 0.5, 0.45)
+F(c, path(hh, fill=c.rad([(0, "#FFF0A8"), (0.55, "#F6C945"), (1, "#D49A16")], .4, .28, .85)), path(f'M{c.p(4.3,-0.9)} Q{c.p(5,-1.2)} {c.p(5.7,-0.9)} L{c.p(5.7,2.1)} L{c.p(4.3,2.1)} Z', fill="#E7B12C"))
+brim = f'M{c.p(0.0,2.2)} Q{c.p(5,1.4)} {c.p(10,2.2)} Q{c.p(10.3,3.0)} {c.p(9.6,3.1)} Q{c.p(5,2.3)} {c.p(0.4,3.1)} Q{c.p(-0.3,3.0)} {c.p(0.0,2.2)} Z'
+c.shadow(brim, 0, 0.5, 0.45); F(c, path(brim, fill=c.lin([(0, "#F6C945"), (1, "#C98C12")])))
+F(c, circ(c, 5.0, 0.6, 0.45, "#FFFFFF"), circ(c, 5.0, 0.6, 0.28, "#FF8A65"))
+fch[('city', 'purple')] = c
+
+c = FC('yellow', 'fcy'); S = c.S
+x, y = c.P(2.2, -2.0); w, h = S * 5.6, S * 2.3
+F(c, f'<path d="M{x+S*0.25:.1f},{y+h+S*0.5:.1f} H{x+w-S*0.25:.1f} L{x+w-S*0.6:.1f},{y+h+S*0.95:.1f} H{x+S*0.6:.1f} Z" fill="#1E2336"/>',
+  f'<path d="M{x+S*0.45:.1f},{y:.1f} H{x+w-S*0.45:.1f} Q{x+w:.1f},{y:.1f} {x+w:.1f},{y+S*0.5:.1f} L{x+w:.1f},{y+h:.1f} H{x:.1f} L{x:.1f},{y+S*0.5:.1f} Q{x:.1f},{y:.1f} {x+S*0.45:.1f},{y:.1f} Z" fill="{c.lin([(0,"#FFFBE6"),(1,"#FFE79A")])}" stroke="#2E3448" stroke-width="{S*0.16:.1f}"/>',
+  f'<text x="{x+w/2:.1f}" y="{y+h*0.74:.1f}" text-anchor="middle" font-family="Outfit,Arial Black,sans-serif" font-weight="900" font-size="{S*1.45:.1f}" fill="#2E3448">TAXI</text>')
+cw = (w - S * 0.5) / 8
+for i in range(8):
+    for r in range(2): F(c, f'<rect x="{x+S*0.25+i*cw:.1f}" y="{y+h+r*S*0.25:.1f}" width="{cw:.1f}" height="{S*0.25:.1f}" fill="{"#2E3448" if (i+r)%2 else "#FFFFFF"}"/>')
+fch[('city', 'yellow')] = c
+
+# --- Selva
+c = FC('green', 'fjg'); S = c.S
+stem = f'M{c.p(9.6,6.8)} Q{c.p(10.6,2.6)} {c.p(5.4,-1.2)}'
+B(c, path(stem, stroke="#3E7A44", w=S * 0.42))
+x, y = c.P(5.0, -2.3)
+lf = f'M{x - S*6.2:.1f},{y + S*1.9:.1f} C{x - S*5.6:.1f},{y - S*2.9:.1f} {x + S*5.6:.1f},{y - S*2.9:.1f} {x + S*6.2:.1f},{y + S*1.9:.1f} C{x + S*3.0:.1f},{y + S*0.7:.1f} {x - S*3.0:.1f},{y + S*0.7:.1f} {x - S*6.2:.1f},{y + S*1.9:.1f} Z'
+F(c, path(lf, fill=c.lin([(0, "#8FD08A"), (0.5, "#4E9E58"), (1, "#2C6E41")], 0, 0, 0.4, 1)),
+  path(f'M{x - S*5.6:.1f},{y + S*1.5:.1f} Q{x:.1f},{y - S*1.9:.1f} {x + S*5.6:.1f},{y + S*1.5:.1f}', stroke="#C9EDC0", w=S * 0.16),
+  ''.join(path(f'M{x + S*t*0.35:.1f},{y - S*0.95:.1f} Q{x + S*t*0.8:.1f},{y - S*0.4:.1f} {x + S*t:.1f},{y + S*1.05:.1f}', stroke="#A9DCA0", w=S * 0.08) for t in (-5, -3.2, -1.4, 1.4, 3.2, 5)))
+fch[('jungle', 'green')] = c
+
+c = FC('orange', 'fjo'); S = c.S
+brim = f'M{c.p(-1.4,2.4)} Q{c.p(5,0.8)} {c.p(11.4,2.4)} Q{c.p(11.3,3.6)} {c.p(5,3.9)} Q{c.p(-1.3,3.6)} {c.p(-1.4,2.4)} Z'
+c.shadow(brim, 0, 0.55, 0.45); F(c, path(brim, fill=c.lin([(0, "#F3E4C2"), (1, "#C6A970")])))
+dome = f'M{c.p(1.2,2.6)} C{c.p(1.0,-2.4)} {c.p(9.0,-2.4)} {c.p(8.8,2.6)} Q{c.p(5,1.9)} {c.p(1.2,2.6)} Z'
+F(c, path(dome, fill=c.rad([(0, "#FFF8E6"), (0.6, "#E9D7AE"), (1, "#BFA06A")], .4, .25, .85)),
+  path(f'M{c.p(1.22,1.8)} Q{c.p(5,0.7)} {c.p(8.78,1.8)} L{c.p(8.8,2.6)} Q{c.p(5,1.55)} {c.p(1.2,2.6)} Z', fill=c.lin([(0, "#8A684C"), (1, "#5E4433")])),
+  circ(c, 5.0, -1.4, 0.32, "#C9AE78"))
+fch[('jungle', 'orange')] = c
+
+c = FC('purple', 'fjp'); S = c.S
+CROWN = []
+for i, (u, ang, L) in enumerate([(1.6, -50, 2.6), (2.7, -30, 3.3), (4.1, -12, 3.7), (5.9, 12, 3.7), (7.3, 30, 3.3), (8.4, 50, 2.6)]):
+    x, y = c.P(u, 0.85 + abs(u - 5) * 0.13); a, b = cols[i % 3]
+    CROWN.append(f'<g transform="translate({x:.1f} {y:.1f}) rotate({ang})"><path d="M0,0 C{-S*L*0.34:.1f},{-S*L*0.45:.1f} {-S*L*0.16:.1f},{-S*L*0.88:.1f} 0,{-S*L:.1f} C{S*L*0.16:.1f},{-S*L*0.88:.1f} {S*L*0.34:.1f},{-S*L*0.45:.1f} 0,0 Z" fill="{c.lin([(0,a),(1,b)],0,1,0,0)}"/><path d="M0,0 L0,{-S*L*0.92:.1f}" stroke="#E6F7DF" stroke-width="{S*0.09:.1f}" opacity=".85"/></g>')
+for (u, c1, c2) in [(2.6, "#FFB59B", "#E9573A"), (5.0, "#FFE38A", "#E9A923"), (7.4, "#FFC2DA", "#E0679B")]:
+    x, y = c.P(u, 1.1 + abs(u - 5) * 0.13); pg = c.rad([(0, "#FFFFFF"), (0.35, c1), (1, c2)], .5, .5, .6)
+    for a in range(5): CROWN.append(f'<g transform="translate({x:.1f} {y:.1f}) rotate({-90 + a*72})"><path d="M0,0 C{S*0.2:.1f},{-S*0.45:.1f} {S*0.95:.1f},{-S*0.55:.1f} {S*0.95:.1f},0 C{S*0.95:.1f},{S*0.55:.1f} {S*0.2:.1f},{S*0.45:.1f} 0,0 Z" fill="{pg}"/></g>')
+    CROWN.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{S*0.2:.1f}" fill="#FFF3C4"/>')
+F(c, *CROWN)
+fch[('jungle', 'purple')] = c
+
+c = FC('yellow', 'fjy'); S = c.S; c.padk = 0.62
+B(c, wing(c, 1.6, 3.2, -8, 1.0, "#FFB3D3", "#E0679B", "#A33A6A"), wing(c, 8.4, 3.2, 8, 1.0, "#9BEDE4", "#2FA39A", "#1D6F69", -1))
+fch[('jungle', 'yellow')] = c
+
+def export_front(c, base, fa):
+    out = export(c, None, True)
+    flat = ''.join(re.sub(r'^<svg[^>]*>|</svg>$', '', L['s']) for L in out['layers'])
+    out['layers'] = [{"s": out['layers'][0]['s'].split('>', 1)[0] + '>' + flat + '</svg>', "a": None}] if len(out['layers']) > 1 else out['layers']
+    out['base'] = base
+    out['body'] = fa['body']; out['gy'] = fa['vb'][1] + fa['vb'][3] - fa['pad']
+    return out
+for k in ['green', 'orange', 'purple', 'yellow']: RIG[k + '_f'] = export_front(fch[('void', k)], k, FA_[k])
+for lid in ["beach", "snow", "city", "jungle"]:
+    for k in ['green', 'orange', 'purple', 'yellow']:
+        if (lid, k) in fch: RIG[lid + k.capitalize() + '_f'] = export_front(fch[(lid, k)], k, FA_[k])
+json.dump(RIG, open(D + '/rig.json', 'w'), separators=(',', ':'))
+print("rig+front", len(RIG), len(json.dumps(RIG, separators=(',', ':'))) // 1024, "KB")
+# Hoja de revisión de los de frente
+hh = ['<!doctype html><body style="margin:0;background:#F4F1FD;display:flex;flex-wrap:wrap;width:1500px">']
+for key, c in fch.items(): hh.append(f'<div style="width:180px;text-align:center;font:11px sans-serif">{c.svg(170)}<br>{key[0]} {key[1]}</div>')
+open(D + '/front_board.html', 'w').write(''.join(hh))
