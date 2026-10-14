@@ -82,7 +82,7 @@
 :root { --lvl: #7C5CE0; --lvl-soft: rgba(124, 92, 224, 0.14); }
 :root[data-level] { --speck: transparent; } /* del nivel 2 en adelante, sin los puntitos del piso */
 :root[data-level="beach"] {
-  --bg: #FBF8F1; --field: #F6EBD3; --field-hi: #FCF6E9; --speck: transparent;
+  --bg: #FCFAF5; --field: #F9F2E2; --field-hi: #FEFBF4; --speck: transparent;
   --lvl: #2FA3C4; --lvl-soft: rgba(47, 163, 196, 0.14); --mist: #B7A68A;
 }
 @media (prefers-color-scheme: dark) {
@@ -633,7 +633,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.6.1";
+const VERSION = "0.6.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1345,6 +1345,8 @@ function keepInside(b) {
   b.x = clamp(b.x, T.side, Math.max(T.side, W - T.side));
   b.y = clamp(b.y, T.top, Math.max(T.top, H - T.bottom));
 }
+// En la playa, el borde de arriba es la orilla del mar: ahí no se puede entrar ni salir (0 = sin límite)
+const shoreY = (T) => (lvl().id === "beach" ? seaH + T.r * 0.5 : 0);
 // ¿Se ve completo? ¿Ya salió por completo?
 const isInside = (b) => b.x - b.T.side >= 0 && b.x + b.T.side <= W && b.y - b.T.top >= 0 && b.y + b.T.bottom <= H;
 const isOut = (b) => b.x + b.T.side < 0 || b.x - b.T.side > W || b.y + b.T.bottom < 0 || b.y - b.T.top > H;
@@ -1356,7 +1358,7 @@ function spawnBall(inside) {
   if (inside) {
     // Busca un lugar libre, lejos de otros marcianitos y del dedo
     for (let i = 0; i < 16; i++) {
-      x = rand(T.side + e, W - T.side - e); y = rand(T.top + e + seaTop() * 0.8, H - T.bottom - e);
+      x = rand(T.side + e, W - T.side - e); y = rand(Math.max(T.top + e, shoreY(T) + e), H - T.bottom - e);
       let ok = true;
       for (const b of balls) { const d = T.r + b.r + 14; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
       for (const p of pointers.values()) { if ((p.x - x) ** 2 + (p.y - y) ** 2 < (T.r + 40) ** 2) { ok = false; break; } }
@@ -1364,13 +1366,16 @@ function spawnBall(inside) {
     }
     a = Math.random() * TAU;
   } else {
-    // Una orilla al azar (las más largas, más seguido) y un rumbo hacia algún punto del centro
-    const r = Math.random() * (2 * W + 2 * H);
-    if (r < W) { x = rand(T.side, W - T.side); y = -T.bottom - 2; }
-    else if (r < 2 * W) { x = rand(T.side, W - T.side); y = H + T.top + 2; }
-    else if (r < 2 * W + H) { x = -T.side - 2; y = rand(T.top, H - T.bottom); }
-    else { x = W + T.side + 2; y = rand(T.top, H - T.bottom); }
-    a = Math.atan2(rand(H * 0.25, H * 0.75) - y, rand(W * 0.25, W * 0.75) - x);
+    // Una orilla al azar (las más largas, más seguido) y un rumbo hacia algún punto del centro.
+    // En la playa nunca por arriba: ahí está el mar.
+    const top = shoreY(T), hasTop = top <= 0, sideH = H - top - T.bottom;
+    const r = Math.random() * ((hasTop ? 2 : 1) * W + 2 * sideH);
+    if (r < W) { x = rand(T.side, W - T.side); y = H + T.top + 2; }
+    else if (hasTop && r < 2 * W) { x = rand(T.side, W - T.side); y = -T.bottom - 2; }
+    else if (r < (hasTop ? 2 : 1) * W + sideH) { x = -T.side - 2; y = rand(Math.max(T.top, top), H - T.bottom); }
+    else { x = W + T.side + 2; y = rand(Math.max(T.top, top), H - T.bottom); }
+    const gy0 = Math.max(H * 0.25, top + 40);
+    a = Math.atan2(rand(gy0, Math.max(gy0, H * 0.75)) - y, rand(W * 0.25, W * 0.75) - x);
   }
   if (type === "yellow") lastYellow = time;
   // Variación de velocidad: ±15 % (los naranjas solo hacia arriba, para que nunca bajen al paso de los demás)
@@ -1424,7 +1429,10 @@ function updateBalls(dt) {
     b.vx += (Math.cos(b.heading) * sp - b.vx) * k;
     b.vy += (Math.sin(b.heading) * sp - b.vy) * k;
     b.x += b.vx * dt; b.y += b.vy * dt;
-    // Sin paredes: si sale de la pantalla, se escapó
+    // La orilla del mar (en la playa) funciona como pared: se dan la vuelta y siguen por la arena
+    const shore = shoreY(b.T);
+    if (shore && b.y < shore) { b.y = shore; b.vy = Math.abs(b.vy); b.heading = Math.atan2(b.vy, b.vx); }
+    // Sin paredes en las otras orillas: si sale de la pantalla, se escapó
     if (!b.entered && isInside(b)) b.entered = true;
     if (isOut(b) && (b.entered || b.t > 4)) {
       balls.splice(i, 1);
@@ -2036,7 +2044,7 @@ function buildBackground() {
   const c = document.createElement("canvas");
   c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR);
-  const sand = PAL.dark ? "rgba(255,230,180," : "rgba(150,110,55,";
+  const sand = PAL.dark ? "rgba(255,230,180," : "rgba(175,150,105,";
   g.lineCap = "round";
   for (let i = 0; i < Math.round(W * H / 16000); i++) {
     const x = rand(0, W), y = rand(seaH + 30, H), w = rand(18, 40);
@@ -2068,7 +2076,7 @@ function drawBackground(dt) {
     const tide = Math.sin(time * 0.35) * 4 * (reduceMotion ? 0.3 : 1);
     const edge = (x, off, ph) => seaH + tide + seaShift + off + Math.sin(x * 0.035 + time * 1.3 + ph) * 3 + Math.sin(x * 0.013 - time * 0.7 + ph) * 2.5;
     // arena mojada
-    ctx.globalAlpha = 1; ctx.fillStyle = PAL.dark ? "rgba(0,0,0,0.12)" : "rgba(140,100,50,0.10)";
+    ctx.globalAlpha = 1; ctx.fillStyle = PAL.dark ? "rgba(0,0,0,0.12)" : "rgba(175,150,105,0.10)";
     ctx.beginPath(); ctx.moveTo(0, 0); for (let x = 0; x <= W + 12; x += 12) ctx.lineTo(x, edge(x, 12, 1.5)); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
     // agua
     const wg = ctx.createLinearGradient(0, 0, 0, seaH + 10);
