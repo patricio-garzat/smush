@@ -966,7 +966,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.32.0";
+const VERSION = "0.33.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2009,7 +2009,7 @@ function keepInside(b) {
   b.y = clamp(b.y, T.top, Math.max(T.top, H - T.bottom));
 }
 // En la playa, el borde de arriba es la orilla del mar: ahí no se puede entrar ni salir (0 = sin límite)
-const shoreY = (T) => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" ? seaH + T.r * 0.5 : 0);
+const shoreY = (T) => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" || lvl().id === "void" ? seaH + T.r * 0.5 : 0);
 // ¿Se ve completo? ¿Ya salió por completo?
 const isInside = (b) => b.x - b.T.side >= 0 && b.x + b.T.side <= W && b.y - b.T.top >= 0 && b.y + b.T.bottom <= H;
 const isOut = (b) => b.x + b.T.side < 0 || b.x - b.T.side > W || b.y + b.T.bottom < 0 || b.y - b.T.top > H;
@@ -3716,7 +3716,7 @@ function playTrip(from, to, num, onSwitch, kicker) {
 // Fondo de cada mundo: The Void tiene estrellas que titilan (y una fugaz de vez en cuando);
 // The Beach tiene mar con olas, espuma, destellos, conchitas y estrellas de mar en la arena.
 let bgLayer = null, stars = [], shooting = null, shootClock = 8, seaH = 0;
-const seaTop = () => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" ? seaH : 0);
+const seaTop = () => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" || lvl().id === "void" ? seaH : 0);
 function buildBackground() {
   if (!W) return;
   const snowy = isSnow();
@@ -3724,10 +3724,11 @@ function buildBackground() {
   stars = [];
   const n = Math.round((W * H) / 7000);
   for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(0.6, 1.5), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
-  bgLayer = null; pines = []; flakes = []; glints = []; city = null; jungle = null; blocks = [];
+  bgLayer = null; pines = []; flakes = []; glints = []; city = null; jungle = null; voidW = null; blocks = [];
   if (snowy) { buildSnow(); return; }
   if (isJungle()) { buildJungle(); return; }
   if (isCity()) { buildCity(); return; }
+  if (isVoid()) { buildVoid(); return; }
   if (lvl().id !== "beach") return;
   // Detalles fijos de la arena (se pintan una vez): manchas suaves, la orilla mojada, rizos del viento, granitos,
   // piedritas, conchitas y estrellas de mar, una hilera de huellas, algas y un palo que trajo el mar, y matitas de duna
@@ -3901,31 +3902,8 @@ function drawBackground(dt) {
     ctx.globalAlpha = 1;
     return;
   }
-  // The Void: estrellas que titilan suavemente
-  ctx.fillStyle = PAL.dark ? "#FFFFFF" : PAL.text;
-  const base = PAL.dark ? 0.5 : 0.16;
-  for (const s of stars) {
-    ctx.globalAlpha = base * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(time * s.sp + s.ph)));
-    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill();
-  }
-  // Una estrella fugaz de vez en cuando
-  if (!reduceMotion) {
-    shootClock -= dt;
-    if (!shooting && shootClock <= 0) { shooting = { x: rand(W * 0.2, W), y: rand(0, H * 0.4), t: 0 }; shootClock = rand(9, 18); }
-    if (shooting) {
-      const s = shooting, u = s.t / 0.9;
-      s.t += dt;
-      if (u >= 1) shooting = null;
-      else {
-        const x = s.x - u * 160, y = s.y + u * 90, g = ctx.createLinearGradient(x, y, x + 50, y - 28);
-        const c = PAL.dark ? "255,255,255" : "36,37,33";
-        g.addColorStop(0, `rgba(${c},${(PAL.dark ? 0.8 : 0.35) * Math.sin(u * Math.PI)})`); g.addColorStop(1, `rgba(${c},0)`);
-        ctx.globalAlpha = 1; ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 50, y - 28); ctx.stroke();
-      }
-    }
-  }
-  ctx.globalAlpha = 1;
+  // The Void: la luna lila con el espacio arriba
+  drawVoidBg(dt);
 }
 
 /* ---------- The Slopes: nieve, pinos, copos, esquiadores con su huella y la avalancha ---------- */
@@ -4453,6 +4431,295 @@ function drawPine(p) {
   ctx.drawImage(S.c, -S.ax, -S.ay, S.w, S.h);
   if (p.fx) p.fx(ctx, p); // lo que cambia con el tiempo (la luz del semáforo)
   ctx.restore();
+}
+/* ---------- The Void (nivel 1): la superficie de una luna lila. Arriba, el espacio (nebulosa, un planeta con anillos,
+   una lunita, estrellas que titilan, piedritas que flotan y una fugaz de vez en cuando) funciona como pared; en el piso,
+   cráteres, grietas y piedritas; a los lados, cristales de colores, rocas y plantitas que brillan; y un cráter con
+   líquido que brilla (no se pisa). El centro queda libre para los marcianitos. ---------- */
+const isVoid = () => lvl().id === "void";
+let voidW = null; // lo que se mueve: el cráter con líquido, los destellos de los cristales y las piedritas del cielo
+const VOID_CRYS = (dark) => (dark
+  ? [["#C3B0FF", "#7C5CE0", "#4B358F"], ["#9BEDE4", "#2FA39A", "#1B6460"], ["#FFBCD8", "#D0578E", "#7E2E57"]]
+  : [["#F3EEFF", "#B59BF0", "#7C5CE0"], ["#E6FBF8", "#7AD8CE", "#2FA39A"], ["#FFEAF3", "#FFA3C8", "#E0679B"]]);
+const VOID_GLOW = ["165,132,232", "111,211,201", "255,158,196"];
+// Destello de cuatro picos (estrellas grandes y brillos en los cristales)
+function sparkle(g, x, y, r) {
+  g.beginPath(); g.moveTo(x, y - r);
+  g.quadraticCurveTo(x, y, x + r, y); g.quadraticCurveTo(x, y, x, y + r); g.quadraticCurveTo(x, y, x - r, y); g.quadraticCurveTo(x, y, x, y - r);
+  g.fill();
+}
+// Racimo de cristales: prismas con su cara clara, su cara de sombra y un brillo; resplandor alrededor
+function paintCrystals(g, x, y, s, dark, seed, ci) {
+  const R = artRng(seed), [c0, c1, c2] = VOID_CRYS(dark)[ci], glow = VOID_GLOW[ci];
+  const gl = g.createRadialGradient(x, y - 22 * s, 0, x, y - 22 * s, 48 * s);
+  gl.addColorStop(0, `rgba(${glow},${dark ? 0.42 : 0.26})`); gl.addColorStop(1, `rgba(${glow},0)`);
+  g.fillStyle = gl; g.beginPath(); g.arc(x, y - 22 * s, 48 * s, 0, TAU); g.fill();
+  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(90,60,170,0.16)"; g.beginPath(); g.ellipse(x + 4 * s, y + 1, 25 * s, 6 * s, 0, 0, TAU); g.fill();
+  for (const [dx, hh, ww, a0] of [[-17, 14, 4, -0.6], [16, 12, 4, 0.62], [-11, 27, 6, -0.32], [10, 23, 5.5, 0.3], [-2, 41, 7.5, -0.05], [6, 29, 6, 0.14]]) {
+    const a = a0 + (R() - 0.5) * 0.12, H2 = hh * s * (0.85 + R() * 0.3), W2 = ww * s;
+    g.save(); g.translate(x + dx * s, y + 1); g.rotate(a);
+    g.fillStyle = c1; g.beginPath(); g.moveTo(-W2, 0); g.lineTo(-W2, -H2 * 0.78); g.lineTo(0, -H2); g.lineTo(W2, -H2 * 0.78); g.lineTo(W2, 0); g.closePath(); g.fill();
+    g.fillStyle = c0; g.beginPath(); g.moveTo(-W2, 0); g.lineTo(-W2, -H2 * 0.78); g.lineTo(0, -H2); g.lineTo(-W2 * 0.1, 0); g.closePath(); g.fill();
+    g.fillStyle = c2; g.globalAlpha = 0.6; g.beginPath(); g.moveTo(W2 * 0.4, 0); g.lineTo(W2 * 0.4, -H2 * 0.84); g.lineTo(W2, -H2 * 0.78); g.lineTo(W2, 0); g.closePath(); g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = "rgba(255,255,255,0.8)"; g.lineWidth = Math.max(1, s * 1.1); g.lineCap = "round";
+    g.beginPath(); g.moveTo(-W2 * 0.55, -H2 * 0.18); g.lineTo(-W2 * 0.55, -H2 * 0.66); g.stroke();
+    g.restore();
+  }
+  for (let i = 0; i < 4; i++) { const px = x + (R() - 0.5) * 36 * s, r = (2 + R() * 2.5) * s; g.fillStyle = dark ? "#3A3160" : "#B6A8E6"; g.beginPath(); g.ellipse(px, y + 1, r, r * 0.6, 0, 0, TAU); g.fill(); }
+}
+// Roca lunar: facetas, hoyitos con su borde de luz y un brillo arriba
+function paintBoulder(g, x, y, s, dark, seed) {
+  const R = artRng(seed), pts = [];
+  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(90,60,170,0.16)"; g.beginPath(); g.ellipse(x + 5 * s, y + 1, 27 * s, 6 * s, 0, 0, TAU); g.fill();
+  for (let i = 0; i <= 9; i++) { const a = Math.PI + (i / 9) * Math.PI, r = 0.85 + R() * 0.25; pts.push([x + Math.cos(a) * 22 * s * r, y - 2 * s + Math.sin(a) * 20 * s * r]); }
+  const gr = g.createLinearGradient(x - 20 * s, y - 22 * s, x + 20 * s, y);
+  gr.addColorStop(0, dark ? "#5A4E8C" : "#DDD4F8"); gr.addColorStop(1, dark ? "#2C2550" : "#9C8AD8");
+  g.fillStyle = gr; g.beginPath(); g.moveTo(x - 22 * s, y); pts.forEach(([px, py]) => g.lineTo(px, py)); g.lineTo(x + 22 * s, y); g.closePath(); g.fill();
+  g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(80,50,160,0.15)"; g.beginPath(); g.moveTo(x + 2 * s, y); g.lineTo(x + 6 * s, y - 13 * s); g.lineTo(pts[7][0], pts[7][1]); g.lineTo(pts[9][0], pts[9][1]); g.lineTo(x + 22 * s, y); g.closePath(); g.fill();
+  for (const [u, v, r] of [[-0.35, -0.45, 3.2], [0.1, -0.72, 2.2], [0.38, -0.3, 2.6]]) {
+    const px = x + u * 22 * s, py = y + v * 20 * s;
+    g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(90,60,170,0.2)"; g.beginPath(); g.ellipse(px, py, r * s, r * 0.7 * s, 0, 0, TAU); g.fill();
+    g.strokeStyle = dark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.75)"; g.lineWidth = 0.9; g.beginPath(); g.ellipse(px, py + 0.6, r * s, r * 0.7 * s, 0, 0.2, Math.PI - 0.2); g.stroke();
+  }
+  g.fillStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)"; g.beginPath(); g.ellipse(x - 8 * s, y - 15 * s, 6 * s, 2.4 * s, -0.4, 0, TAU); g.fill();
+}
+// Plantita de otro planeta: tallos curvos con bolitas que brillan
+function paintGlowPlant(g, x, y, s, dark, seed, ci) {
+  const R = artRng(seed), [c0, c1] = VOID_CRYS(dark)[ci], glow = VOID_GLOW[ci];
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(90,60,170,0.14)"; g.beginPath(); g.ellipse(x + 3 * s, y + 1, 18 * s, 4.5 * s, 0, 0, TAU); g.fill();
+  for (const sd of [-1, 1]) { g.fillStyle = dark ? "#4B3F7E" : "#A796E0"; g.beginPath(); g.ellipse(x + sd * 6 * s, y - 2.5 * s, 8 * s, 3 * s, sd * 0.45, 0, TAU); g.fill(); }
+  g.lineCap = "round";
+  for (const [a0, L0] of [[-0.55, 28], [-0.22, 40], [0.12, 34], [0.48, 25], [0.0, 20]]) {
+    const a = a0 + (R() - 0.5) * 0.15, L = L0 * s * (0.9 + R() * 0.2), ex = x + Math.sin(a) * L, ey = y - Math.cos(a) * L, r = (3.2 + R() * 1.6) * s;
+    g.strokeStyle = dark ? "#5C4E96" : "#8C78D8"; g.lineWidth = 1.7 * s; g.beginPath(); g.moveTo(x, y - 2 * s); g.quadraticCurveTo(x + Math.sin(a) * L * 0.2, y - L * 0.6, ex, ey); g.stroke();
+    const gl = g.createRadialGradient(ex, ey, 0, ex, ey, r * 3.2); gl.addColorStop(0, `rgba(${glow},${dark ? 0.55 : 0.35})`); gl.addColorStop(1, `rgba(${glow},0)`);
+    g.fillStyle = gl; g.beginPath(); g.arc(ex, ey, r * 3.2, 0, TAU); g.fill();
+    g.fillStyle = c1; g.beginPath(); g.arc(ex, ey, r, 0, TAU); g.fill();
+    g.fillStyle = c0; g.beginPath(); g.arc(ex - r * 0.3, ey - r * 0.3, r * 0.45, 0, TAU); g.fill();
+  }
+}
+function buildVoid() {
+  const dark = PAL.dark, R = artRng(7070), rr = (a, b) => a + (b - a) * R(), pick = (a) => a[Math.floor(R() * a.length)], small = W < PHONE_WIDTH, k = small ? 0.85 : 1, top = seaH;
+  const c = document.createElement("canvas");
+  c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR);
+  // --- El piso: polvo lunar lila, con manchas suaves de lila, menta y rosa (se desvanecen a su mismo color)
+  const fl = g.createLinearGradient(0, top, 0, H);
+  if (dark) { fl.addColorStop(0, "#2A2450"); fl.addColorStop(1, "#1F1A3C"); } else { fl.addColorStop(0, "#E2D9FA"); fl.addColorStop(1, "#EEE9FC"); }
+  g.fillStyle = fl; g.fillRect(0, 0, W, H);
+  const tints = dark ? ["120,95,220", "0,0,0", "70,170,170", "200,90,150"] : ["255,255,255", "165,132,232", "120,210,200", "255,158,196"];
+  for (let i = 0; i < Math.round((W * H) / 22000) + 6; i++) {
+    const x = rr(0, W), y = rr(top, H), r = rr(60, 170), col = tints[i % tints.length], al = dark ? (col === "0,0,0" ? 0.16 : 0.08) : col === "255,255,255" ? 0.5 : 0.16;
+    g.save(); g.translate(x, y); g.scale(1, 0.55);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(${col},${al})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
+  }
+  // --- Un cráter con líquido que brilla (en un lado de abajo; no se pisa)
+  const prx = (small ? 50 : 66) * (W < 340 ? 0.85 : 1), pool = { rx: prx, ry: prx * 0.42 };
+  const pl = R() < 0.5;
+  pool.x = pl ? rr(pool.rx + 16, Math.max(pool.rx + 17, W * 0.3)) : rr(Math.min(W * 0.7, W - pool.rx - 17), W - pool.rx - 16);
+  pool.y = rr(H * 0.6, H - pool.ry - 22);
+  blocks.push({ x: pool.x, y: pool.y, rx: pool.rx + 6, ry: pool.ry + 5 });
+  // --- Grietas finas
+  g.lineCap = "round"; g.lineJoin = "round";
+  for (let i = 0; i < (small ? 3 : 6); i++) {
+    let x = rr(0, W), y = rr(top + 40, H - 20), a = rr(0, TAU);
+    g.strokeStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(110,80,200,0.17)"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, y);
+    for (let j = 0; j < 8; j++) { a += rr(-0.6, 0.6); x += Math.cos(a) * rr(8, 16); y += Math.sin(a) * rr(4, 9); g.lineTo(x, y); }
+    g.stroke();
+  }
+  // --- Cráteres: unos grandes (con rayitas de material alrededor), varios medianos y algunos chiquitos.
+  // Cada uno con su sombra adentro (arriba) y el borde de abajo con luz
+  const craters = [];
+  const addC = (n, r0, r1) => { for (let i = 0; i < n; i++) for (let t = 0; t < 40; t++) { const r = rr(r0, r1) * k, x = rr(r, W - r), y = rr(top + r * 0.6 + 18, H - r * 0.5 - 4); if (craters.some((q) => Math.hypot(q.x - x, (q.y - y) * 1.8) < q.r + r + 8) || Math.hypot(x - pool.x, (y - pool.y) * 1.8) < pool.rx + r + 14) continue; craters.push({ x, y, r }); break; } };
+  addC(small ? 2 : 4, 34, 54); addC(small ? 4 : 8, 13, 24); addC(Math.round((W * H) / 60000) + 2, 7, 11);
+  for (const q of craters) if (q.r > 30 * k) {
+    g.strokeStyle = dark ? "rgba(180,160,255,0.05)" : "rgba(255,255,255,0.4)"; g.lineWidth = 2;
+    for (let i = 0; i < 8; i++) { const a = rr(0, TAU), d0 = q.r * 1.25, d1 = q.r * rr(1.5, 1.9); g.beginPath(); g.moveTo(q.x + Math.cos(a) * d0, q.y + Math.sin(a) * d0 * 0.5); g.lineTo(q.x + Math.cos(a) * d1, q.y + Math.sin(a) * d1 * 0.5); g.stroke(); }
+  }
+  const crater = (x, y, r) => {
+    const ry = r * 0.5;
+    g.fillStyle = dark ? "rgba(0,0,0,0.12)" : "rgba(165,132,232,0.1)"; g.beginPath(); g.ellipse(x, y + ry * 0.15, r * 1.2, ry * 1.28, 0, 0, TAU); g.fill();
+    g.fillStyle = dark ? "rgba(0,0,0,0.26)" : "rgba(110,80,200,0.13)"; g.beginPath(); g.ellipse(x, y, r, ry, 0, 0, TAU); g.fill();
+    g.save(); g.beginPath(); g.ellipse(x, y, r, ry, 0, 0, TAU); g.clip();
+    g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(90,60,170,0.15)"; g.beginPath(); g.ellipse(x, y - ry * 0.5, r * 1.05, ry * 0.85, 0, 0, TAU); g.fill();
+    g.restore();
+    g.strokeStyle = dark ? "rgba(200,185,255,0.2)" : "rgba(255,255,255,0.95)"; g.lineWidth = Math.max(1.2, r * 0.06);
+    g.beginPath(); g.ellipse(x, y + 0.6, r, ry, 0, Math.PI * 0.06, Math.PI * 0.94); g.stroke();
+  };
+  craters.forEach((q) => crater(q.x, q.y, q.r));
+  // --- Piedritas en grupitos de tres
+  for (let i = 0; i < Math.round((W * H) / 70000) + 2; i++) {
+    const x = rr(10, W - 10), y = rr(top + 40, H - 10);
+    if (Math.hypot(x - pool.x, (y - pool.y) * 1.8) < pool.rx + 20) continue;
+    for (let j = 0; j < 3; j++) {
+      const px = x + rr(-11, 11), py = y + rr(-5, 5), r = rr(3, 5.5);
+      g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(90,60,170,0.16)"; g.beginPath(); g.ellipse(px + 0.9, py + 0.9, r, r * 0.7, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? ["#4A3F78", "#3D345F", "#544889"][j] : ["#C9BDF2", "#B6A8E6", "#D8CFF7"][j]; g.beginPath(); g.ellipse(px, py, r, r * 0.7, 0, 0, TAU); g.fill();
+    }
+  }
+  // --- El cráter con líquido: borde de roca, el líquido (menta que se vuelve lila hacia la orilla) y el borde con luz
+  {
+    const { x, y, rx, ry } = pool;
+    g.fillStyle = dark ? "#3A3168" : "#CDBFF3"; g.beginPath(); g.ellipse(x, y + 2, rx + 9, ry + 7, 0, 0, TAU); g.fill();
+    g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(90,60,170,0.18)"; g.beginPath(); g.ellipse(x, y, rx + 3, ry + 3, 0, 0, TAU); g.fill();
+    g.save(); g.translate(x, y); g.scale(1, ry / rx);
+    const lq = g.createRadialGradient(-rx * 0.15, -rx * 0.1, 0, 0, 0, rx);
+    if (dark) { lq.addColorStop(0, "#6FE6D8"); lq.addColorStop(0.6, "#3E9FB4"); lq.addColorStop(1, "#4A3596"); } else { lq.addColorStop(0, "#C8F7F1"); lq.addColorStop(0.6, "#86D9E0"); lq.addColorStop(1, "#9C82EA"); }
+    g.fillStyle = lq; g.beginPath(); g.arc(0, 0, rx, 0, TAU); g.fill(); g.restore();
+    g.strokeStyle = dark ? "rgba(200,185,255,0.25)" : "rgba(255,255,255,0.95)"; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(x, y + 3, rx + 6, ry + 5, 0, Math.PI * 0.08, Math.PI * 0.92); g.stroke();
+    g.fillStyle = "rgba(255,255,255,0.5)"; g.beginPath(); g.ellipse(x - rx * 0.35, y - ry * 0.35, rx * 0.22, ry * 0.12, -0.1, 0, TAU); g.fill();
+  }
+  // --- El espacio arriba (no se pisa): nebulosa, un planeta con anillos, una lunita y lomitas a lo lejos
+  g.save(); g.beginPath(); g.rect(0, 0, W, top + 2); g.clip();
+  const sk = g.createLinearGradient(0, 0, 0, top);
+  if (dark) { sk.addColorStop(0, "#0B0920"); sk.addColorStop(1, "#241B52"); } else { sk.addColorStop(0, "#7A66D4"); sk.addColorStop(1, "#C2B5F3"); }
+  g.fillStyle = sk; g.fillRect(0, 0, W, top + 2);
+  for (let i = 0; i < (small ? 4 : 8); i++) {
+    const x = rr(0, W), y = rr(0, top), r = rr(40, 110), col = pick(["255,158,196", "111,211,201", "210,190,255"]);
+    g.save(); g.translate(x, y); g.scale(1.8, 0.55);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(${col},${dark ? 0.24 : 0.32})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
+  }
+  // El planeta con anillos (el anillo de atrás, el planeta con sus franjas y el anillo de enfrente)
+  {
+    const px = W * (small ? 0.78 : 0.82), py = top * 0.42, pr = clamp(top * 0.24, 10, 20), ring = (front) => {
+      g.save(); g.translate(px, py); g.rotate(-0.28);
+      g.strokeStyle = dark ? "rgba(214,178,140,0.75)" : "rgba(255,236,205,0.95)"; g.lineWidth = pr * 0.28;
+      g.beginPath(); g.ellipse(0, 0, pr * 1.9, pr * 0.42, 0, front ? 0 : Math.PI, front ? Math.PI : TAU); g.stroke();
+      g.strokeStyle = dark ? "rgba(160,120,100,0.6)" : "rgba(240,190,150,0.8)"; g.lineWidth = pr * 0.08;
+      g.beginPath(); g.ellipse(0, 0, pr * 1.55, pr * 0.32, 0, front ? 0 : Math.PI, front ? Math.PI : TAU); g.stroke();
+      g.restore();
+    };
+    ring(false);
+    const pg = g.createLinearGradient(px - pr, py - pr, px + pr, py + pr);
+    pg.addColorStop(0, dark ? "#E09A86" : "#FFD3B6"); pg.addColorStop(1, dark ? "#7A3E52" : "#EE8C76");
+    g.fillStyle = pg; g.beginPath(); g.arc(px, py, pr, 0, TAU); g.fill();
+    g.save(); g.beginPath(); g.arc(px, py, pr, 0, TAU); g.clip();
+    g.fillStyle = dark ? "rgba(255,220,200,0.18)" : "rgba(255,255,255,0.35)"; for (const o of [-0.45, 0.1]) g.fillRect(px - pr, py + o * pr, pr * 2, pr * 0.18);
+    g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(160,70,80,0.18)"; g.beginPath(); g.arc(px + pr * 0.35, py + pr * 0.3, pr, 0, TAU); g.fill();
+    g.restore();
+    ring(true);
+  }
+  // La lunita con cráteres
+  {
+    const mx = W * 0.15, my = top * 0.34, mr = clamp(top * 0.1, 5, 9);
+    const mg = g.createRadialGradient(mx, my, 0, mx, my, mr * 3); mg.addColorStop(0, dark ? "rgba(230,225,255,0.25)" : "rgba(255,255,255,0.45)"); mg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = mg; g.beginPath(); g.arc(mx, my, mr * 3, 0, TAU); g.fill();
+    g.fillStyle = dark ? "#E3DEF7" : "#FFFFFF"; g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
+    g.fillStyle = dark ? "rgba(120,100,180,0.4)" : "rgba(165,132,232,0.3)"; for (const [u, v, r] of [[-0.3, -0.2, 0.28], [0.35, 0.25, 0.2], [0.05, 0.45, 0.14]]) { g.beginPath(); g.arc(mx + u * mr, my + v * mr, r * mr, 0, TAU); g.fill(); }
+  }
+  // Lomitas a lo lejos en la orilla del espacio, con su borde de luz
+  g.restore();
+  const hz = (x) => top - 5 - Math.max(0, Math.sin(x * 0.011 + 1.3) * 7 + Math.sin(x * 0.031) * 3 + Math.sin(x * 0.07 + 2) * 1.5);
+  g.fillStyle = dark ? "#1C1738" : "#CDBFF3";
+  g.beginPath(); g.moveTo(0, top + 2); for (let x = 0; x <= W + 6; x += 6) g.lineTo(x, hz(x)); g.lineTo(W, top + 2); g.closePath(); g.fill();
+  g.strokeStyle = dark ? "rgba(190,170,255,0.3)" : "rgba(255,255,255,0.9)"; g.lineWidth = 1.4;
+  g.beginPath(); for (let x = 0; x <= W + 6; x += 6) x ? g.lineTo(x, hz(x)) : g.moveTo(x, hz(x)); g.stroke();
+  const sh = g.createLinearGradient(0, top, 0, top + 34);
+  sh.addColorStop(0, dark ? "rgba(10,8,30,0.45)" : "rgba(120,95,210,0.16)"); sh.addColorStop(1, dark ? "rgba(10,8,30,0)" : "rgba(120,95,210,0)");
+  g.fillStyle = sh; g.fillRect(0, top, W, 34);
+  bgLayer = c;
+  // --- A los lados: cristales, rocas y plantitas que brillan (el centro queda libre)
+  const side = small ? ["crystal", "boulder", "plant", "crystal"] : ["crystal", "boulder", "plant", "crystal", "plant", "boulder"];
+  const placed = [];
+  let ci = Math.floor(R() * 3);
+  for (const left of [true, false]) side.forEach((kind) => {
+    for (let tries = 0; tries < 80; tries++) {
+      const span = kind === "plant" ? 0.2 : 0.17, x = left ? rr(8, W * span) : rr(W * (1 - span), W - 8), y = rr(top + 56 * k, H - 12);
+      if (placed.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < 70 * k) || Math.hypot(x - pool.x, (y - pool.y) * 1.4) < pool.rx + 70) continue;
+      placed.push({ kind, x, y, ci: kind === "boulder" ? 0 : ci++ % 3 });
+      break;
+    }
+  });
+  const glints = [];
+  for (const p of placed) {
+    const seed = Math.floor(p.x * 3 + p.y);
+    if (p.kind === "crystal") {
+      const sc = k * rr(0.95, 1.2), w0 = 104 * sc, tp = 72 * sc;
+      blocks.push({ x: p.x, y: p.y, rx: 17 * sc, ry: 6 * sc });
+      pines.push({ x: p.x, y: p.y, h: 42 * sc, sway: 0, spr: makePropSprite((gg) => paintCrystals(gg, w0 / 2, tp, sc, dark, seed, p.ci), w0, tp + 10, w0 / 2, tp) });
+      glints.push({ x: p.x - 2 * sc, y: p.y - 40 * sc, ph: rr(0, TAU), sp: rr(0.5, 0.9) }, { x: p.x - 11 * sc, y: p.y - 25 * sc, ph: rr(0, TAU), sp: rr(0.5, 0.9) });
+    } else if (p.kind === "boulder") {
+      const sc = k * rr(0.9, 1.2), w0 = 66 * sc, tp = 30 * sc;
+      blocks.push({ x: p.x, y: p.y - 2, rx: 21 * sc, ry: 6 * sc });
+      pines.push({ x: p.x, y: p.y, h: 22 * sc, sway: 0, spr: makePropSprite((gg) => paintBoulder(gg, w0 / 2, tp, sc, dark, seed), w0, tp + 8, w0 / 2, tp) });
+    } else {
+      const sc = k * rr(0.95, 1.2), w0 = 76 * sc, tp = 58 * sc;
+      blocks.push({ x: p.x, y: p.y, rx: 8 * sc, ry: 4 * sc });
+      pines.push({ x: p.x, y: p.y, h: 36 * sc, ph: rr(0, TAU), sway: 0.02, spr: makePropSprite((gg) => paintGlowPlant(gg, w0 / 2, tp, sc, dark, seed, p.ci), w0, tp + 8, w0 / 2, tp) });
+    }
+  }
+  pines.sort((a, b) => a.y - b.y);
+  // --- Lo que se mueve: estrellas (solo en el espacio), piedritas que flotan cruzando el cielo y burbujas en el cráter
+  stars = [];
+  for (let i = 0; i < Math.round(W / (small ? 14 : 18)); i++) stars.push({ x: rr(0, W), y: rr(3, top - 12), r: rr(0.6, 1.3), ph: rr(0, TAU), sp: rr(0.6, 1.8), big: R() < 0.16 });
+  const rocks = Array.from({ length: small ? 2 : 4 }, () => ({ x: rr(0, W), y: rr(top * 0.2, top * 0.7), r: rr(2.5, 5), v: rr(3, 8), ph: rr(0, TAU), rot: rr(0, TAU) }));
+  const bubbles = Array.from({ length: 6 }, () => ({ u: rr(-0.6, 0.6), v: rr(-0.5, 0.5), ph: rr(0, 1), sp: rr(0.25, 0.5) }));
+  voidW = { pool, glints, rocks, bubbles, top };
+}
+// Debajo de los marcianitos: el piso (bgLayer), las estrellas del cielo, las piedritas que flotan, la fugaz,
+// el cráter que brilla y los destellos en los cristales
+function drawVoidBg(dt) {
+  if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+  const V = voidW;
+  if (!V) return;
+  const tt = reduceMotion ? 0 : time, dark = PAL.dark;
+  ctx.fillStyle = "#FFFFFF";
+  for (const s of stars) {
+    const a = (dark ? 0.95 : 0.85) * (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(time * s.sp + s.ph)));
+    ctx.globalAlpha = a;
+    if (s.big) sparkle(ctx, s.x, s.y, 2.6 + a * 1.6); else { ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill(); }
+  }
+  ctx.globalAlpha = 1;
+  for (const r of V.rocks) {
+    const x = ((r.x + tt * r.v) % (W + 40)) - 20, y = r.y + Math.sin(tt * 0.8 + r.ph) * 2, a = r.rot + tt * 0.2;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+    ctx.fillStyle = dark ? "#3A3168" : "#9C8AD8"; ctx.beginPath(); ctx.moveTo(-r.r, 0); ctx.lineTo(-r.r * 0.4, -r.r * 0.75); ctx.lineTo(r.r * 0.6, -r.r * 0.6); ctx.lineTo(r.r, 0.2); ctx.lineTo(r.r * 0.2, r.r * 0.85); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = dark ? "#5A4E8C" : "#D3C8F5"; ctx.beginPath(); ctx.moveTo(-r.r * 0.4, -r.r * 0.75); ctx.lineTo(r.r * 0.6, -r.r * 0.6); ctx.lineTo(r.r * 0.15, -r.r * 0.1); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // Una estrella fugaz de vez en cuando (cruza solo el espacio)
+  if (!reduceMotion) {
+    shootClock -= dt;
+    if (!shooting && shootClock <= 0) { shooting = { x: rand(W * 0.3, W), y: rand(4, V.top * 0.35), t: 0 }; shootClock = rand(8, 16); }
+    if (shooting) {
+      const s = shooting, u = s.t / 0.8;
+      s.t += dt;
+      if (u >= 1) shooting = null;
+      else {
+        const x = s.x - u * 140, y = s.y + u * V.top * 0.35, g = ctx.createLinearGradient(x, y, x + 46, y - 12);
+        g.addColorStop(0, `rgba(255,255,255,${0.9 * Math.sin(u * Math.PI)})`); g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.globalAlpha = 1; ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 46, y - 12); ctx.stroke();
+      }
+    }
+  }
+  // El cráter que brilla: un resplandor que respira, ondas y burbujitas que suben y se revientan
+  const P = V.pool, br = 0.5 + 0.5 * Math.sin(tt * 1.1);
+  ctx.save(); ctx.translate(P.x, P.y); ctx.scale(1, P.ry / P.rx);
+  const gl = ctx.createRadialGradient(0, 0, P.rx * 0.5, 0, 0, P.rx * 1.7);
+  gl.addColorStop(0, `rgba(111,211,201,${(dark ? 0.3 : 0.22) * (0.6 + 0.4 * br)})`); gl.addColorStop(1, "rgba(111,211,201,0)");
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, P.rx * 1.7, 0, TAU); ctx.fill();
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 2; i++) {
+    const u = (tt * 0.3 + i * 0.5) % 1;
+    ctx.strokeStyle = `rgba(255,255,255,${(dark ? 0.35 : 0.6) * (1 - u)})`; ctx.beginPath(); ctx.arc(0, 0, P.rx * (0.2 + 0.7 * u), 0, TAU); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.fillStyle = "#FFFFFF";
+  for (const b of V.bubbles) {
+    const u = (tt * b.sp + b.ph) % 1, x = P.x + b.u * P.rx, y = P.y + b.v * P.ry - u * 3;
+    ctx.globalAlpha = (dark ? 0.55 : 0.75) * Math.sin(u * Math.PI); ctx.beginPath(); ctx.arc(x, y, 0.8 + u * 1.6, 0, TAU); ctx.fill();
+  }
+  // Destellos en los cristales
+  for (const gl2 of V.glints) {
+    const kk = Math.pow(Math.max(0, Math.sin(tt * gl2.sp + gl2.ph)), 14);
+    if (kk < 0.02) continue;
+    ctx.globalAlpha = kk; sparkle(ctx, gl2.x, gl2.y, 6 * kk + 1);
+  }
+  ctx.globalAlpha = 1;
 }
 /* ---------- The City: un cruce de calles. Banquetas, pasos peatonales, postes de luz y edificios en las esquinas ---------- */
 const isCity = () => lvl().id === "city";
