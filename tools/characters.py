@@ -2,7 +2,7 @@
 # Uso: python3 tools/characters.py <carpeta de salida>
 #   - board5.html / big5.html / front_board.html: tableros para revisar
 #   - rig.json: las capas que van en index.html como `const RIG = ...;` (pegar en una sola línea)
-# Lee los marcianitos originales (ALIENS) de index.html y los de frente de tools/front/ (dibujos del usuario).
+# Lee los marcianitos originales (ALIENS) de index.html y, de tools/front/, los de frente y el yeti (dibujos del usuario).
 # Las coordenadas (u, v) van de 0 a 10 sobre la caja del cuerpo.
 import re, json, math, sys
 D = sys.argv[1]
@@ -509,6 +509,20 @@ BASE_PARTS = {
     "yellow": {"ant": [("antR", (577.5, -507.7), ['M577.5-507.7', 'M619.5-672.6'])],
                "feetB": [((505, -400), 0, 'M518-372.2'), ((655, -405), 1, 'M694-342.6'), ((575, -368), 0.5, 'M586.2-368')], "feetF": []},
 }
+BASE_PARTS.update({
+    "f_green": {"ant": [("antL", (298.3, 255.1), ['M298.3,255.1', 'cx="244.8"']), ("antR", (418.1, 255.5), ['M418.1,255.5c10.8', 'M418.1,255.5c-.3', 'cx="465.3"'])],
+                "feetB": [((460, 515), 1, 'M521.3,593.9'), ((245, 505), 0, 'M260.7,555.8'), ((363, 540), 0.5, 'M398.3,530.4')], "feetF": []},
+    "f_orange": {"ant": [("antR", (360.3, 367.5), ['M360.3,367.5', 'cx="352.2"'])],
+                 "feetB": [((410, 505), 1, 'M439.7,547.9'), ((295, 505), 0, 'M306.9,523.7'), ((363, 530), 0.5, 'M390.2,523.2')], "feetF": []},
+    "f_purple": {"ant": [("antL", (331.4, 233.3), ['M331.4,233.3', 'cx="256.2"']), ("antR", (466, 200), ['M530.7,115.2', 'M539.8,227.3', 'cx="541.1"'])],
+                 "feetB": [((255, 560), 0, 'M282.7,669.5'), ((580, 580), 1, 'M669.2,745'), ((424, 690), 0.5, 'M485.3,679.4')], "feetF": []},
+    "f_yellow": {"ant": [("antR", (385, 282), ['M447,200.2l-4.6', 'M447,200.2c-2.4'])],
+                 "feetB": [((505, 530), 1, 'M599.6,602.3'), ((300, 560), 0, 'M317.6,599.9'), ((425, 612), 0.5, 'M463.6,603.5c-2.8')], "feetF": []},
+    "yeti": {"ant": [("antL", (433.7, 372.1), ['M433.7,372.1', 'cx="323.1"']), ("antR", (668, 343), ['M731.5,262.4', 'cx="741.9"'])],
+             "feetB": [((330, 700), 0, 'M357.4,803.9'), ((720, 705), 1, 'M806.8,874.4'), ((470, 810), 0.5, 'M510.4,830.6')], "feetF": []},
+    "f_yeti": {"ant": [("antL", (485.3, 372.4), ['M485.3,372.4', 'cx="418.9"']), ("antR", (615, 330), ['M677.5,247.2', 'cx="722.4"'])],
+               "feetB": [((395, 725), 0, 'M418.9,823.6'), ((650, 720), 1, 'M744.1,890.9'), ((525, 815), 0.5, 'M584.4,805.5')], "feetF": []},
+})
 DEF_RE = re.compile(r'<(linearGradient|radialGradient|clipPath|filter|mask)\b[^>]*?\bid="([^"]+)"[^>]*?(?:/>|>.*?</\1>)', re.S)
 def take(content, key):
     m = re.search(r'<(path|ellipse|circle|polygon)\b[^>]*' + re.escape(key) + r'[^>]*?(?:/>|>\s*</\1>)', content)
@@ -535,8 +549,19 @@ def export(c, base, expand):
     styles = ''.join(re.findall(r'<style>.*?</style>', inner, re.S))
     content = re.sub(r'<defs>.*?</defs>', '', inner, flags=re.S)
     layers = []
-    def svg(body): return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="{X0:.1f} {Y0:.1f} {W0:.1f} {H0:.1f}" width="{W0:.0f}" height="{H0:.0f}">'
-                           f'<defs>{styles if "class=" in body else ""}{prune(defs, body + (styles if "class=" in body else ""))}</defs>{body}</svg>')
+    rules = re.findall(r'([^{}]+)\{([^{}]*)\}', re.sub(r'</?style>', '', styles))
+    def css(body):
+        used = set(re.findall(r'class="([^"]+)"', body)); used = {c for u in used for c in u.split()}
+        out = []
+        for sel, decl in rules:
+            names = [x.strip().lstrip('.') for x in sel.split(',')]
+            keep = [n for n in names if n in used]
+            if keep: out.append(','.join('.' + n for n in keep) + '{' + re.sub(r'\s+', ' ', decl.strip()) + '}')
+        return '<style>' + ''.join(out) + '</style>' if out else ''
+    def svg(body):
+        st = css(body)
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="{X0:.1f} {Y0:.1f} {W0:.1f} {H0:.1f}" width="{W0:.0f}" height="{H0:.0f}">'
+                f'<defs>{st}{prune(defs, body + st)}</defs>{body}</svg>')
     buf = []
     def flush():
         if buf: layers.append({"s": svg(''.join(buf)), "a": None}); buf.clear()
@@ -766,9 +791,7 @@ B(c, wing(c, 1.6, 3.2, -8, 1.0, "#FFB3D3", "#E0679B", "#A33A6A"), wing(c, 8.4, 3
 fch[('jungle', 'yellow')] = c
 
 def export_front(c, base, fa):
-    out = export(c, None, True)
-    flat = ''.join(re.sub(r'^<svg[^>]*>|</svg>$', '', L['s']) for L in out['layers'])
-    out['layers'] = [{"s": out['layers'][0]['s'].split('>', 1)[0] + '>' + flat + '</svg>', "a": None}] if len(out['layers']) > 1 else out['layers']
+    out = export(c, 'f_' + base, True)
     out['base'] = base
     out['body'] = fa['body']; out['gy'] = fa['vb'][1] + fa['vb'][3] - fa['pad']
     return out
@@ -776,6 +799,28 @@ for k in ['green', 'orange', 'purple', 'yellow']: RIG[k + '_f'] = export_front(f
 for lid in ["beach", "snow", "city", "jungle"]:
     for k in ['green', 'orange', 'purple', 'yellow']:
         if (lid, k) in fch: RIG[lid + k.capitalize() + '_f'] = export_front(fch[(lid, k)], k, FA_[k])
+def load_any(path, bounds, keep=None):
+    raw = open(path).read()
+    raw = re.sub(r'<\?xml.*?\?>', '', raw, flags=re.S); raw = re.sub(r'<metadata>.*?</metadata>', '', raw, flags=re.S); raw = re.sub(r'<!--.*?-->', '', raw, flags=re.S)
+    if keep is not None:
+        defs = re.search(r'<defs>.*?</defs>', raw, re.S).group(0); body = raw.replace(defs, '')
+        i = [-1]
+        def f(m):
+            i[0] += 1
+            return m.group(0) if i[0] in keep else ''
+        body = re.sub(r'<(path|circle|ellipse|polygon|rect|line|polyline)\b[^>]*?(?:/>|>\s*</\1>)', f, body)
+        raw = body.replace('<svg', '<svg', 1).replace('>', '>' + defs, 1) if False else re.sub(r'(<svg[^>]*>)', lambda m: m.group(1) + defs, body, count=1)
+    x0, y0, x1, y1 = bounds; m = 12
+    vb = [x0 - m, y0 - m, (x1 - x0) + 2 * m, (y1 - y0) + 2 * m]
+    raw = re.sub(r'<svg[^>]*>', f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="{vb[0]} {vb[1]} {vb[2]} {vb[3]}">', raw.strip(), count=1)
+    return {"svg": raw, "vb": vb, "body": [230, 330, 615, 530], "pad": m}
+YB = json.load(open(FRONT_DIR + '/yeti_bb.json')) if __import__('os').path.exists(FRONT_DIR + '/yeti_bb.json') else None
+keepF = [e[0] for e in YB if e[4][2] > 0 and e[4][0] < 1058 and e[4][3] > 0 and e[4][1] < 1058]
+ys = Ch('yeti', 'ys', load_any(FRONT_DIR + '/yeti_side.svg', (201, 150, 857, 908)))
+yf = Ch('yeti', 'yf', load_any(FRONT_DIR + '/yeti.svg', (215, 108, 841, 913), keepF))
+for key, c, parts, gy in (('purpleYeti', ys, 'yeti', 908), ('purpleYeti_f', yf, 'f_yeti', 913)):
+    out = export(c, parts, False); out['base'] = 'purpleYeti'; out['body'] = [230, 330, 615, 530]; out['gy'] = gy
+    RIG[key] = out
 json.dump(RIG, open(D + '/rig.json', 'w'), separators=(',', ':'))
 print("rig+front", len(RIG), len(json.dumps(RIG, separators=(',', ':'))) // 1024, "KB")
 # Hoja de revisión de los de frente
