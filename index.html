@@ -678,7 +678,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.9.3";
+const VERSION = "0.9.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -938,7 +938,7 @@ const STR = {
   acid: ["Acid rain", "Lluvia ácida"], acidD: ["Hold and move: a little acid cloud follows your finger and drips on the aliens below.", "Mantén y mueve: una nubecita de ácido sigue tu dedo y gotea sobre los marcianitos de abajo."],
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
-  jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a bomb where the crowd is biggest.", "Pasa volando y suelta una bomba donde hay más marcianitos."],
+  jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a row of 6 big bombs where the crowd is biggest.", "Pasa volando y suelta una fila de 6 bombas grandes donde hay más marcianitos."],
   acidH: ["Acid storm", "Tormenta ácida"], acidHD: ["A storm cloud drifts across the beach, raining acid on its own.", "Una nube cruza la playa lloviendo ácido sola."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap an alien to smush it.", "Toca un marcianito para aplastarlo."],
@@ -1925,7 +1925,7 @@ function helperRate() {
   let rate = taps * coinsPerTap(FX.helperDamage(save.up.power));
   // Jets y tormentas (solo en The Beach): ~3 marcianitos por bomba, ~6 por tormenta
   if (lvl().id === "beach") {
-    if (save.up.jet) rate += (3 / (FX.jetEvery(save.up.jet) + 1.8)) * avgReward();
+    if (save.up.jet) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
     if (save.up.acidH) rate += (6 / (FX.acidEvery(save.up.acidH) + 7)) * avgReward();
   }
   return rate;
@@ -2241,7 +2241,7 @@ function drawBackground(dt) {
 
 /* ---------- Herramientas y ayudantes de The Beach: bombas, lluvia ácida, jets y tormentas ácidas ---------- */
 let seaShift = 0; // cuánto se mueve la orilla del mar (hoy se queda quieta)
-const BOMB_R = 82, JET_R = 80, ACID_HIT = 12;
+const BOMB_R = 82, JET_R = 96, JET_BOMBS = 6, ACID_HIT = 12; // JET_R: radio de cada bomba del jet
 const BOMB_SIZE = 40, JET_SIZE = 150; // alto de la bomba y largo del jet, en px
 // --- Explosiones: destello, bola de fuego, onda expansiva, humo, esquirlas y una marca en el piso
 const booms = [];
@@ -2445,9 +2445,15 @@ function crowdTarget() {
 function launchJet() {
   const t = crowdTarget();
   if (!t) { jetClock = 1; return; }
-  const dir = Math.random() < 0.5 ? 1 : -1, ang = rand(-0.22, 0.22), sp = 400;
-  const vx = Math.cos(ang) * sp * dir, vy = Math.sin(ang) * sp, x0 = dir > 0 ? -130 : W + 130, tt = (t.x - x0) / vx;
-  jets.push({ x: x0, y: t.y - vy * tt, vx, vy, tx: t.x, ty: t.y, dropAt: Math.max(0.1, tt - 0.28), t: 0, dropped: false, trail: [] });
+  // Una fila de bombas sobre la ruta del jet, centrada donde hay más marcianitos y siempre dentro del área
+  const dir = Math.random() < 0.5 ? 1 : -1, ang = rand(-0.18, 0.18), sp = 400, tan = Math.tan(ang);
+  const gap = Math.min(58, (W - 60) / JET_BOMBS), half = gap * (JET_BOMBS - 1) / 2;
+  const cx = clamp(t.x, 30 + half, Math.max(30 + half, W - 30 - half)), top = Math.max(shoreY(BALL_TYPES.green), 0) + 20;
+  const cy = clamp(t.y, top + Math.abs(tan) * half, Math.max(top + Math.abs(tan) * half, H - 20 - Math.abs(tan) * half));
+  const vx = Math.cos(ang) * sp * dir, vy = Math.sin(ang) * sp * dir, x0 = dir > 0 ? -130 : W + 130;
+  const drops = [];
+  for (let k = 0; k < JET_BOMBS; k++) { const x = cx + (k * gap - half) * dir; drops.push({ x, y: cy + (x - cx) * tan, out: false, last: k === JET_BOMBS - 1 }); }
+  jets.push({ x: x0, y: cy + (x0 - cx) * tan, vx, vy, drops, t: 0, trail: [] });
   Sound.jet();
 }
 function updateSky(dt) {
@@ -2459,7 +2465,13 @@ function updateSky(dt) {
     j.t += dt; j.x += j.vx * dt; j.y += j.vy * dt;
     j.trail.push({ x: j.x, y: j.y, t: time });
     while (j.trail.length && time - j.trail[0].t > 0.6) j.trail.shift();
-    if (!j.dropped && j.t >= j.dropAt) { j.dropped = true; falling.push({ x0: j.x, y0: j.y - 70, x1: j.tx, y1: j.ty, t: 0, dur: 0.55, rot: rand(-0.5, 0.5) }); Sound.whoosh(); }
+    const lead = Math.abs(j.vx) * 0.55 * 0.6;
+    for (const d of j.drops) {
+      if (d.out || (j.vx > 0 ? j.x < d.x - lead : j.x > d.x + lead)) continue;
+      d.out = true;
+      falling.push({ x0: j.x, y0: j.y - 70, x1: d.x, y1: d.y, t: 0, dur: 0.55, rot: rand(-0.5, 0.5) });
+      if (d === j.drops[0]) Sound.whoosh();
+    }
     if ((j.vx > 0 && j.x > W + 160) || (j.vx < 0 && j.x < -160)) jets.splice(i, 1);
   }
   for (let i = falling.length - 1; i >= 0; i--) {
@@ -2483,7 +2495,7 @@ function drawSky() {
     const u = f.t / f.dur, x = f.x0 + (f.x1 - f.x0) * u, y = f.y0 + (f.y1 - f.y0) * easeIn(u);
     ctx.globalAlpha = 0.15 + 0.5 * u; ctx.fillStyle = PAL.shadow;
     ctx.beginPath(); ctx.ellipse(f.x1, f.y1, 9 + 8 * u, 3 + 2.5 * u, 0, 0, TAU); ctx.fill();
-    drawBombSprite(x, y, 1.7 - 0.7 * u, f.rot * (1 - u));
+    drawBombSprite(x, y, 1.3 - 0.3 * u, f.rot * (1 - u));
   }
   // Jets: estela, sombra en el piso y el avión
   const img = helperSpr.jet, A = HELPER_ART.jet;
