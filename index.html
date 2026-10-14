@@ -554,6 +554,7 @@ body::before {
 .home-tag { margin: -2px 0 0; text-align: center; font-size: 15px; font-weight: 650; color: var(--muted); }
 .home-stage { position: relative; flex: 1; min-height: 150px; }
 #home-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#home-fx { position: absolute; left: 0; pointer-events: none; z-index: 5; display: none; }
 #btn-play {
   display: flex; align-items: center; gap: 14px; height: 68px; padding: 0 18px 0 12px; border: 0; border-radius: 24px; color: #FFFFFF; text-align: left;
   background: linear-gradient(150deg, color-mix(in srgb, var(--lvl) 70%, #FFFFFF), var(--lvl));
@@ -754,6 +755,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
     </div>
     <p class="home-foot">BluBer Games · <span id="home-ver"></span></p>
   </div>
+  <canvas id="home-fx" aria-hidden="true"></canvas>
 </section>
 
 <!-- Cómo jugar -->
@@ -958,7 +960,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.31.0";
+const VERSION = "0.31.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -7016,7 +7018,16 @@ const homeEl = $("#home");
 let inGame = false, homeAt = 0;
 // El escenario del Inicio: una islita con el tema del nivel y marcianitos paseando; de vez en cuando uno se aplasta
 const Hero = (() => {
-  const cvh = $("#home-cv"), g = cvh.getContext("2d");
+  const cvh = $("#home-cv"), hg = cvh.getContext("2d");
+  // Mientras cambias de isla, las islas y los que se caen se pintan en una capa que cubre todo el Inicio (de la altura
+  // del escenario hacia abajo): así nada se corta en la orilla del escenario, la isla se desvanece al irse de lado
+  // y los marcianitos caen hasta abajo de la pantalla
+  const fxc = $("#home-fx"), fg = fxc.getContext("2d");
+  let g = hg, fxOn = false, fx = { x: 0, y: 0, w: 0, h: 0, d: 1 };
+  // Transparencia de todo lo que se pinta en un contexto (el dibujo de la isla pone su propio globalAlpha, así que se multiplica)
+  const AL = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "globalAlpha");
+  let fxMul = 1;
+  Object.defineProperty(fg, "globalAlpha", { get() { return AL.get.call(this) / (fxMul || 1); }, set(v) { AL.set.call(this, v * fxMul); }, configurable: true });
   let hraf = 0, hlast = 0, t = 0, w = 0, hh = 0, actors = [], popClock = 2.2;
   const hgoos = []; // los charquitos de los que se aplastan (mismo efecto que en el juego)
   const HDIE = 0.3;
@@ -7068,10 +7079,19 @@ const Hero = (() => {
     return { blds, lamps };
   }
   const ground = () => ({ cx: w / 2, cy: hh * 0.56, rx: Math.min(w * 0.38, 190), ry: Math.min(hh * 0.25, 78) });
+  // La capa va del escenario hacia abajo y de orilla a orilla del Inicio (se mide al empezar a moverse, ya sin animaciones de entrada)
+  function placeFx() {
+    const r = cvh.getBoundingClientRect(), hr = homeEl.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
+    fx = { x: r.left - hr.left, y: r.top - hr.top, w: hr.width, h: Math.max(hh, hr.bottom - r.top), d };
+    fxc.style.top = fx.y + "px"; fxc.style.width = fx.w + "px"; fxc.style.height = fx.h + "px";
+    const pw = Math.round(fx.w * d), ph = Math.round(fx.h * d);
+    if (fxc.width !== pw || fxc.height !== ph) { fxc.width = pw; fxc.height = ph; }
+  }
   function size() {
     const r = cvh.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
     w = r.width; hh = r.height;
-    cvh.width = Math.round(w * d); cvh.height = Math.round(hh * d); g.setTransform(d, 0, 0, d, 0, 0);
+    cvh.width = Math.round(w * d); cvh.height = Math.round(hh * d); hg.setTransform(d, 0, 0, d, 0, 0);
+    placeFx();
   }
   function make(k, fromEdge) {
     const e = ground(), a = rand(0, TAU), d = fromEdge ? 0.95 : Math.sqrt(Math.random()) * 0.75;
@@ -7181,7 +7201,7 @@ const Hero = (() => {
     for (let i = fallers.length - 1; i >= 0; i--) {
       const f = fallers[i];
       f.t += dt; f.vy += 1500 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.spin * dt;
-      if (f.y > hh + 90) fallers.splice(i, 1);
+      if (f.y > fx.h + 140) fallers.splice(i, 1);
     }
   }
   // Los que se caen: dan vueltas, se estiran y aplastan como si manotearan, y les sale un "!" del susto
@@ -7326,16 +7346,25 @@ const Hero = (() => {
     updateGoos(dt, hgoos);
     draw(e);
   }
+  // Qué tan visible está una isla según qué tanto se ha ido de lado (se desvanece suave al salir y al entrar)
+  const fadeFor = (ox) => { const u = clamp(1 - Math.abs(ox) / (w * 0.92), 0, 1); return u * u * (3 - 2 * u); };
+  function onFx(a, fn) {
+    if (a <= 0.004) return;
+    fxMul = a; g = fg; fg.globalAlpha = 1; fn(); fg.globalAlpha = 1; g = hg; fxMul = 1;
+  }
   function draw(e) {
-    g.clearRect(0, 0, w, hh);
+    hg.clearRect(0, 0, w, hh);
+    const moving = !!(sw || drag.ox || fallers.length);
+    if (moving) {
+      if (!fxOn) { fxOn = true; placeFx(); fxc.style.display = "block"; }
+      fg.setTransform(fx.d, 0, 0, fx.d, fx.x * fx.d, 0); fg.clearRect(-fx.x, 0, fx.w, fx.h);
+    } else if (fxOn) { fxOn = false; fg.setTransform(1, 0, 0, 1, 0, 0); fg.clearRect(0, 0, fxc.width, fxc.height); fxc.style.display = "none"; }
     if (sw) {
-      if (sw.oox * sw.out < w * 1.07) drawWorld(e, sw.oldLid, sw.old, sw.oox, sw.orot, false);
-      drawWorld(e, lvl().id, actors, sw.nox, sw.nrot, true);
-      drawFallers();
-    } else {
-      drawWorld(e, lvl().id, actors, drag.ox, (drag.ox / Math.max(1, w)) * 0.22, true);
-      if (fallers.length) drawFallers();
-    }
+      onFx(fadeFor(sw.oox), () => drawWorld(e, sw.oldLid, sw.old, sw.oox, sw.orot, false));
+      onFx(fadeFor(sw.nox), () => drawWorld(e, lvl().id, actors, sw.nox, sw.nrot, true));
+    } else if (drag.ox) onFx(fadeFor(drag.ox), () => drawWorld(e, lvl().id, actors, drag.ox, (drag.ox / Math.max(1, w)) * 0.22, true));
+    else drawWorld(e, lvl().id, actors, 0, 0, true);
+    if (fallers.length) onFx(1, drawFallers);
     drawDots(e);
   }
   // Un mundo completo (la isla con sus cosas y sus marcianitos), movido y ladeado si se está deslizando
