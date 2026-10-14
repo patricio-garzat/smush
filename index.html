@@ -131,6 +131,8 @@ a { color: inherit; }
 .wallet { min-width: 0; }
 .coins { display: flex; align-items: center; gap: 9px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .coins .coin { font-size: 20px; }
+#coin-egg { position: relative; cursor: pointer; }
+#coin-egg::after { content: ""; position: absolute; inset: -12px; } /* área de toque más grande que la monedita */
 #coins { display: inline-block; transform-origin: left center; }
 .sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* Chip del nivel: nombre, progreso hacia el siguiente y un anillito */
@@ -631,7 +633,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 <div id="app">
   <header id="top">
     <div class="wallet">
-      <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
+      <div class="coins"><span class="coin" id="coin-egg"></span><span id="coins">0</span></div>
     </div>
     <div class="actions">
       <button id="btn-menu" class="icon-btn" type="button" aria-label="Menu" data-i18n-aria="menu">
@@ -877,7 +879,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.19.2";
+const VERSION = "0.19.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2460,6 +2462,25 @@ $("#btn-collect").addEventListener("click", () => {
   Sound.collect(); buzz([12, 70, 12, 70, 20]);
   // Una lluvia suave de monedas en el campo
   for (let i = 0; i < 18; i++) later(i * 0.035, () => { const x = rand(W * 0.2, W * 0.8), y = rand(H * 0.3, H * 0.7); ring(x, y, 2, 14, 0.4, "#F1C84D", 2, 0.5); part(x, y, rand(-40, 40), rand(-160, -60), rand(2.5, 4), 0.8, "#F1C84D", "dot", 2.5, 220); });
+});
+
+/* ---------- Secreto: tocar 10 veces seguidas la monedita de arriba regala 500,000 monedas ---------- */
+const EGG = { taps: 10, coins: 500000, gap: 1.2 }; // toques, premio y segundos máximos entre toque y toque
+let eggTaps = 0, eggLast = 0;
+$("#coin-egg").addEventListener("click", () => {
+  const now = performance.now() / 1000;
+  eggTaps = now - eggLast < EGG.gap ? eggTaps + 1 : 1;
+  eggLast = now;
+  Sound.unlock(); Sound.tick();
+  if (!reduceMotion) $("#coin-egg").animate([{ transform: "scale(1)" }, { transform: "scale(1.25) rotate(-12deg)" }, { transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
+  if (eggTaps < EGG.taps) return;
+  eggTaps = 0;
+  save.coins += EGG.coins; save.earned += EGG.coins;
+  uiDirty = true; coinBump = true; writeSave();
+  Sound.collect(); buzz([12, 70, 12, 70, 20]);
+  // Una lluvia de monedas en el campo
+  if (W) for (let i = 0; i < 24; i++) later(i * 0.03, () => { const x = rand(W * 0.15, W * 0.85), y = rand(H * 0.25, H * 0.7); ring(x, y, 2, 16, 0.4, "#F1C84D", 2, 0.5); part(x, y, rand(-50, 50), rand(-180, -60), rand(2.5, 4.5), 0.9, "#F1C84D", "dot", 2.5, 220); });
+  if (W) floatText(W / 2, H * 0.45, "+" + fmt(EGG.coins), "#C9962A", 26);
 });
 
 /* ---------- 10b. Multiplicador: burbuja ×2 / ×4 que hay que tocar a tiempo ---------- */
