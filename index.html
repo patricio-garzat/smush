@@ -937,7 +937,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.26.5";
+const VERSION = "0.27.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3506,32 +3506,108 @@ function buildBackground() {
   if (snowy) { buildSnow(); return; }
   if (isCity()) { buildCity(); return; }
   if (lvl().id !== "beach") return;
-  // Detalles fijos de la arena (se pintan una vez)
+  // Detalles fijos de la arena (se pintan una vez): manchas suaves, la orilla mojada, rizos del viento, granitos,
+  // piedritas, conchitas y estrellas de mar, una hilera de huellas, algas y un palo que trajo el mar, y matitas de duna
   const c = document.createElement("canvas");
   c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR);
-  const sand = PAL.onDark ? "rgba(255,230,180," : "rgba(175,150,105,";
-  g.lineCap = "round";
-  for (let i = 0; i < Math.round(W * H / 16000); i++) {
-    const x = rand(0, W), y = rand(seaH + 30, H), w = rand(18, 40);
-    g.strokeStyle = sand + "0.06)"; g.lineWidth = 1.2;
-    g.beginPath(); g.moveTo(x - w / 2, y); g.quadraticCurveTo(x, y - 4, x + w / 2, y); g.stroke();
+  const dark = PAL.onDark, sand = dark ? "rgba(255,230,180," : "rgba(175,150,105,";
+  for (let i = 0; i < Math.round((W * H) / 26000) + 5; i++) {
+    // (el degradado se aplana igual que la mancha y se desvanece a su mismo color, para que nunca se vea gris ni con orilla)
+    const x = rand(0, W), y = rand(seaH, H), r = rand(50, 150), lite = i % 2 === 0, col = lite ? (dark ? "255,240,210" : "255,255,255") : dark ? "0,0,0" : "200,160,95";
+    g.save(); g.translate(x, y); g.scale(1, 0.55);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
+    gr.addColorStop(0, `rgba(${col},${lite ? (dark ? 0.04 : 0.45) : dark ? 0.1 : 0.09})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
   }
-  const items = Math.max(4, Math.round(W * H / 45000));
+  // La orilla mojada: más oscura, con agujeritos de burbujas
+  const wet = g.createLinearGradient(0, seaH, 0, seaH + 56);
+  wet.addColorStop(0, dark ? "rgba(0,0,0,0.22)" : "rgba(150,115,70,0.2)"); wet.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = wet; g.fillRect(0, seaH - 4, W, 60);
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(120,90,55,0.25)";
+  for (let i = 0; i < W / 8; i++) { g.beginPath(); g.arc(rand(0, W), seaH + rand(10, 44), rand(0.5, 1.2), 0, TAU); g.fill(); }
+  // Rizos que deja el viento: grupitos de líneas onduladas paralelas, con su sombra y su luz
+  g.lineCap = "round";
+  for (let i = 0; i < Math.round((W * H) / 34000) + 2; i++) {
+    const x0 = rand(0, W), y0 = rand(seaH + 56, H), len = rand(50, 110), n = 4 + Math.floor(Math.random() * 4), ang = rand(-0.25, 0.25), ph = rand(0, TAU);
+    g.save(); g.translate(x0, y0); g.rotate(ang);
+    for (let k = 0; k < n; k++) {
+      const l = len * (1 - Math.abs(k - n / 2) / n);
+      for (const [dy, col, lw] of [[0, sand + "0.13)", 1.3], [1.4, dark ? "rgba(255,240,210,0.05)" : "rgba(255,255,255,0.6)", 1]]) {
+        g.strokeStyle = col; g.lineWidth = lw; g.beginPath();
+        for (let j = 0, x = -l / 2; x <= l / 2; j++, x += 4) { const y = k * 6 + dy + Math.sin(x * 0.12 + ph + k * 0.6) * 1.6; j ? g.lineTo(x, y) : g.moveTo(x, y); }
+        g.stroke();
+      }
+    }
+    g.restore();
+  }
+  // Granitos y piedritas
+  for (let i = 0; i < Math.round((W * H) / 80); i++) {
+    g.fillStyle = Math.random() < 0.5 ? (dark ? "rgba(255,240,210,0.06)" : "rgba(255,255,255,0.85)") : dark ? "rgba(0,0,0,0.18)" : "rgba(160,125,75,0.16)";
+    g.fillRect(rand(0, W), rand(seaH, H), 1.1, 1.1);
+  }
+  for (let i = 0; i < Math.round((W * H) / 30000) + 2; i++) {
+    const x = rand(10, W - 10), y = rand(seaH + 40, H - 10);
+    for (let k = 0; k < 3; k++) {
+      const px = x + rand(-8, 8), py = y + rand(-4, 4), r = rand(1.6, 3.2);
+      g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(120,95,60,0.18)"; g.beginPath(); g.ellipse(px + 0.8, py + 0.8, r, r * 0.7, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "#6B6152" : ["#CFC3B0", "#B9AE9C", "#DDD3C4"][k]; g.beginPath(); g.ellipse(px, py, r, r * 0.7, 0, 0, TAU); g.fill();
+    }
+  }
+  // Una hilera de huellas de pasos que sube desde abajo hacia el mar
+  {
+    let x = rand(W * 0.3, W * 0.7), y = H + 10, a = -Math.PI / 2 + rand(-0.4, 0.4);
+    g.fillStyle = dark ? "rgba(0,0,0,0.2)" : "rgba(150,115,70,0.15)";
+    for (let i = 0; i < 40 && y > seaH + 40; i++) {
+      a += rand(-0.1, 0.1); x += Math.cos(a) * 15; y += Math.sin(a) * 15;
+      const sd = i % 2 ? 1 : -1, px = x + Math.cos(a + Math.PI / 2) * 4 * sd, py = y + Math.sin(a + Math.PI / 2) * 4 * sd;
+      g.save(); g.translate(px, py); g.rotate(a + Math.PI / 2);
+      g.beginPath(); g.ellipse(0, 0, 2.3, 4, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(0, -5.2, 1.8, 1.5, 0, 0, TAU); g.fill();
+      g.restore();
+    }
+  }
+  // Conchitas y estrellas de mar (pocas, para que no se vea amontonado)
+  const items = Math.max(3, Math.round((W * H) / 60000));
   for (let i = 0; i < items; i++) {
-    const x = rand(20, W - 20), y = rand(seaH + 40, H - 20), rot = rand(0, TAU), s = rand(0.8, 1.2);
-    g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.globalAlpha = PAL.onDark ? 0.35 : 0.55;
-    if (i % 2) { // estrella de mar
+    const x = rand(20, W - 20), y = rand(seaH + 40, H - 20), rot = rand(0, TAU), sc = rand(0.8, 1.2);
+    g.save(); g.translate(x, y); g.rotate(rot); g.scale(sc, sc); g.globalAlpha = dark ? 0.35 : 0.6;
+    if (i % 2) {
       g.fillStyle = "#EE9D78"; g.beginPath();
       for (let k = 0; k < 10; k++) { const r = k % 2 ? 3.4 : 9, a = (k * Math.PI) / 5 - Math.PI / 2; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
       g.closePath(); g.fill();
       g.fillStyle = "rgba(255,240,225,0.8)"; for (let k = 0; k < 5; k++) { const a = (k * TAU) / 5 - Math.PI / 2; g.beginPath(); g.arc(Math.cos(a) * 4.5, Math.sin(a) * 4.5, 0.8, 0, TAU); g.fill(); }
-    } else { // conchita
+    } else {
       g.fillStyle = "#F6D7C6"; g.strokeStyle = "rgba(190,130,100,0.55)"; g.lineWidth = 0.9;
       g.beginPath(); g.moveTo(0, 5); g.arc(0, 5, 9, Math.PI * 1.12, Math.PI * 1.88); g.closePath(); g.fill(); g.stroke();
       for (let k = 1; k < 5; k++) { const a = Math.PI * (1.12 + 0.76 * (k / 5)); g.beginPath(); g.moveTo(0, 5); g.lineTo(Math.cos(a) * 9, 5 + Math.sin(a) * 9); g.stroke(); }
     }
     g.restore();
+  }
+  // Un palo que trajo el mar y unas algas, junto a la orilla
+  {
+    const x = rand(W * 0.15, W * 0.85), y = seaH + rand(24, 34), wl = W < PHONE_WIDTH ? 0.8 : 1;
+    g.save(); g.translate(x, y); g.rotate(rand(-0.3, 0.3)); g.scale(wl, wl);
+    g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(150,115,70,0.2)"; g.beginPath(); g.ellipse(3, 3, 27, 3.5, 0, 0, TAU); g.fill();
+    g.strokeStyle = dark ? "#5B4A3A" : "#B79A76"; g.lineWidth = 3; g.beginPath(); g.moveTo(8, -1); g.lineTo(18, -9); g.stroke();
+    g.fillStyle = dark ? "#5B4A3A" : "#BFA27E"; g.beginPath(); g.roundRect(-25, -3, 50, 6, 3); g.fill();
+    g.strokeStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.5)"; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-20, -1); g.lineTo(16, -1.5); g.stroke();
+    g.strokeStyle = "rgba(0,0,0,0.15)"; g.beginPath(); g.moveTo(-18, 1.5); g.lineTo(20, 1); g.stroke();
+    g.restore();
+    for (let k = 0; k < 2; k++) {
+      const ax = rand(20, W - 20), ay = seaH + rand(16, 30);
+      g.strokeStyle = dark ? "rgba(70,110,80,0.6)" : "rgba(78,122,74,0.75)"; g.lineWidth = 1.6;
+      for (let j = 0; j < 5; j++) { const a = rand(-0.9, 0.9), l = rand(8, 15); g.beginPath(); g.moveTo(ax, ay); g.quadraticCurveTo(ax + Math.cos(a) * l * 0.6, ay + Math.sin(a) * l * 0.3 - 4, ax + Math.cos(a) * l, ay + Math.sin(a) * l * 0.5); g.stroke(); }
+    }
+  }
+  // Matitas de duna en las esquinas de abajo
+  for (const sx of [0, 1]) for (let i = 0; i < (W > 600 ? 3 : 2); i++) {
+    const x = sx ? W - rand(8, 64) : rand(8, 64), y = H - rand(4, 30);
+    g.fillStyle = dark ? "rgba(0,0,0,0.18)" : "rgba(170,135,80,0.16)"; g.beginPath(); g.ellipse(x, y, 12, 3.5, 0, 0, TAU); g.fill();
+    for (let j = 0; j < 8; j++) {
+      const ex = x + rand(-11, 11), ey = y - rand(12, 24);
+      g.strokeStyle = dark ? (j % 2 ? "#4E5A3A" : "#5E6A44") : j % 2 ? "#9AAA62" : "#B7C17A"; g.lineWidth = 1.3;
+      g.beginPath(); g.moveTo(x + rand(-4, 4), y); g.quadraticCurveTo(x + (ex - x) * 0.3, y - (y - ey) * 0.6, ex, ey); g.stroke();
+    }
   }
   buildBeachProps(g);
   bgLayer = c;
@@ -3552,12 +3628,46 @@ function drawBackground(dt) {
     if (PAL.dark) { wg.addColorStop(0, "#173F50"); wg.addColorStop(1, "#2A6A80"); } else { wg.addColorStop(0, "#5DBFD9"); wg.addColorStop(1, "#A6E1EE"); }
     ctx.fillStyle = wg;
     ctx.beginPath(); ctx.moveTo(0, 0); for (let x = 0; x <= W + 12; x += 12) ctx.lineTo(x, edge(x, 0, 0)); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
+    // Textura del agua: rayitas de luz que se mueven despacio
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 1.2;
+    for (let i = 0; i < 16; i++) {
+      const yy = seaH * (0.1 + (i % 5) * 0.15) + tide * 0.3, x = ((i * 97 + time * (5 + (i % 3) * 3)) % (W + 60)) - 30, l = 8 + (i % 4) * 6;
+      ctx.globalAlpha = (PAL.dark ? 0.08 : 0.22) * (0.6 + 0.4 * Math.sin(time + i));
+      ctx.beginPath(); ctx.moveTo(x - l, yy); ctx.quadraticCurveTo(x, yy - 2, x + l, yy); ctx.stroke();
+    }
+    // De noche, la luna se refleja en el agua
+    if (PAL.dark) {
+      const mx = W * 0.74;
+      ctx.fillStyle = "#FFF4D6";
+      for (let i = 0; i < 9; i++) {
+        const yy = seaH * (0.08 + i * 0.095), wd = 7 + i * 1.6 + Math.sin(time * 2 + i * 1.3) * 3;
+        if (yy > seaH - 8) break;
+        ctx.globalAlpha = 0.32 * (1 - i / 10); ctx.fillRect(mx - wd / 2 + Math.sin(time * 1.4 + i) * 2, yy, wd, 1.6);
+      }
+    }
+    // Un velerito a lo lejos que cruza muy despacio
+    {
+      const s = clamp(seaH / 70, 0.7, 1.1), bx = ((time * 7 + W * 0.3) % (W + 120)) - 60, by = seaH * 0.34 + Math.sin(time * 1.2) * 0.8;
+      ctx.globalAlpha = PAL.dark ? 0.2 : 0.25; ctx.fillStyle = PAL.dark ? "#000000" : "#2B6C93"; ctx.fillRect(bx - 9 * s, by + 4 * s, 18 * s, 1.4);
+      ctx.globalAlpha = 1; ctx.fillStyle = PAL.dark ? "#2A3442" : "#3E4A5C";
+      poly(ctx, [[bx - 11 * s, by], [bx + 11 * s, by], [bx + 8 * s, by + 4 * s], [bx - 8 * s, by + 4 * s]]); ctx.fill();
+      ctx.strokeStyle = PAL.dark ? "#8C95A3" : "#5B6474"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx, by - 21 * s); ctx.stroke();
+      ctx.fillStyle = PAL.dark ? "#AEB7C6" : "#FFFFFF"; poly(ctx, [[bx + 1, by - 20 * s], [bx + 1, by - 2], [bx + 11 * s, by - 2]]); ctx.fill();
+      ctx.fillStyle = PAL.dark ? "#8E98A8" : "#FFE3D8"; poly(ctx, [[bx - 1, by - 16 * s], [bx - 1, by - 2], [bx - 8 * s, by - 2]]); ctx.fill();
+      if (PAL.dark) { const lg = ctx.createRadialGradient(bx, by - 21 * s, 0, bx, by - 21 * s, 6); lg.addColorStop(0, "rgba(255,220,150,0.9)"); lg.addColorStop(1, "rgba(255,220,150,0)"); ctx.fillStyle = lg; ctx.fillRect(bx - 6, by - 21 * s - 6, 12, 12); }
+    }
     // espuma en la orilla y una ola más adentro
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctx.strokeStyle = "#FFFFFF"; ctx.globalAlpha = PAL.dark ? 0.5 : 0.9; ctx.lineWidth = 3;
     ctx.beginPath(); for (let x = 0; x <= W + 12; x += 12) x ? ctx.lineTo(x, edge(x, 0, 0)) : ctx.moveTo(x, edge(x, 0, 0)); ctx.stroke();
     ctx.globalAlpha = PAL.dark ? 0.2 : 0.4; ctx.lineWidth = 2;
     ctx.beginPath(); for (let x = 0; x <= W + 12; x += 12) { const y = edge(x, -seaH * 0.38, 2.4); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    // El agua que llega y se regresa: un encaje de espuma con burbujitas sobre la arena
+    const swash = (Math.sin(time * 0.55) * 0.5 + 0.5) * 10 * (reduceMotion ? 0.3 : 1);
+    ctx.globalAlpha = PAL.dark ? 0.22 : 0.5; ctx.lineWidth = 1.4;
+    ctx.beginPath(); for (let x = 0; x <= W + 12; x += 12) { const y = edge(x, 5 + swash, 3.1); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    ctx.fillStyle = "#FFFFFF";
+    for (let x = 6; x < W; x += 11) { ctx.globalAlpha = (PAL.dark ? 0.2 : 0.45) * (0.5 + 0.5 * Math.sin(x * 1.7 + time)); ctx.beginPath(); ctx.arc(x + Math.sin(x) * 3, edge(x, 8 + swash + (x % 3), 3.1), 1.1, 0, TAU); ctx.fill(); }
     // destellos del sol en el agua
     for (let i = 0; i < 7; i++) {
       const x = ((i * W) / 7 + time * (10 + i * 2)) % (W + 30) - 15, y = seaH * (0.2 + (i % 3) * 0.2);
@@ -3661,9 +3771,12 @@ function drawRide(g, x, y, ang, r, ride, alpha) {
   }
   g.globalAlpha = alpha;
 }
-// Fondo nevado: picos al fondo (como el mar en la playa, ahí no se puede entrar), nieve con textura y pinos
+// Fondo nevado: picos al fondo (como el mar en la playa, ahí no se puede entrar), nieve con textura, pinos, un estanque
+// congelado, huellas de conejo y de pajarito, un muñeco de nieve y (en compu) un cerquito medio enterrado.
+// El cielo y las montañas van en capas aparte para que, de noche, la aurora y las estrellas queden detrás de los picos.
+let ridgeLayer = null, skyStars = [];
 function buildSnow() {
-  const dark = PAL.dark, top = seaH, small = W < PHONE_WIDTH;
+  const dark = PAL.dark, top = seaH, small = W < PHONE_WIDTH, k = small ? 0.85 : 1;
   // Pinos: a los lados, para que no estorben en medio
   const n = W * H > 420000 ? 6 : W * H > 260000 ? 5 : 4;
   for (let tries = 0; pines.length < n && tries < 200; tries++) {
@@ -3672,12 +3785,19 @@ function buildSnow() {
     const h = rand(56, 84) * (small ? 0.82 : 1);
     pines.push({ x, y, h, ph: rand(0, TAU), spr: makePine(h, dark) });
   }
+  // Un muñeco de nieve y, en compu, un cerquito de madera (también a los lados)
+  for (const kind of small ? ["snowman"] : ["snowman", "fence"]) for (let tries = 0; tries < 80; tries++) {
+    const left = Math.random() < 0.5, x = left ? rand(30, W * 0.22) : rand(W * 0.78, W - 30), y = rand(top + 90, H - 18);
+    if (pines.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < 80)) continue;
+    if (kind === "snowman") pines.push({ x, y, h: 64 * k, sway: 0, spr: makePropSprite((gg) => paintSnowman(gg, 32 * k, 68 * k, k, dark), 64 * k, 72 * k, 32 * k, 68 * k) });
+    else pines.push({ x, y, h: 30, sway: 0, spr: makePropSprite((gg) => paintFence(gg, 52, 34, k, dark), 104, 42, 52, 34) });
+    break;
+  }
   pines.sort((a, b) => a.y - b.y);
   const c = document.createElement("canvas");
   c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR);
-  // --- La nieve del campo
-  // Lomas: sombras azuladas y zonas más iluminadas, para que el piso se sienta ondulado
+  // --- La nieve del campo. Lomas: sombras azuladas y zonas más iluminadas
   for (let i = 0; i < Math.round((W * H) / 40000) + 4; i++) {
     const x = rand(0, W), y = rand(top, H), r = rand(60, 170), sh = i % 3 !== 0;
     const gr = g.createRadialGradient(x, y, 0, x, y, r);
@@ -3685,14 +3805,79 @@ function buildSnow() {
     gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`);
     g.fillStyle = gr; g.save(); g.translate(x, y); g.scale(1, 0.45); g.translate(-x, -y); g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.restore();
   }
-  // Montoncitos de nieve que el viento dejó: una sombra abajo y un brillo arriba
+  // Crestas que talla el viento (sastrugi): grupitos de líneas onduladas con sombra azul y filo de luz
   g.lineCap = "round";
-  for (let i = 0; i < Math.round((W * H) / 13000); i++) {
+  for (let i = 0; i < Math.round((W * H) / 26000) + 3; i++) {
+    const x0 = rand(0, W), y0 = rand(top + 40, H), len = rand(40, 100), nn = 3 + Math.floor(Math.random() * 4), ang = rand(-0.35, 0.35), ph = rand(0, TAU);
+    g.save(); g.translate(x0, y0); g.rotate(ang);
+    for (let j = 0; j < nn; j++) {
+      const l = len * (1 - Math.abs(j - nn / 2) / nn);
+      for (const [dy, col, lw] of [[0, dark ? "rgba(0,0,0,0.2)" : "rgba(110,140,190,0.16)", 1.6], [-1.3, dark ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.95)", 1.2]]) {
+        g.strokeStyle = col; g.lineWidth = lw; g.beginPath();
+        for (let q = 0, x = -l / 2; x <= l / 2; q++, x += 4) { const y = j * 7 + dy + Math.sin(x * 0.09 + ph + j) * 2.2; q ? g.lineTo(x, y) : g.moveTo(x, y); }
+        g.stroke();
+      }
+    }
+    g.restore();
+  }
+  // Montoncitos de nieve que el viento dejó: una sombra abajo y un brillo arriba
+  for (let i = 0; i < Math.round((W * H) / 18000); i++) {
     const x = rand(0, W), y = rand(top + 24, H), w = rand(26, 70), b = rand(4, 8);
     g.strokeStyle = dark ? "rgba(0,0,0,0.22)" : "rgba(110,140,190,0.17)"; g.lineWidth = 2.6;
     g.beginPath(); g.moveTo(x - w / 2, y); g.quadraticCurveTo(x, y - b, x + w / 2, y); g.stroke();
     g.strokeStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)"; g.lineWidth = 1.6;
     g.beginPath(); g.moveTo(x - w * 0.42, y - 2); g.quadraticCurveTo(x, y - b - 2, x + w * 0.42, y - 2); g.stroke();
+  }
+  // Estanque congelado: orilla de nieve, hielo con reflejos, grietas y escarcha en las orillas
+  const pond = (() => {
+    for (let t = 0; t < 40; t++) {
+      const rx = clamp(W * 0.11, 46, 88), ry = rx * 0.42, x = rand(W * 0.32, W * 0.68), y = rand(top + 70 + ry, H - 40 - ry);
+      if (!pines.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < rx + 50)) return { x, y, rx, ry };
+    }
+    return null;
+  })();
+  if (pond) {
+    const { x, y, rx, ry } = pond;
+    g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.16)"; g.beginPath(); g.ellipse(x, y + 2, rx + 7, ry + 5, 0, 0, TAU); g.fill();
+    g.fillStyle = dark ? "#C2D0E2" : "#FFFFFF"; g.beginPath(); g.ellipse(x, y, rx + 6, ry + 4, 0, 0, TAU); g.fill();
+    const ice = g.createLinearGradient(x - rx, y - ry, x + rx, y + ry);
+    ice.addColorStop(0, dark ? "#3A5A7A" : "#D8ECF8"); ice.addColorStop(1, dark ? "#22384E" : "#9CC4E2");
+    g.fillStyle = ice; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+    g.save(); g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.clip();
+    g.fillStyle = dark ? "rgba(0,0,0,0.2)" : "rgba(80,120,170,0.18)"; g.beginPath(); g.ellipse(x, y - ry * 0.9, rx * 1.1, ry * 0.5, 0, 0, TAU); g.fill(); // la sombra de la orilla de arriba
+    g.strokeStyle = dark ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.75)"; g.lineWidth = 3;
+    for (const o of [-0.35, -0.1, 0.25]) { g.beginPath(); g.moveTo(x + rx * o - 10, y + ry * 0.7); g.lineTo(x + rx * o + 14, y - ry * 0.7); g.stroke(); g.lineWidth = 1.4; }
+    g.strokeStyle = dark ? "rgba(200,225,255,0.35)" : "rgba(255,255,255,0.9)"; g.lineWidth = 0.8;
+    for (let j = 0; j < 3; j++) {
+      let cx = x + rand(-rx * 0.5, rx * 0.5), cy = y + rand(-ry * 0.4, ry * 0.4), a = rand(0, TAU);
+      g.beginPath(); g.moveTo(cx, cy);
+      for (let q = 0; q < 5; q++) { a += rand(-0.8, 0.8); cx += Math.cos(a) * rand(6, 12); cy += Math.sin(a) * rand(3, 6); g.lineTo(cx, cy); }
+      g.stroke();
+    }
+    g.fillStyle = dark ? "rgba(220,235,255,0.12)" : "rgba(255,255,255,0.6)";
+    for (let j = 0; j < 14; j++) { const a = rand(0, TAU); g.beginPath(); g.ellipse(x + Math.cos(a) * rx * 0.88, y + Math.sin(a) * ry * 0.85, rand(4, 9), rand(2, 3), a, 0, TAU); g.fill(); }
+    g.restore();
+    // Huellitas de pajarito junto al estanque
+    g.strokeStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(90,120,170,0.3)"; g.lineWidth = 0.9;
+    let bx = x + rx + 10, by = y - 6;
+    for (let j = 0; j < 7; j++) {
+      bx += rand(5, 9); by += rand(-4, 4) + (j % 2 ? 3 : -3);
+      for (const a of [-0.5, 0, 0.5]) { g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(-Math.PI / 2 + a + 0.6) * 3.2, by + Math.sin(-Math.PI / 2 + a + 0.6) * 3.2); g.stroke(); }
+    }
+  }
+  // Huellas de conejo que cruzan la nieve (dos largas adelante, dos chiquitas atrás)
+  {
+    let x = -10, y = rand(top + 100, H - 60), a = rand(-0.3, 0.3);
+    g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.2)";
+    for (let i = 0; i < 40 && x < W + 10; i++) {
+      a += rand(-0.15, 0.15); x += Math.cos(a) * 26; y += Math.sin(a) * 26; y = clamp(y, top + 60, H - 20);
+      const px = -Math.sin(a), py = Math.cos(a);
+      g.save(); g.translate(x, y); g.rotate(a);
+      for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(6, sd * 3, 3.6, 1.6, 0, 0, TAU); g.fill(); }
+      g.beginPath(); g.ellipse(-3, 0, 1.6, 1.3, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(-7, 0.6, 1.6, 1.3, 0, 0, TAU); g.fill();
+      g.restore();
+      void px; void py;
+    }
   }
   // Grano fino de la nieve
   for (let i = 0; i < Math.round((W * H) / 260); i++) {
@@ -3703,61 +3888,101 @@ function buildSnow() {
   // Piedritas asomándose
   for (let i = 0; i < 3; i++) {
     const x = rand(W * 0.25, W * 0.75), y = rand(top + 60, H - 30), r = rand(5, 9);
+    if (pond && Math.hypot(x - pond.x, (y - pond.y) * 2) < pond.rx + 20) continue;
     g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.14)"; g.beginPath(); g.ellipse(x + 2, y + 2, r * 1.2, r * 0.45, 0, 0, TAU); g.fill();
     g.fillStyle = dark ? "#4B5568" : "#9AA5B4"; g.beginPath(); g.ellipse(x, y, r, r * 0.62, 0, Math.PI, TAU); g.ellipse(x, y, r, r * 0.22, 0, 0, Math.PI); g.fill();
     g.fillStyle = dark ? "#C9D5E4" : "#FFFFFF"; g.beginPath(); g.ellipse(x - r * 0.1, y - r * 0.48, r * 0.72, r * 0.24, 0, 0, TAU); g.fill();
   }
-  // Sombras de los pinos sobre la nieve
+  // Sombras de los pinos (y lo demás) sobre la nieve
   for (const p of pines) {
     g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(70,105,160,0.14)";
     g.beginPath(); g.ellipse(p.x + p.h * 0.16, p.y + 1, p.h * 0.34, p.h * 0.09, 0.08, 0, TAU); g.fill();
   }
-  // --- Los picos, al fondo
+  // --- El cielo: de día con el sol; de noche, oscuro (las estrellas, la luna y la aurora se pintan aparte)
   const sky = g.createLinearGradient(0, 0, 0, top);
-  if (dark) { sky.addColorStop(0, "#151C2A"); sky.addColorStop(1, "#283750"); } else { sky.addColorStop(0, "#BFD8F0"); sky.addColorStop(1, "#E7F1FB"); }
+  if (dark) { sky.addColorStop(0, "#0F1522"); sky.addColorStop(1, "#24324A"); } else { sky.addColorStop(0, "#B6D2EE"); sky.addColorStop(1, "#E9F2FB"); }
   g.fillStyle = sky; g.fillRect(0, 0, W, top + 2);
-  const range = (base, amp, step, col, cap) => {
+  if (!dark) { const sx = W * 0.8, sy = top * 0.32, sg = g.createRadialGradient(sx, sy, 0, sx, sy, top * 0.9); sg.addColorStop(0, "rgba(255,250,225,0.95)"); sg.addColorStop(0.12, "rgba(255,246,210,0.8)"); sg.addColorStop(0.4, "rgba(255,240,200,0.2)"); sg.addColorStop(1, "rgba(255,240,200,0)"); g.fillStyle = sg; g.fillRect(0, 0, W, top); }
+  bgLayer = c;
+  skyStars = [];
+  if (dark) for (let i = 0; i < Math.round(W / 9); i++) skyStars.push({ x: rand(0, W), y: rand(2, top * 0.8), r: rand(0.5, 1.3), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
+  // --- Las montañas (en su propia capa): tres cordilleras, cada pico con su lado de sombra y su capa de nieve
+  const c2 = document.createElement("canvas");
+  c2.width = Math.ceil(W * DPR); c2.height = Math.ceil((top + 24) * DPR);
+  const m = c2.getContext("2d"); m.scale(DPR, DPR);
+  const range = (base, amp, step, col, cap, shade) => {
     const peaks = [];
     for (let x = -rand(0, step); x < W + step; x += step * rand(0.75, 1.25)) peaks.push({ x, y: base - amp * rand(0.55, 1), v: base - amp * rand(0.08, 0.3) });
-    g.fillStyle = col; g.beginPath(); g.moveTo(-10, base + 4);
-    peaks.forEach((p, i) => { g.lineTo(p.x, p.y); const nx = peaks[i + 1] ? (p.x + peaks[i + 1].x) / 2 : p.x + step / 2; g.lineTo(nx, p.v); });
-    g.lineTo(W + 10, base + 4); g.closePath(); g.fill();
+    m.fillStyle = col; m.beginPath(); m.moveTo(-10, base + 4);
+    peaks.forEach((p, i) => { m.lineTo(p.x, p.y); const nx = peaks[i + 1] ? (p.x + peaks[i + 1].x) / 2 : p.x + step / 2; m.lineTo(nx, p.v); });
+    m.lineTo(W + 10, base + 4); m.closePath(); m.fill();
+    // El lado de sombra de cada pico (la luz viene de la izquierda) y unas vetas de roca
+    peaks.forEach((p, i) => {
+      const nx = peaks[i + 1] ? (p.x + peaks[i + 1].x) / 2 : p.x + step / 2;
+      m.fillStyle = shade; poly(m, [[p.x, p.y], [nx, p.v], [nx, base + 4], [p.x + (nx - p.x) * 0.15, base + 4]]); m.fill();
+      m.strokeStyle = shade; m.lineWidth = 1;
+      for (let j = 1; j < 3; j++) { const t = j / 3; m.beginPath(); m.moveTo(p.x - (p.x - (peaks[i - 1] ? (peaks[i - 1].x + p.x) / 2 : p.x - step / 2)) * t * 0.6, p.y + (base - p.y) * t); m.lineTo(p.x - 2, p.y + (base - p.y) * t * 0.7); m.stroke(); }
+    });
     // Capas de nieve en cada pico, con la orilla en zigzag
-    g.fillStyle = cap;
+    m.fillStyle = cap;
     peaks.forEach((p, i) => {
       const prev = peaks[i - 1] ? (peaks[i - 1].x + p.x) / 2 : p.x - step / 2, next = peaks[i + 1] ? (p.x + peaks[i + 1].x) / 2 : p.x + step / 2;
-      const pv = peaks[i - 1] ? peaks[i - 1].v : base, nv = p.v, d = amp * rand(0.24, 0.34), k = d / Math.max(1, p.v - p.y);
-      const lx = p.x + (prev - p.x) * Math.min(1, d / Math.max(1, pv - p.y)), rx = p.x + (next - p.x) * Math.min(1, k), y = p.y + d;
-      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(lx, y);
+      const pv = peaks[i - 1] ? peaks[i - 1].v : base, nv = p.v, d = amp * rand(0.24, 0.34), kk = d / Math.max(1, nv - p.y);
+      const lx = p.x + (prev - p.x) * Math.min(1, d / Math.max(1, pv - p.y)), rx = p.x + (next - p.x) * Math.min(1, kk), y = p.y + d;
+      m.beginPath(); m.moveTo(p.x, p.y); m.lineTo(lx, y);
       const teeth = 4;
-      for (let t = 1; t <= teeth; t++) { const xx = lx + ((rx - lx) * t) / teeth; g.lineTo(xx - (rx - lx) / teeth / 2, y + (t % 2 ? -d * 0.3 : d * 0.12)); g.lineTo(xx, y); }
-      g.closePath(); g.fill();
+      for (let t = 1; t <= teeth; t++) { const xx = lx + ((rx - lx) * t) / teeth; m.lineTo(xx - (rx - lx) / teeth / 2, y + (t % 2 ? -d * 0.3 : d * 0.12)); m.lineTo(xx, y); }
+      m.closePath(); m.fill();
     });
   };
-  range(top * 0.8, top * 0.62, 78, dark ? "#2E3C54" : "#B4C9E2", dark ? "rgba(170,185,210,0.85)" : "#F3F8FD");
-  range(top * 0.98, top * 0.5, 104, dark ? "#394A66" : "#93AED0", dark ? "#C2D0E2" : "#FFFFFF");
+  range(top * 0.62, top * 0.5, 64, dark ? "#26324A" : "#CAD9EC", dark ? "rgba(150,165,190,0.6)" : "#F4F8FD", dark ? "rgba(0,0,0,0.12)" : "rgba(90,120,170,0.08)");
+  range(top * 0.8, top * 0.62, 78, dark ? "#2E3C54" : "#B4C9E2", dark ? "rgba(170,185,210,0.85)" : "#F3F8FD", dark ? "rgba(0,0,0,0.18)" : "rgba(70,100,150,0.12)");
+  range(top * 0.98, top * 0.5, 104, dark ? "#394A66" : "#93AED0", dark ? "#C2D0E2" : "#FFFFFF", dark ? "rgba(0,0,0,0.2)" : "rgba(60,90,140,0.14)");
   // Pinitos sobre la cresta (siluetas)
   for (let x = rand(0, 18); x < W; x += rand(12, 30)) {
     const h = rand(top * 0.14, top * 0.26), y = top + rand(-3, 1);
-    g.fillStyle = dark ? "#21403A" : "#3D6F60";
-    for (let k = 0; k < 3; k++) { const ty = y - k * h * 0.28, tw = h * (0.32 - k * 0.07); g.beginPath(); g.moveTo(x, ty - h * 0.45); g.lineTo(x - tw, ty); g.lineTo(x + tw, ty); g.closePath(); g.fill(); }
-    g.fillStyle = dark ? "#C2D0E2" : "#FFFFFF"; g.beginPath(); g.moveTo(x, y - h * 1.01); g.lineTo(x - h * 0.08, y - h * 0.82); g.lineTo(x + h * 0.08, y - h * 0.82); g.closePath(); g.fill();
+    m.fillStyle = dark ? "#21403A" : "#3D6F60";
+    for (let j = 0; j < 3; j++) { const ty = y - j * h * 0.28, tw = h * (0.32 - j * 0.07); m.beginPath(); m.moveTo(x, ty - h * 0.45); m.lineTo(x - tw, ty); m.lineTo(x + tw, ty); m.closePath(); m.fill(); }
+    m.fillStyle = dark ? "#C2D0E2" : "#FFFFFF"; m.beginPath(); m.moveTo(x, y - h * 1.01); m.lineTo(x - h * 0.08, y - h * 0.82); m.lineTo(x + h * 0.08, y - h * 0.82); m.closePath(); m.fill();
   }
   // Banco de nieve: donde empieza el campo (con su sombrita)
   const edge = (x, off) => top + off + Math.sin(x * 0.045) * 2.5 + Math.sin(x * 0.013 + 1) * 3.5;
-  g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.13)";
-  g.beginPath(); g.moveTo(0, top); for (let x = 0; x <= W + 10; x += 10) g.lineTo(x, edge(x, 14)); g.lineTo(W, top); g.closePath(); g.fill();
-  const bank = g.createLinearGradient(0, top - 8, 0, top + 12);
+  m.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.13)";
+  m.beginPath(); m.moveTo(0, top); for (let x = 0; x <= W + 10; x += 10) m.lineTo(x, edge(x, 14)); m.lineTo(W, top); m.closePath(); m.fill();
+  const bank = m.createLinearGradient(0, top - 8, 0, top + 12);
   if (dark) { bank.addColorStop(0, "#3A4862"); bank.addColorStop(1, "#2C374B"); } else { bank.addColorStop(0, "#FFFFFF"); bank.addColorStop(1, "#F1F6FB"); }
-  g.fillStyle = bank;
-  g.beginPath(); for (let x = 0; x <= W + 10; x += 10) x ? g.lineTo(x, edge(x, -6)) : g.moveTo(x, edge(x, -6)); for (let x = W + 10; x >= -10; x -= 10) g.lineTo(x, edge(x + 37, 9)); g.closePath(); g.fill();
-  bgLayer = c;
+  m.fillStyle = bank;
+  m.beginPath(); for (let x = 0; x <= W + 10; x += 10) x ? m.lineTo(x, edge(x, -6)) : m.moveTo(x, edge(x, -6)); for (let x = W + 10; x >= -10; x -= 10) m.lineTo(x, edge(x + 37, 9)); m.closePath(); m.fill();
+  ridgeLayer = { c: c2, h: top + 24 };
   // Destellos de la nieve y copos que caen
   for (let i = 0; i < Math.round((W * H) / 9000); i++) glints.push({ x: rand(0, W), y: rand(top + 10, H), ph: rand(0, TAU), sp: rand(0.5, 1.4) });
   for (let i = 0; i < Math.round((W * H) / 6500); i++) { const r = rand(0.8, 2.4); flakes.push({ x: rand(0, W), y: rand(-10, H), r, sp: 14 + r * 13, ph: rand(0, TAU), sw: rand(6, 16) }); }
 }
 function drawSnowBg() {
   if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+  // De noche: estrellas que titilan, la luna y una aurora suave que ondula (todo detrás de las montañas)
+  if (PAL.dark) {
+    ctx.fillStyle = "#FFFFFF";
+    for (const s of skyStars) { ctx.globalAlpha = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(time * s.sp + s.ph)); ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill(); }
+    const mx = W * 0.18, my = seaH * 0.3, mr = clamp(seaH * 0.12, 6, 11), mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr * 4);
+    mg.addColorStop(0, "rgba(255,248,225,0.35)"); mg.addColorStop(1, "rgba(255,248,225,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = mg; ctx.fillRect(mx - mr * 4, my - mr * 4, mr * 8, mr * 8);
+    ctx.fillStyle = "#FFF6DC"; ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill();
+    ctx.fillStyle = "rgba(200,190,160,0.35)"; ctx.beginPath(); ctx.arc(mx - mr * 0.3, my - mr * 0.15, mr * 0.22, 0, TAU); ctx.arc(mx + mr * 0.35, my + mr * 0.3, mr * 0.15, 0, TAU); ctx.fill();
+    const tt = reduceMotion ? 0 : time;
+    for (let b = 0; b < 2; b++) {
+      const base = seaH * (0.42 + b * 0.16), amp = 5 + b * 3, hgt = seaH * 0.28;
+      const yAt = (x) => base + Math.sin(x * 0.011 + tt * 0.22 + b * 2) * amp + Math.sin(x * 0.027 - tt * 0.35 + b) * 3;
+      const gr = ctx.createLinearGradient(0, base - hgt - amp, 0, base + amp);
+      gr.addColorStop(0, "rgba(150,120,255,0)"); gr.addColorStop(0.6, b ? "rgba(150,120,255,0.14)" : "rgba(110,235,190,0.16)"); gr.addColorStop(1, "rgba(110,235,190,0)");
+      ctx.globalAlpha = 0.7 + 0.3 * Math.sin(tt * 0.3 + b * 1.7); ctx.fillStyle = gr; ctx.beginPath();
+      for (let x = -10; x <= W + 10; x += 12) { const y = yAt(x); x === -10 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+      for (let x = W + 10; x >= -10; x -= 12) ctx.lineTo(x, yAt(x) - hgt);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (ridgeLayer) ctx.drawImage(ridgeLayer.c, 0, 0, W, ridgeLayer.h);
   // Neblina que pasa despacio frente a las montañas
   for (let i = 0; i < 2; i++) {
     const x = ((time * (7 + i * 4) + i * W * 0.6) % (W + 360)) - 180, y = seaH * (0.55 + i * 0.2), r = 150;
@@ -3775,6 +4000,98 @@ function drawSnowBg() {
     ctx.fillRect(s.x - r, s.y - 0.5, r * 2, 1); ctx.fillRect(s.x - 0.5, s.y - r, 1, r * 2);
   }
   ctx.globalAlpha = 1;
+}
+// --- Cositas de The Beach y The Slopes (se pintan una vez, en su propio canvas) ---
+// Castillo de arena con su foso, tres torres hechas con cubeta, puerta, ventanitas y una banderita; a un lado, la cubeta y la pala.
+// (x, y) = el centro de la base
+function paintCastle(g, x, y, s, dark) {
+  const sa = dark ? "#8A7A5E" : "#ECD3A2", sd = dark ? "#6E614A" : "#D2B47E", sl = dark ? "#A29070" : "#F8E6BE", hole = dark ? "#3E3528" : "#9C7B4E";
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(150,115,70,0.22)"; g.beginPath(); g.ellipse(x + 3, y + 1, 36 * s, 9 * s, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(160,125,80,0.3)"; g.beginPath(); g.ellipse(x, y - 1, 33 * s, 8 * s, 0, 0, TAU); g.fill(); // el foso
+  g.fillStyle = sd; g.beginPath(); g.ellipse(x, y - 2, 27 * s, 6 * s, 0, 0, TAU); g.fill();
+  // Una torre: cilindro que se angosta un poco, con sus marcas de cubeta, almenas y la luz del lado izquierdo
+  const tower = (cx, w, h) => {
+    const b = y - 3 * s, t = b - h, w2 = w * 0.86;
+    g.fillStyle = sa; poly(g, [[cx - w / 2, b], [cx + w / 2, b], [cx + w2 / 2, t], [cx - w2 / 2, t]]); g.fill();
+    g.fillStyle = sd; g.globalAlpha = 0.7; poly(g, [[cx + w * 0.1, b], [cx + w / 2, b], [cx + w2 / 2, t], [cx + w2 * 0.08, t]]); g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = sd; g.lineWidth = 0.9;
+    for (let yy = b - 5 * s; yy > t + 3 * s; yy -= 5 * s) { g.beginPath(); g.moveTo(cx - w / 2 + 1, yy); g.lineTo(cx + w / 2 - 1, yy); g.stroke(); }
+    g.fillStyle = sl; g.beginPath(); g.ellipse(cx, t, w2 / 2, w2 * 0.18, 0, 0, TAU); g.fill();
+    g.fillStyle = sa; for (let i = -1; i <= 1; i++) g.fillRect(cx + i * w2 * 0.32 - w2 * 0.1, t - 4 * s, w2 * 0.2, 4 * s);
+    return t;
+  };
+  // Muro de en medio con almenas
+  g.fillStyle = sa; g.fillRect(x - 20 * s, y - 17 * s, 40 * s, 15 * s);
+  g.fillStyle = sd; g.globalAlpha = 0.5; g.fillRect(x + 4 * s, y - 17 * s, 16 * s, 15 * s); g.globalAlpha = 1;
+  g.fillStyle = sa; for (let i = 0; i < 5; i++) g.fillRect(x - 19 * s + i * 8.5 * s, y - 21 * s, 4.5 * s, 4 * s);
+  tower(x - 19 * s, 13 * s, 24 * s); tower(x + 19 * s, 13 * s, 21 * s);
+  const tt = tower(x, 15 * s, 34 * s);
+  // Puerta, ventanitas y la bandera
+  g.fillStyle = hole; g.beginPath(); g.moveTo(x - 4.5 * s, y - 3 * s); g.lineTo(x - 4.5 * s, y - 10 * s); g.arc(x, y - 10 * s, 4.5 * s, Math.PI, TAU); g.lineTo(x + 4.5 * s, y - 3 * s); g.closePath(); g.fill();
+  for (const [wx, wy] of [[x, y - 24 * s], [x - 19 * s, y - 18 * s], [x + 19 * s, y - 16 * s]]) { g.beginPath(); g.ellipse(wx, wy, 1.6 * s, 2.4 * s, 0, 0, TAU); g.fill(); }
+  g.strokeStyle = dark ? "#C9BFAE" : "#7A5A43"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, tt - 2 * s); g.lineTo(x, tt - 16 * s); g.stroke();
+  g.fillStyle = dark ? "#B3594C" : "#FF8A65"; poly(g, [[x, tt - 16 * s], [x + 10 * s, tt - 13 * s], [x, tt - 10 * s]]); g.fill();
+  // La cubeta y la pala
+  const bx = x + 38 * s, by = y + 3 * s;
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(150,115,70,0.22)"; g.beginPath(); g.ellipse(bx + 2, by + 1, 9 * s, 3 * s, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "#2A6A80" : "#2FA3C4"; poly(g, [[bx - 6 * s, by], [bx + 6 * s, by], [bx + 7.5 * s, by - 12 * s], [bx - 7.5 * s, by - 12 * s]]); g.fill();
+  g.fillStyle = dark ? "#3C8AA3" : "#7FD0E6"; g.beginPath(); g.ellipse(bx, by - 12 * s, 7.5 * s, 2.2 * s, 0, 0, TAU); g.fill();
+  g.strokeStyle = dark ? "#C9CCD2" : "#FFFFFF"; g.lineWidth = 1; g.beginPath(); g.arc(bx, by - 12 * s, 6.5 * s, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+  g.strokeStyle = dark ? "#8C7638" : "#F1C84D"; g.lineWidth = 1.8 * s; g.beginPath(); g.moveTo(bx - 14 * s, by + 2 * s); g.lineTo(bx - 20 * s, by - 16 * s); g.stroke();
+  g.fillStyle = dark ? "#8C7638" : "#F1C84D"; g.beginPath(); g.ellipse(bx - 13 * s, by + 3 * s, 3.2 * s, 4.5 * s, -0.3, 0, TAU); g.fill();
+}
+// Pelota de playa con gajos de colores, su brillo y su sombra
+function paintBall(g, x, y, r, dark) {
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(150,115,70,0.22)"; g.beginPath(); g.ellipse(x + r * 0.35, y + 1, r * 1.05, r * 0.32, 0, 0, TAU); g.fill();
+  const cy = y - r, cols = dark ? ["#B3594C", "#D6D2C8", "#2A6A80", "#D6D2C8", "#8C7638", "#D6D2C8"] : ["#FF8A65", "#FFFFFF", "#2FA3C4", "#FFFFFF", "#F1C84D", "#FFFFFF"];
+  g.save(); g.beginPath(); g.arc(x, cy, r, 0, TAU); g.clip();
+  cols.forEach((c, i) => { const a0 = (i / 6) * TAU - 0.4, a1 = ((i + 1) / 6) * TAU - 0.4; g.fillStyle = c; g.beginPath(); g.moveTo(x + r * 0.15, cy - r * 0.2); g.arc(x + r * 0.15, cy - r * 0.2, r * 2, a0, a1); g.closePath(); g.fill(); });
+  const sh = g.createRadialGradient(x - r * 0.35, cy - r * 0.4, r * 0.1, x, cy, r * 1.05);
+  sh.addColorStop(0, "rgba(255,255,255,0.45)"); sh.addColorStop(0.55, "rgba(255,255,255,0)"); sh.addColorStop(1, dark ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.22)");
+  g.fillStyle = sh; g.fillRect(x - r, cy - r, r * 2, r * 2);
+  g.restore();
+  g.fillStyle = dark ? "#D6D2C8" : "#FFFFFF"; g.beginPath(); g.arc(x + r * 0.15, cy - r * 0.2, r * 0.16, 0, TAU); g.fill();
+}
+// Muñeco de nieve: tres bolas, bufanda coral, sombrero, ojos de carbón, nariz de zanahoria y brazos de rama
+function paintSnowman(g, x, y, s, dark) {
+  const snow = dark ? "#D5E0EE" : "#FFFFFF", sh = dark ? "#8FA2BE" : "#CFDDEF";
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(70,105,160,0.16)"; g.beginPath(); g.ellipse(x + 6 * s, y, 20 * s, 5 * s, 0, 0, TAU); g.fill();
+  const ball = (cy, r) => { const gr = g.createRadialGradient(x - r * 0.4, cy - r * 0.45, r * 0.1, x, cy, r); gr.addColorStop(0, snow); gr.addColorStop(1, sh); g.fillStyle = gr; g.beginPath(); g.arc(x, cy, r, 0, TAU); g.fill(); };
+  // Brazos
+  g.strokeStyle = dark ? "#4A3B33" : "#7A5A43"; g.lineWidth = 1.6 * s; g.lineCap = "round";
+  for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(x + sd * 7 * s, y - 31 * s); g.lineTo(x + sd * 20 * s, y - 40 * s); g.moveTo(x + sd * 16 * s, y - 37 * s); g.lineTo(x + sd * 19 * s, y - 44 * s); g.stroke(); }
+  ball(y - 12 * s, 14 * s); ball(y - 31 * s, 10 * s); ball(y - 46 * s, 7.5 * s);
+  // Botones, bufanda, cara y sombrero
+  g.fillStyle = "#2A2D35"; for (const by of [-35, -29, -23]) { g.beginPath(); g.arc(x, y + by * s, 1.3 * s, 0, TAU); g.fill(); }
+  g.fillStyle = dark ? "#B3594C" : "#FF8A65"; g.beginPath(); g.roundRect(x - 8 * s, y - 40.5 * s, 16 * s, 3.6 * s, 1.8 * s); g.fill();
+  g.beginPath(); g.roundRect(x + 2 * s, y - 39 * s, 3.6 * s, 10 * s, 1.5 * s); g.fill();
+  g.fillStyle = "rgba(255,255,255,0.4)"; for (let i = 0; i < 3; i++) g.fillRect(x - 6 * s + i * 5 * s, y - 40.5 * s, 1.4 * s, 3.6 * s);
+  g.fillStyle = "#2A2D35"; for (const ex of [-2.6, 2.6]) { g.beginPath(); g.arc(x + ex * s, y - 48 * s, 1.1 * s, 0, TAU); g.fill(); }
+  for (let i = 0; i < 5; i++) { const a = Math.PI * (0.2 + i * 0.15); g.beginPath(); g.arc(x + Math.cos(a) * 4 * s, y - 45 * s + Math.sin(a) * 2.6 * s, 0.6 * s, 0, TAU); g.fill(); }
+  g.fillStyle = "#F08A3C"; poly(g, [[x, y - 47 * s], [x + 7 * s, y - 45.8 * s], [x, y - 45.2 * s]]); g.fill();
+  g.fillStyle = "#2A2D35"; g.beginPath(); g.ellipse(x, y - 52.5 * s, 9 * s, 2.2 * s, 0, 0, TAU); g.fill();
+  g.fillRect(x - 5.5 * s, y - 63 * s, 11 * s, 10.5 * s);
+  g.fillStyle = dark ? "#6E58A8" : "#A584E8"; g.fillRect(x - 5.5 * s, y - 56 * s, 11 * s, 2.4 * s);
+  g.fillStyle = snow; g.beginPath(); g.ellipse(x - 1 * s, y - 63 * s, 5 * s, 1.4 * s, 0, 0, TAU); g.fill();
+}
+// Cerquito de madera medio enterrado en la nieve, con nieve encima. (x, y) = centro de la base
+function paintFence(g, x, y, s, dark) {
+  const wood = dark ? "#4A3B33" : "#8E6A4E", wood2 = dark ? "#3A2E28" : "#755640", snow = dark ? "#D5E0EE" : "#FFFFFF";
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(70,105,160,0.15)"; g.beginPath(); g.ellipse(x + 4, y + 1, 46 * s, 5 * s, 0, 0, TAU); g.fill();
+  const posts = [-38, -2, 34].map((o) => x + o * s);
+  for (const [ry, sag] of [[-20, 2], [-10, 1.5]]) {
+    g.strokeStyle = wood2; g.lineWidth = 3.4 * s; g.beginPath(); g.moveTo(posts[0], y + ry * s); g.quadraticCurveTo(x, y + (ry + sag) * s, posts[2], y + ry * s - 2); g.stroke();
+    g.strokeStyle = snow; g.lineWidth = 1.6 * s; g.beginPath(); g.moveTo(posts[0], y + (ry - 1.8) * s); g.quadraticCurveTo(x, y + (ry + sag - 1.8) * s, posts[2], y + (ry - 1.8) * s - 2); g.stroke();
+  }
+  posts.forEach((px, i) => {
+    const h = (24 + (i % 2) * 3) * s;
+    g.fillStyle = wood; g.fillRect(px - 2.6 * s, y - h, 5.2 * s, h);
+    g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(px + 0.6 * s, y - h, 2 * s, h);
+    g.fillStyle = snow; g.beginPath(); g.ellipse(px, y - h, 4 * s, 2.2 * s, 0, 0, TAU); g.fill();
+  });
+  // Nieve amontonada al pie
+  g.fillStyle = snow; g.beginPath(); g.ellipse(x - 20 * s, y - 2 * s, 18 * s, 4.5 * s, 0, 0, TAU); g.ellipse(x + 18 * s, y - 1.5 * s, 20 * s, 4 * s, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "rgba(0,0,0,0.12)" : "rgba(110,145,200,0.14)"; g.beginPath(); g.ellipse(x - 14 * s, y - 0.5 * s, 12 * s, 2 * s, 0, 0, TAU); g.fill();
 }
 // The Beach: palmeras y sombrillas (de colores del juego) a los lados, con sus sombras y toallas en la arena.
 // Se acomodan en profundidad entre los marcianitos, igual que los pinos de la nieve.
@@ -3854,13 +4171,13 @@ function makePropSprite(paint, w, h, ax, ay) {
 // Elige dónde van: a los lados (nunca en medio), lejos del mar y separados entre sí
 function buildBeachProps(g) {
   const dark = PAL.onDark, small = W < PHONE_WIDTH, k = small ? 0.85 : 1;
-  const plan = W > 700 ? ["umbrella", "palm", "umbrella", "palm", "umbrella"] : ["umbrella", "palm", "umbrella"];
+  const plan = W > 700 ? ["umbrella", "palm", "umbrella", "palm", "umbrella", "castle", "ball"] : ["umbrella", "palm", "umbrella", "castle"];
   const placed = [], start = Math.random() < 0.5 ? 0 : 1;
   plan.forEach((type, i) => {
     for (let tries = 0; tries < 60; tries++) {
       const left = (start + i) % 2 === 0; // un lado y el otro, para que se vea equilibrado
-      const x = left ? rand(18, W * 0.2) : rand(W * 0.8, W - 18);
-      const y = type === "palm" ? rand(seaH + 90, H * 0.55) : rand(seaH + 70, H - 24);
+      const ml = type === "castle" ? 50 * k : 18, mr = type === "castle" ? 74 * k : 18, x = left ? rand(ml, Math.max(ml + 1, W * 0.2)) : rand(Math.min(W * 0.8, W - mr - 1), W - mr); // el castillo nunca se corta en la orilla
+      const y = type === "palm" ? rand(seaH + 90, H * 0.55) : type === "castle" ? rand(H * 0.5, H - 30) : rand(seaH + 70, H - 24);
       if (placed.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.3) < 120 * k)) continue;
       placed.push({ type, x, y });
       break;
@@ -3868,6 +4185,16 @@ function buildBeachProps(g) {
   });
   let colorI = Math.floor(Math.random() * UMBRELLAS.length);
   for (const p of placed) {
+    if (p.type === "castle") {
+      const sc = k * 1.05, w = 110 * sc, hh = 64 * sc;
+      pines.push({ x: p.x, y: p.y, h: hh, sway: 0, spr: makePropSprite((gg) => paintCastle(gg, w * 0.4, hh - 8, sc, dark), w, hh + 4, w * 0.4, hh - 8) });
+      continue;
+    }
+    if (p.type === "ball") {
+      const r = 11 * k;
+      pines.push({ x: p.x, y: p.y, h: r * 2, sway: 0, spr: makePropSprite((gg) => paintBall(gg, r * 1.6, r * 2.4, r, dark), r * 3.4, r * 3, r * 1.6, r * 2.4) });
+      continue;
+    }
     if (p.type === "palm") {
       const h = rand(120, 150) * k, dir = p.x < W / 2 ? 1 : -1, w = h * 2.3, top = h * 1.45; // lienzo amplio: las hojas nunca se cortan
       g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(120,90,50,0.16)";
@@ -4111,7 +4438,7 @@ function buildCity() {
   g.fillStyle = C.road; g.fillRect(0, 0, W, H);
   for (let i = 0; i < Math.round((W * H) / 30000) + 6; i++) {
     const x = rr(0, W), y = rr(0, H), r = rr(40, 130), lite = R() < 0.5, gr = g.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, lite ? (dark ? "rgba(255,255,255,0.035)" : "rgba(255,255,255,0.07)") : "rgba(0,0,0,0.07)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    gr.addColorStop(0, lite ? (dark ? "rgba(255,255,255,0.035)" : "rgba(255,255,255,0.07)") : "rgba(0,0,0,0.07)"); gr.addColorStop(1, lite ? "rgba(255,255,255,0)" : "rgba(0,0,0,0)");
     g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
   }
   g.lineCap = "butt"; g.strokeStyle = dark ? "rgba(0,0,0,0.13)" : "rgba(40,40,50,0.07)";
