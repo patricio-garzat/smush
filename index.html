@@ -56,6 +56,7 @@
   --on: #6BCB9B;
   --scrim: rgba(28, 28, 26, 0.16);
   --is-dark: 0;
+  --field-dark: 0;
   --font: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
 }
@@ -66,7 +67,7 @@
     --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
     --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
-    --is-dark: 1; color-scheme: dark;
+    --is-dark: 1; --field-dark: 1; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
@@ -75,7 +76,7 @@
   --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
   --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
-  --is-dark: 1; color-scheme: dark;
+  --is-dark: 1; --field-dark: 1; color-scheme: dark;
 }
 
 /* Tema de The Beach (nivel 2): arena, mar y cielo cálido. De noche (tema oscuro), playa de luna */
@@ -86,9 +87,9 @@
   --lvl: #2FA3C4; --lvl-soft: rgba(47, 163, 196, 0.14); --mist: #B7A68A;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
+  :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1C1B17; --field: #D2C4A4; --field-hi: #DED2B5; --speck: transparent; --mist: #8F8068; --field-dark: 0; }
 }
-:root[data-level="beach"][data-theme="dark"] { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
+:root[data-level="beach"][data-theme="dark"] { --bg: #1C1B17; --field: #D2C4A4; --field-hi: #DED2B5; --speck: transparent; --mist: #8F8068; --field-dark: 0; }
 
 /* ============================================================
    Base: sin zoom, sin selección, sin scroll de la página
@@ -633,7 +634,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.6.2";
+const VERSION = "0.6.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1224,17 +1225,18 @@ function readPalette() {
   const cs = getComputedStyle(document.documentElement);
   const v = (n) => cs.getPropertyValue(n).trim();
   PAL.dark = v("--is-dark") === "1";
-  PAL.text = v("--text"); PAL.mist = v("--mist");
-  PAL.shadow = PAL.dark ? "rgba(0,0,0,0.34)" : "rgba(60,52,30,0.13)";
-  PAL.boltCore = PAL.dark ? "rgba(255,255,255," : "rgba(84,116,214,";
-  PAL.boltGlow = PAL.dark ? "rgba(150,178,255," : "rgba(126,160,242,";
+  PAL.onDark = v("--field-dark") === "1"; // el piso es oscuro (en la playa siempre es arena clara)
+  PAL.text = PAL.onDark ? v("--text") : "#242521"; PAL.mist = v("--mist");
+  PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : "rgba(60,52,30,0.13)";
+  PAL.boltCore = PAL.onDark ? "rgba(255,255,255," : "rgba(84,116,214,";
+  PAL.boltGlow = PAL.onDark ? "rgba(150,178,255," : "rgba(126,160,242,";
   PAL.finger = PAL.dark ? "#E8E5DE" : "#FFFFFF";
   PAL.fingerEdge = PAL.dark ? "rgba(0,0,0,0.35)" : "rgba(36,37,33,0.14)";
   PAL.nail = PAL.dark ? "#D9CFCB" : "#F2E4DF";
   for (const k of TYPE_ORDER) {
     const T = BALL_TYPES[k];
     T.light = mix(T.color, "#FFFFFF", 0.4);
-    T.label = PAL.dark ? mix(T.color, "#FFFFFF", 0.2) : mix(T.color, "#000000", 0.32);
+    T.label = PAL.onDark ? mix(T.color, "#FFFFFF", 0.2) : mix(T.color, "#000000", 0.32);
   }
 }
 
@@ -1630,7 +1632,7 @@ function useTool(x, y) {
   }
 }
 function sparks(x, y, n) {
-  for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 160); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2), 0.25, PAL.dark ? "#FFFFFF" : "#7EA0F2", "dot", 7, 0); }
+  for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 160); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2), 0.25, PAL.onDark ? "#FFFFFF" : "#7EA0F2", "dot", 7, 0); }
 }
 // Spray: mientras se mantiene presionado, niebla suave y daño a intervalos controlados (por marcianito)
 function sprayTick(p, dt) {
@@ -2044,7 +2046,7 @@ function buildBackground() {
   const c = document.createElement("canvas");
   c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR);
-  const sand = PAL.dark ? "rgba(255,230,180," : "rgba(175,150,105,";
+  const sand = "rgba(175,150,105,";
   g.lineCap = "round";
   for (let i = 0; i < Math.round(W * H / 16000); i++) {
     const x = rand(0, W), y = rand(seaH + 30, H), w = rand(18, 40);
@@ -2054,7 +2056,7 @@ function buildBackground() {
   const items = Math.max(4, Math.round(W * H / 45000));
   for (let i = 0; i < items; i++) {
     const x = rand(20, W - 20), y = rand(seaH + 40, H - 20), rot = rand(0, TAU), s = rand(0.8, 1.2);
-    g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.globalAlpha = PAL.dark ? 0.35 : 0.55;
+    g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.globalAlpha = 0.55;
     if (i % 2) { // estrella de mar
       g.fillStyle = "#EE9D78"; g.beginPath();
       for (let k = 0; k < 10; k++) { const r = k % 2 ? 3.4 : 9, a = (k * Math.PI) / 5 - Math.PI / 2; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
@@ -2076,7 +2078,7 @@ function drawBackground(dt) {
     const tide = Math.sin(time * 0.35) * 4 * (reduceMotion ? 0.3 : 1);
     const edge = (x, off, ph) => seaH + tide + seaShift + off + Math.sin(x * 0.035 + time * 1.3 + ph) * 3 + Math.sin(x * 0.013 - time * 0.7 + ph) * 2.5;
     // arena mojada
-    ctx.globalAlpha = 1; ctx.fillStyle = PAL.dark ? "rgba(0,0,0,0.12)" : "rgba(175,150,105,0.10)";
+    ctx.globalAlpha = 1; ctx.fillStyle = "rgba(175,150,105,0.12)";
     ctx.beginPath(); ctx.moveTo(0, 0); for (let x = 0; x <= W + 12; x += 12) ctx.lineTo(x, edge(x, 12, 1.5)); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
     // agua
     const wg = ctx.createLinearGradient(0, 0, 0, seaH + 10);
@@ -2212,7 +2214,7 @@ function drawWave(w) {
   if (tr >= w.dur) { back = Math.min(1, (tr - w.dur) / WAVE_BACK); front = H + 20 - (H + 20 - seaH) * easeOut(back); alpha = 1 - back; }
   const t = w.t, crest = (x) => front + Math.sin(x * 0.045 + t * 7) * 6 + Math.sin(x * 0.014 - t * 3.2) * 9;
   // Arena mojada que deja el agua al regresar
-  if (back > 0) { ctx.globalAlpha = 0.12 * (1 - back); ctx.fillStyle = PAL.dark ? "#000000" : "#8C6A3A"; ctx.fillRect(0, front, W, H - front); }
+  if (back > 0) { ctx.globalAlpha = 0.12 * (1 - back); ctx.fillStyle = "#A08A5E"; ctx.fillRect(0, front, W, H - front); }
   // Cuerpo de la ola: más profundo arriba, más claro cerca de la cresta
   const g = ctx.createLinearGradient(0, 0, 0, Math.max(1, front));
   if (PAL.dark) { g.addColorStop(0, "rgba(22,70,92,0.92)"); g.addColorStop(1, "rgba(48,128,155,0.82)"); }
