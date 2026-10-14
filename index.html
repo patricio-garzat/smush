@@ -666,6 +666,9 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
       <div class="coins"><span class="coin" id="coin-egg"></span><span id="coins">0</span></div>
     </div>
     <div class="actions">
+      <button id="btn-settings" class="icon-btn" type="button" aria-label="Settings" data-i18n-aria="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
       <button id="btn-menu" class="icon-btn" type="button" aria-label="Menu" data-i18n-aria="menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg>
       </button>
@@ -912,7 +915,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.22.2";
+const VERSION = "0.22.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -4290,6 +4293,7 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if
 // Eventos de la interfaz
 $("#tools").addEventListener("click", (e) => { const b = e.target.closest(".tool"); if (b) selectTool(b.dataset.id); });
 $("#btn-shop").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-shop")); });
+$("#btn-settings").addEventListener("click", () => { Sound.unlock(); Sound.tick(); openSheet($("#sheet-menu")); });
 $("#btn-menu").addEventListener("click", () => { Sound.unlock(); Sound.tick(); showHome(false); });
 document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) { Sound.tick(); closeSheet(s); } }));
 $("#shop-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === shopTab) return; shopTab = b.dataset.tab; renderShop(true); $("#shop-body").scrollTop = 0; Sound.tick(); });
