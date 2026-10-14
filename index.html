@@ -813,16 +813,16 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.15.4";
+const VERSION = "0.15.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
 // Marcianitos. r = radio del cuerpo en px; speed = px/s; hp = puntos de daño; weight = probabilidad de aparecer
 const BALL_TYPES = {
-  green:  { color: "#6BCB9B", r: 19, speed: 34, hp: 1, reward: 1,  weight: 58, pitch: 330 },
-  orange: { color: "#FF9E55", r: 14, speed: 112, hp: 1, reward: 3,  weight: 26, pitch: 440 }, // siempre el más rápido
-  purple: { color: "#A584E8", r: 26, speed: 26, hp: 3, reward: 10, weight: 10, pitch: 230 },
-  yellow: { color: "#F1C84D", r: 17, speed: 58, hp: 1, reward: 25, weight: 3,  pitch: 392 },
+  green:  { color: "#6BCB9B", r: 19, speed: 48, hp: 1, reward: 1,  weight: 58, pitch: 330 },
+  orange: { color: "#FF9E55", r: 14, speed: 150, hp: 1, reward: 3,  weight: 26, pitch: 440 }, // siempre el más rápido
+  purple: { color: "#A584E8", r: 26, speed: 37, hp: 3, reward: 10, weight: 10, pitch: 230 },
+  yellow: { color: "#F1C84D", r: 17, speed: 82, hp: 1, reward: 25, weight: 3,  pitch: 392 },
 };
 const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
 for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia en el celular (PHONE_SCALE)
