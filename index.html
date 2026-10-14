@@ -23,7 +23,7 @@
     var root = document.documentElement;
     if (t !== "auto") root.dataset.theme = t;
     // El nivel guardado decide el tema del mundo (The Void, The Beach…)
-    try { var lv = ["", "beach", "snow", "city"][JSON.parse(localStorage.getItem("smush-save-v1") || "{}").level | 0]; if (lv) root.dataset.level = lv; } catch (e) {}
+    try { var lv = ["", "beach", "snow", "city", "jungle"][JSON.parse(localStorage.getItem("smush-save-v1") || "{}").level | 0]; if (lv) root.dataset.level = lv; } catch (e) {}
     // Dentro de la app de iOS (Capacitor) la intro de BluBer arranca en blanco desde la pantalla de carga
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
       root.classList.add("native", "studio-paper");
@@ -106,6 +106,15 @@
   :root[data-level="snow"]:not([data-theme="light"]) { --bg: #161A22; --field: #253042; --field-hi: #2C384C; --speck: transparent; --mist: #C9D6E6; }
 }
 :root[data-level="snow"][data-theme="dark"] { --bg: #161A22; --field: #253042; --field-hi: #2C384C; --speck: transparent; --mist: #C9D6E6; }
+/* Tema de The Jungle (nivel 5): verde selva. De noche, selva oscura con luciérnagas */
+:root[data-level="jungle"] {
+  --bg: #F3F7EE; --field: #E6EEDC; --field-hi: #EEF4E6; --speck: transparent;
+  --lvl: #2E9E62; --lvl-soft: rgba(46, 158, 98, 0.14); --mist: #9DB49A;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-level="jungle"]:not([data-theme="light"]) { --bg: #121A15; --field: #22302A; --field-hi: #28372F; --speck: transparent; --mist: #B4C8B8; }
+}
+:root[data-level="jungle"][data-theme="dark"] { --bg: #121A15; --field: #22302A; --field-hi: #28372F; --speck: transparent; --mist: #B4C8B8; }
 /* Tema de The City (nivel 4): asfalto, banquetas y fachadas de colores. De noche, la ciudad prendida */
 :root[data-level="city"] {
   --bg: #F5F4F1; --field: #ECEAE6; --field-hi: #F3F2EF; --speck: transparent;
@@ -209,16 +218,19 @@ h1, h2, h3, .coins, .home-title, #splash .word, .play-txt b, .hc-t b, .shop-txt 
 :root[data-level="beach"] { --amb1: rgba(95, 191, 217, 0.5); --amb2: rgba(255, 205, 90, 0.5); --amb3: rgba(255, 140, 120, 0.38); }
 :root[data-level="snow"] { --amb1: rgba(110, 165, 235, 0.5); --amb2: rgba(175, 155, 240, 0.42); --amb3: rgba(110, 210, 195, 0.36); }
 :root[data-level="city"] { --amb1: rgba(226, 96, 79, 0.34); --amb2: rgba(241, 200, 77, 0.36); --amb3: rgba(47, 163, 196, 0.3); }
+:root[data-level="jungle"] { --amb1: rgba(46, 158, 98, 0.36); --amb2: rgba(241, 200, 77, 0.32); --amb3: rgba(255, 138, 101, 0.26); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --amb1: rgba(124, 92, 224, 0.34); --amb2: rgba(70, 170, 120, 0.22); --amb3: rgba(255, 140, 70, 0.18); }
   :root[data-level="beach"]:not([data-theme="light"]) { --amb1: rgba(47, 140, 180, 0.34); --amb2: rgba(255, 190, 90, 0.18); --amb3: rgba(255, 120, 100, 0.18); }
   :root[data-level="snow"]:not([data-theme="light"]) { --amb1: rgba(80, 130, 220, 0.36); --amb2: rgba(150, 120, 230, 0.24); --amb3: rgba(90, 190, 180, 0.18); }
   :root[data-level="city"]:not([data-theme="light"]) { --amb1: rgba(255, 170, 90, 0.22); --amb2: rgba(90, 120, 220, 0.28); --amb3: rgba(226, 96, 79, 0.16); }
+  :root[data-level="jungle"]:not([data-theme="light"]) { --amb1: rgba(46, 158, 98, 0.26); --amb2: rgba(90, 170, 120, 0.2); --amb3: rgba(241, 200, 77, 0.14); }
 }
 :root[data-theme="dark"] { --amb1: rgba(124, 92, 224, 0.34); --amb2: rgba(70, 170, 120, 0.22); --amb3: rgba(255, 140, 70, 0.18); }
 :root[data-theme="dark"][data-level="beach"] { --amb1: rgba(47, 140, 180, 0.34); --amb2: rgba(255, 190, 90, 0.18); --amb3: rgba(255, 120, 100, 0.18); }
 :root[data-theme="dark"][data-level="snow"] { --amb1: rgba(80, 130, 220, 0.36); --amb2: rgba(150, 120, 230, 0.24); --amb3: rgba(90, 190, 180, 0.18); }
 :root[data-theme="dark"][data-level="city"] { --amb1: rgba(255, 170, 90, 0.22); --amb2: rgba(90, 120, 220, 0.28); --amb3: rgba(226, 96, 79, 0.16); }
+:root[data-theme="dark"][data-level="jungle"] { --amb1: rgba(46, 158, 98, 0.26); --amb2: rgba(90, 170, 120, 0.2); --amb3: rgba(241, 200, 77, 0.14); }
 body::before {
   content: ""; position: fixed; inset: -8%; pointer-events: none;
   /* Casi todo lo tapa el campo: el color vive arriba (detrás del encabezado), en las orillas y abajo */
@@ -652,6 +664,8 @@ a.row { text-decoration: none; }
 #ready.to-snow .kicker { color: #4A86D8; }
 #ready.to-snow .btns .go { background: linear-gradient(135deg, #4A86D8, #7FB0EC); box-shadow: 0 6px 16px rgba(74, 134, 216, 0.28); }
 #ready.to-city .kicker { color: #E2604F; }
+#ready.to-jungle .kicker { color: #2E9E62; }
+#ready.to-jungle .btns .go { background: linear-gradient(135deg, #2E9E62, #5CC48A); box-shadow: 0 6px 16px rgba(46, 158, 98, 0.28); }
 #ready.to-city .btns .go { background: linear-gradient(135deg, #E2604F, #F08F6A); box-shadow: 0 6px 16px rgba(226, 96, 79, 0.28); }
 
 /* ============================================================
@@ -937,7 +951,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.28.1";
+const VERSION = "0.29.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -968,6 +982,7 @@ const LEVELS = [
   { id: "beach", name: "The Beach", coinMult: 2, smush: 5000, cost: 10000 },
   { id: "snow",  name: "The Slopes", coinMult: 4, smush: 20000, cost: 35000 },
   { id: "city",  name: "The City", coinMult: 8, smush: 50000, cost: 100000 },
+  { id: "jungle", name: "The Jungle", coinMult: 16, smush: 100000, cost: 250000 },
 ];
 let city = null; // The City: la geometría del cruce (se arma con el fondo)
 // En pantallas angostas (celular) los marcianitos se ven un poco más chicos
@@ -1306,6 +1321,7 @@ const STR = {
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
   beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, the Tsunami and the Bomber jet.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, el Tsunami y el Jet bombardero."],
   snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
+  jungleD: ["Giant trees, ferns and a quiet pond under a green canopy. Every alien is worth ×16; butterflies drift by in the day and fireflies glow at night.", "Árboles gigantes, helechos y un estanque tranquilo bajo un techo de hojas. Cada marcianito vale ×16; de día pasan mariposas y de noche brillan las luciérnagas."],
   cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
   visitLvl: ["Visit", "Visitar"], visitKicker: ["Just visiting", "De visita"], visitingNow: ["Visiting", "De visita"], backTo: ["Back to", "Regresar a"],
   visitNote: ["Just a visit: you arrive with your coins, tools and helpers, and you can smush and buy as usual, but nothing there counts. Your progress stays exactly as it is.", "Solo de visita: llegas con tus monedas, herramientas y ayudantes, y puedes aplastar y comprar como siempre, pero nada de lo de allá cuenta. Tu progreso se queda exactamente igual."],
@@ -1808,7 +1824,7 @@ function readPalette() {
   PAL.onDark = v("--field-dark") === "1"; // el piso es oscuro (tema oscuro)
   PAL.text = PAL.onDark ? v("--text") : "#242521"; PAL.mist = v("--mist");
   const lv = document.documentElement.dataset.level;
-  PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : lv === "snow" ? "rgba(60,95,150,0.15)" : lv === "city" ? "rgba(20,24,36,0.26)" : "rgba(60,52,30,0.13)";
+  PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : lv === "snow" ? "rgba(60,95,150,0.15)" : lv === "city" ? "rgba(20,24,36,0.26)" : lv === "jungle" ? "rgba(25,55,30,0.2)" : "rgba(60,52,30,0.13)";
   PAL.boltCore = PAL.onDark ? "rgba(255,255,255," : "rgba(84,116,214,";
   PAL.boltGlow = PAL.onDark ? "rgba(150,178,255," : "rgba(126,160,242,";
   PAL.finger = PAL.dark ? "#E8E5DE" : "#FFFFFF";
@@ -1939,7 +1955,7 @@ function keepInside(b) {
   b.y = clamp(b.y, T.top, Math.max(T.top, H - T.bottom));
 }
 // En la playa, el borde de arriba es la orilla del mar: ahí no se puede entrar ni salir (0 = sin límite)
-const shoreY = (T) => (lvl().id === "beach" || lvl().id === "snow" ? seaH + T.r * 0.5 : 0);
+const shoreY = (T) => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" ? seaH + T.r * 0.5 : 0);
 // ¿Se ve completo? ¿Ya salió por completo?
 const isInside = (b) => b.x - b.T.side >= 0 && b.x + b.T.side <= W && b.y - b.T.top >= 0 && b.y + b.T.bottom <= H;
 const isOut = (b) => b.x + b.T.side < 0 || b.x - b.T.side > W || b.y + b.T.bottom < 0 || b.y - b.T.top > H;
@@ -2989,6 +3005,25 @@ const ART = {
     artAlien(g, "green", w * 0.48, h * 0.9, h * 0.28, t, 0);
     artAlien(g, "purple", w * 0.63, h * 0.94, h * 0.32, t, 1.1);
   },
+  jungle(g, w, h, t) {
+    // La selva: fondo verde con neblina, árboles a lo lejos, rayos de luz, lianas, hojas grandes enfrente y mariposas
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, "#1F4A32"); bg.addColorStop(0.55, "#5E9E6E"); bg.addColorStop(1, "#A9D49A");
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const r = artRng(31);
+    for (let i = 0; i < 9; i++) { const x = r() * w, tw = 6 + r() * 8; g.fillStyle = "rgba(30,70,45,0.45)"; g.fillRect(x - tw / 2, h * 0.15, tw, h * 0.6); g.fillStyle = "rgba(40,95,60,0.55)"; g.beginPath(); g.arc(x, h * 0.18, 22 + r() * 22, 0, TAU); g.fill(); }
+    for (let i = 0; i < 3; i++) { const x = w * (0.2 + i * 0.28), gr = g.createLinearGradient(0, 0, 0, h * 0.85); gr.addColorStop(0, `rgba(255,250,210,${0.22 + 0.06 * Math.sin(t * 0.6 + i)})`); gr.addColorStop(1, "rgba(255,250,210,0)"); g.fillStyle = gr; poly(g, [[x, 0], [x + 22, 0], [x + 70, h * 0.85], [x + 30, h * 0.85]]); g.fill(); }
+    g.fillStyle = "#86BE6C"; g.beginPath(); g.moveTo(0, h * 0.72); g.bezierCurveTo(w * 0.3, h * 0.66, w * 0.7, h * 0.78, w, h * 0.7); g.lineTo(w, h); g.lineTo(0, h); g.closePath(); g.fill();
+    g.strokeStyle = "#D9C49A"; g.lineWidth = h * 0.09; g.lineCap = "round"; g.beginPath(); g.moveTo(w * 0.45, h * 1.05); g.quadraticCurveTo(w * 0.62, h * 0.85, w * 0.52, h * 0.72); g.stroke();
+    paintJungleTree(g, w * 0.1, h * 0.95, h * 0.95, false, 3); paintJungleTree(g, w * 0.88, h * 0.98, h * 0.9, false, 8);
+    paintFern(g, w * 0.26, h * 0.98, h / 120, false, 2); paintFlowerBush(g, w * 0.74, h * 0.97, h / 130, false, 5);
+    g.strokeStyle = "#2F6B45"; g.lineWidth = 2;
+    for (let i = 0; i < 6; i++) { const x = w * (0.15 + i * 0.15), l = h * (0.18 + (i % 3) * 0.1), sw = Math.sin(t * 0.8 + i) * 4; g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + sw * 0.4, l * 0.5, x + sw, l); g.stroke(); g.fillStyle = "#5BA36D"; g.beginPath(); g.ellipse(x + sw, l, 4, 2, 0.6, 0, TAU); g.fill(); }
+    paintBigLeaf(g, -w * 0.02, h * 1.02, h * 0.55, -0.7, false, "#2F6B45"); paintBigLeaf(g, w * 1.02, h * 1.0, h * 0.5, -2.4, false, "#3F8457");
+    artAlien(g, "green", w * 0.42, h * 0.9, h * 0.28, t, 0);
+    artAlien(g, "orange", w * 0.6, h * 0.86, h * 0.24, t, 1.4);
+    for (let i = 0; i < 3; i++) { const x = w * (0.3 + i * 0.22) + Math.sin(t + i * 2) * 12, y = h * (0.35 + (i % 2) * 0.12) + Math.cos(t * 1.3 + i) * 6, f = Math.abs(Math.sin(t * 8 + i)) * 0.8 + 0.2; g.fillStyle = ["#FF8A65", "#F1C84D", "#2FA3C4"][i]; for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(x + sd * 3.4 * f, y, 3.6 * f, 2.8, sd * 0.4, 0, TAU); g.fill(); } }
+  },
   soon(g, w, h, t) {
     const bg = g.createLinearGradient(0, 0, w, h);
     bg.addColorStop(0, "#1C1B2E"); bg.addColorStop(1, "#2E2B4A");
@@ -3129,6 +3164,7 @@ function checkReady() {
   $("#btn-go").textContent = tx("travelNow");
   readyEl.classList.toggle("to-snow", n.id === "snow");
   readyEl.classList.toggle("to-city", n.id === "city");
+  readyEl.classList.toggle("to-jungle", n.id === "jungle");
   readyEl.hidden = false; void readyEl.offsetWidth; readyEl.classList.add("open");
   Sound.ready(); buzz([10, 60, 14]);
 }
@@ -3341,12 +3377,12 @@ function playTrip(from, to, num, onSwitch, kicker) {
       obj(objs, fy + ry * 0.15, () => alienAt("green", x - r * 0.3, fy + ry * 0.15, r * 0.3, t, 0));
       obj(objs, fy + ry * 0.35, () => alienAt("purple", x + r * 0.1, fy + ry * 0.35, r * 0.36, t, 1.6));
     } else {
-      const snow = kind === "snow", town = kind === "city";
+      const snow = kind === "snow", town = kind === "city", jung = kind === "jungle";
       // Agua clara alrededor y espuma que va y viene
       // Agua bajita alrededor: turquesa que se desvanece hacia el mar hondo, con unas piedritas en la orilla
       g.save(); g.translate(x, y + dep * 0.7); g.scale(1, ry / r);
       const reef = g.createRadialGradient(0, 0, r * 0.9, 0, 0, r * 1.55);
-      const rc = snow ? "205,232,248" : town ? "175,225,235" : "150,235,228";
+      const rc = snow ? "205,232,248" : town ? "175,225,235" : jung ? "150,220,190" : "150,235,228";
       reef.addColorStop(0, `rgba(${rc},0.75)`); reef.addColorStop(1, `rgba(${rc},0)`);
       g.fillStyle = reef; g.beginPath(); g.arc(0, 0, r * 1.55, 0, TAU); g.fill(); g.restore();
       for (const a of [0.4, 2.3, 3.6]) { const px = x + Math.cos(a) * r * 1.12, py = y + dep * 0.8 + Math.sin(a) * ry * 1.15; g.fillStyle = "rgba(0,30,50,0.2)"; g.beginPath(); g.ellipse(px + r * 0.01, py + r * 0.01, r * 0.05, r * 0.025, 0, 0, TAU); g.fill(); g.fillStyle = snow ? "#C9D5E4" : "#A8A49C"; g.beginPath(); g.ellipse(px, py, r * 0.045, r * 0.028, 0, 0, TAU); g.fill(); }
@@ -3356,12 +3392,12 @@ function playTrip(from, to, num, onSwitch, kicker) {
       g.stroke();
       // Costado (la orilla que baja al agua)
       const side = g.createLinearGradient(0, y, 0, y + ry + dep);
-      if (snow) { side.addColorStop(0, "#AFC0D6"); side.addColorStop(1, "#7E92AE"); } else if (town) { side.addColorStop(0, "#C9C4BA"); side.addColorStop(1, "#97928A"); } else { side.addColorStop(0, "#E2C089"); side.addColorStop(1, "#C29A5E"); }
+      if (snow) { side.addColorStop(0, "#AFC0D6"); side.addColorStop(1, "#7E92AE"); } else if (town) { side.addColorStop(0, "#C9C4BA"); side.addColorStop(1, "#97928A"); } else if (jung) { side.addColorStop(0, "#9C7650"); side.addColorStop(1, "#6E5236"); } else { side.addColorStop(0, "#E2C089"); side.addColorStop(1, "#C29A5E"); }
       g.fillStyle = side; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x - r, y + dep);
       g.ellipse(x, y + dep, r, ry, 0, Math.PI, 0, true); g.lineTo(x + r, y); g.ellipse(x, y, r, ry, 0, 0, Math.PI, false); g.closePath(); g.fill();
       // Cara de arriba
       const top = g.createRadialGradient(x - r * 0.3, y - ry * 0.4, r * 0.1, x, y, r);
-      if (snow) { top.addColorStop(0, "#FFFFFF"); top.addColorStop(1, "#DCE7F3"); } else if (town) { top.addColorStop(0, "#F1EEE8"); top.addColorStop(1, "#D9D4CB"); } else { top.addColorStop(0, "#FFF6E0"); top.addColorStop(1, "#F0D6A2"); }
+      if (snow) { top.addColorStop(0, "#FFFFFF"); top.addColorStop(1, "#DCE7F3"); } else if (town) { top.addColorStop(0, "#F1EEE8"); top.addColorStop(1, "#D9D4CB"); } else if (jung) { top.addColorStop(0, "#C2E3A2"); top.addColorStop(1, "#86BE6C"); } else { top.addColorStop(0, "#FFF6E0"); top.addColorStop(1, "#F0D6A2"); }
       g.fillStyle = top; ellipseTop(x, y, r, ry, true); g.fill();
       g.strokeStyle = "rgba(255,255,255,0.75)"; g.lineWidth = r * 0.02; g.beginPath(); g.ellipse(x, y, r * 0.98, ry * 0.98, 0, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
       if (snow) {
@@ -3377,6 +3413,14 @@ function playTrip(from, to, num, onSwitch, kicker) {
         obj(objs, y + ry * 0.45, () => { drawRide(g, x - r * 0.15, y + ry * 0.45, 0.2, r * 0.1, "ski", 1); alienAt("orange", x - r * 0.15, y + ry * 0.45, r * 0.26, 0, 0); });
         obj(objs, y + ry * 0.55, () => paintSnowman(g, x - r * 0.62, y + ry * 0.55, r / 150, false));
         obj(objs, y + ry * 0.4, () => alienAt("green", x + r * 0.35, y + ry * 0.4, r * 0.28, t, 1.2));
+      } else if (jung) {
+        // Dos árboles de selva, un helecho, un arbusto con flores y dos marcianitos
+        obj(objs, y - ry * 0.3, () => paintJungleTree(g, x - r * 0.5, y - ry * 0.3, r * 1.15, false, 11));
+        obj(objs, y - ry * 0.4, () => paintJungleTree(g, x + r * 0.45, y - ry * 0.4, r * 0.95, false, 12));
+        obj(objs, y + ry * 0.35, () => paintFern(g, x + r * 0.6, y + ry * 0.35, r / 80, false, 3));
+        obj(objs, y + ry * 0.5, () => paintFlowerBush(g, x - r * 0.55, y + ry * 0.5, r / 90, false, 7));
+        obj(objs, y + ry * 0.2, () => alienAt("green", x - r * 0.05, y + ry * 0.2, r * 0.28, t, 0));
+        obj(objs, y + ry * 0.6, () => alienAt("orange", x + r * 0.2, y + ry * 0.6, r * 0.25, t, 1.4));
       } else if (town) {
         // Un cruce de calles con sus cebras, tres edificios con tienda, un poste de luz y dos marcianitos
         g.save(); ellipseTop(x, y, r, ry, true); g.clip();
@@ -3600,16 +3644,17 @@ function playTrip(from, to, num, onSwitch, kicker) {
 // Fondo de cada mundo: The Void tiene estrellas que titilan (y una fugaz de vez en cuando);
 // The Beach tiene mar con olas, espuma, destellos, conchitas y estrellas de mar en la arena.
 let bgLayer = null, stars = [], shooting = null, shootClock = 8, seaH = 0;
-const seaTop = () => (lvl().id === "beach" || lvl().id === "snow" ? seaH : 0);
+const seaTop = () => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" ? seaH : 0);
 function buildBackground() {
   if (!W) return;
   const snowy = isSnow();
-  seaH = snowy ? clamp(H * 0.15, 54, 100) : clamp(H * 0.12, 42, 84);
+  seaH = snowy ? clamp(H * 0.15, 54, 100) : isJungle() ? clamp(H * 0.13, 48, 90) : clamp(H * 0.12, 42, 84);
   stars = [];
   const n = Math.round((W * H) / 7000);
   for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(0.6, 1.5), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
-  bgLayer = null; pines = []; flakes = []; glints = []; city = null;
+  bgLayer = null; pines = []; flakes = []; glints = []; city = null; jungle = null;
   if (snowy) { buildSnow(); return; }
+  if (isJungle()) { buildJungle(); return; }
   if (isCity()) { buildCity(); return; }
   if (lvl().id !== "beach") return;
   // Detalles fijos de la arena (se pintan una vez): manchas suaves, la orilla mojada, rizos del viento, granitos,
@@ -3721,6 +3766,7 @@ function buildBackground() {
 function drawBackground(dt) {
   if (isSnow()) { drawSnowBg(); return; }
   if (isCity()) { drawCityBg(); return; }
+  if (isJungle()) { drawJungleBg(); return; }
   if (lvl().id === "beach") {
     if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
     // Mar arriba: la orilla sube y baja despacio (la marea) y las olas se mueven
@@ -5298,6 +5344,276 @@ function cityCollide(b) {
     b.heading += angDiff(Math.atan2(dy, dx), b.heading) * 0.35;
   }
 }
+/* ---------- The Jungle (nivel 5): piso de selva con musgo y hojarasca, un caminito de tierra, un estanque con lirios,
+   árboles enormes, helechos y flores a los lados, el dosel de hojas arriba (con lianas que se mecen), rayos de luz
+   y mariposas de día; luciérnagas y hongos que brillan de noche. El centro siempre queda libre para los marcianitos. ---------- */
+const isJungle = () => lvl().id === "jungle";
+let jungle = null; // lo que se mueve: lianas, mariposas, luciérnagas, rayos de luz, hongos que brillan
+const JUNGLE_LEAF = (dark) => (dark ? ["#10241A", "#173323", "#21452F", "#2C5A3C"] : ["#2F6B45", "#3F8457", "#5BA36D", "#8CCB86"]);
+// Árbol de selva: raíces como aletas, tronco con una enredadera, copa enorme de hojas en racimos y lianas colgando
+function paintJungleTree(g, x, y, h, dark, seed) {
+  const R = artRng(seed), rr = (a, b) => a + (b - a) * R(), [c0, c1, c2, c3] = JUNGLE_LEAF(dark);
+  const bark = dark ? "#3A2C24" : "#7A5A43", bark2 = dark ? "#2A2019" : "#5E4433", tw = h * 0.075, ty = y - h * 0.6, lean = rr(-0.06, 0.06) * h;
+  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(30,60,30,0.2)"; g.beginPath(); g.ellipse(x + h * 0.12, y + 1, h * 0.36, h * 0.08, 0, 0, TAU); g.fill();
+  // Raíces en aleta
+  for (const sd of [-1, -0.4, 0.45, 1]) {
+    g.fillStyle = sd > 0 ? bark2 : bark;
+    g.beginPath(); g.moveTo(x + sd * tw * 0.4, y - h * 0.18); g.quadraticCurveTo(x + sd * tw * 0.9, y - h * 0.05, x + sd * tw * 2.4, y + 1); g.lineTo(x + sd * tw * 0.5, y + 1); g.closePath(); g.fill();
+  }
+  // Tronco (un poco curvo), con su lado de sombra y vetas
+  g.fillStyle = bark; g.beginPath(); g.moveTo(x - tw, y); g.quadraticCurveTo(x - tw * 0.9 + lean * 0.5, y - h * 0.3, x - tw * 0.6 + lean, ty); g.lineTo(x + tw * 0.6 + lean, ty); g.quadraticCurveTo(x + tw * 0.9 + lean * 0.5, y - h * 0.3, x + tw, y); g.closePath(); g.fill();
+  g.fillStyle = "rgba(0,0,0,0.18)"; g.beginPath(); g.moveTo(x + tw * 0.15, y); g.quadraticCurveTo(x + tw * 0.3 + lean * 0.5, y - h * 0.3, x + tw * 0.1 + lean, ty); g.lineTo(x + tw * 0.6 + lean, ty); g.quadraticCurveTo(x + tw * 0.9 + lean * 0.5, y - h * 0.3, x + tw, y); g.closePath(); g.fill();
+  g.strokeStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(60,40,25,0.3)"; g.lineWidth = 1;
+  for (let i = 0; i < 4; i++) { const ox = rr(-0.5, 0.4) * tw; g.beginPath(); g.moveTo(x + ox, y - h * rr(0.05, 0.2)); g.quadraticCurveTo(x + ox + lean * 0.3, y - h * 0.35, x + ox * 0.6 + lean * 0.8, y - h * rr(0.45, 0.58)); g.stroke(); }
+  // Enredadera que sube por el tronco
+  g.strokeStyle = dark ? "#2C5A3C" : "#4E9A5E"; g.lineWidth = Math.max(1.2, h * 0.012);
+  g.beginPath(); for (let i = 0; i <= 20; i++) { const u = i / 20, yy = y - h * 0.05 - u * h * 0.52, xx = x + lean * u + Math.sin(u * 9) * tw * 0.9; i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); } g.stroke();
+  g.fillStyle = dark ? "#2C5A3C" : "#5BA36D";
+  for (let i = 1; i < 8; i++) { const u = i / 8, yy = y - h * 0.05 - u * h * 0.52, xx = x + lean * u + Math.sin(u * 9) * tw * 0.9; g.beginPath(); g.ellipse(xx + 3, yy, h * 0.02, h * 0.01, 0.6, 0, TAU); g.fill(); }
+  // La copa: racimos de hojas en tres tonos (sombra, cuerpo, luz) y hojas en punta en la orilla
+  const cx = x + lean, cy = ty - h * 0.18, blobs = [];
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU + rr(-0.3, 0.3), d = rr(0.15, 0.32) * h; blobs.push([cx + Math.cos(a) * d * 1.25, cy + Math.sin(a) * d * 0.7, rr(0.16, 0.24) * h]); }
+  blobs.push([cx, cy - h * 0.05, h * 0.26]);
+  for (const [bx, by, r] of blobs) for (let k = 0; k < 7; k++) { const a = (k / 7) * TAU + bx, lx = bx + Math.cos(a) * r * 0.95, ly = by + Math.sin(a) * r * 0.8; g.fillStyle = c0; g.beginPath(); g.ellipse(lx, ly + r * 0.1, r * 0.42, r * 0.18, a, 0, TAU); g.fill(); }
+  g.fillStyle = c0; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx + r * 0.1, by + r * 0.14, r, 0, TAU); g.fill(); }
+  g.fillStyle = c1; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx, by, r * 0.88, 0, TAU); g.fill(); }
+  g.fillStyle = c2; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx - r * 0.25, by - r * 0.3, r * 0.5, 0, TAU); g.fill(); }
+  g.fillStyle = c3; g.globalAlpha = dark ? 0.35 : 0.6; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx - r * 0.35, by - r * 0.42, r * 0.18, 0, TAU); g.fill(); } g.globalAlpha = 1;
+  // Lianas que cuelgan de la copa
+  g.strokeStyle = dark ? "#21452F" : "#3F8457"; g.lineWidth = Math.max(1, h * 0.01); g.lineCap = "round";
+  for (let i = 0; i < 3; i++) { const vx = cx + rr(-0.35, 0.35) * h, vy = cy + h * 0.12, l = rr(0.15, 0.3) * h; g.beginPath(); g.moveTo(vx, vy); g.quadraticCurveTo(vx + rr(-6, 6), vy + l * 0.5, vx + rr(-4, 4), vy + l); g.stroke(); g.fillStyle = c2; g.beginPath(); g.ellipse(vx, vy + l, h * 0.018, h * 0.01, 0.8, 0, TAU); g.fill(); }
+}
+// Helecho: frondas que salen del centro, con sus hojitas a los lados
+function paintFern(g, x, y, s, dark, seed) {
+  const R = artRng(seed), [c0, c1, c2] = JUNGLE_LEAF(dark);
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(30,60,30,0.18)"; g.beginPath(); g.ellipse(x + 3, y + 1, 26 * s, 6 * s, 0, 0, TAU); g.fill();
+  const angs = [-2.75, -2.35, -1.95, -1.57, -1.2, -0.8, -0.4];
+  angs.forEach((a0, i) => {
+    const a = a0 + (R() - 0.5) * 0.2, L = (26 + R() * 10) * s * (1 - Math.abs(a0 + 1.57) * 0.12);
+    const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L * 0.85 + L * 0.2, mx = x + Math.cos(a) * L * 0.55, my = y + Math.sin(a) * L * 0.75;
+    g.strokeStyle = i % 2 ? c1 : c0; g.lineWidth = 1.3 * s; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+    for (let k = 1; k < 9; k++) {
+      const u = k / 9, px = (1 - u) ** 2 * x + 2 * (1 - u) * u * mx + u * u * ex, py = (1 - u) ** 2 * y + 2 * (1 - u) * u * my + u * u * ey, len = 6 * s * (1 - u * 0.7);
+      for (const sd of [-1, 1]) { g.fillStyle = sd > 0 ? c1 : c2; g.beginPath(); g.ellipse(px + Math.cos(a + sd * 1.3) * len * 0.5, py + Math.sin(a + sd * 1.3) * len * 0.5, len * 0.55, len * 0.22, a + sd * 1.3, 0, TAU); g.fill(); }
+    }
+  });
+}
+// Arbusto con flores (de los colores del juego)
+function paintFlowerBush(g, x, y, s, dark, seed) {
+  const R = artRng(seed), [c0, c1, c2] = JUNGLE_LEAF(dark), fl = dark ? ["#B3594C", "#8C7638", "#7E5AA8"] : ["#FF8A65", "#F1C84D", "#FF8AB0", "#A584E8"];
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(30,60,30,0.18)"; g.beginPath(); g.ellipse(x + 3, y + 1, 24 * s, 6 * s, 0, 0, TAU); g.fill();
+  const bl = [[-12, -8, 11], [10, -9, 12], [0, -16, 12], [-4, -4, 10], [12, -3, 9]];
+  for (const [cl, k] of [[c0, 1], [c1, 0.86]]) { g.fillStyle = cl; for (const [bx, by, r] of bl) { g.beginPath(); g.arc(x + bx * s, y + by * s - (1 - k) * 4 * s, r * s * k, 0, TAU); g.fill(); } }
+  g.fillStyle = c2; for (const [bx, by, r] of bl) { g.beginPath(); g.arc(x + (bx - 3) * s, y + (by - 4) * s, r * 0.4 * s, 0, TAU); g.fill(); }
+  for (let i = 0; i < 6; i++) {
+    const fx = x + (R() - 0.5) * 36 * s, fy = y - (4 + R() * 20) * s, col = fl[Math.floor(R() * fl.length)], r = 2.6 * s;
+    g.fillStyle = col; for (let p = 0; p < 5; p++) { const a = (p / 5) * TAU; g.beginPath(); g.ellipse(fx + Math.cos(a) * r, fy + Math.sin(a) * r, r * 0.9, r * 0.6, a, 0, TAU); g.fill(); }
+    g.fillStyle = dark ? "#C9B45E" : "#FFE9A0"; g.beginPath(); g.arc(fx, fy, r * 0.45, 0, TAU); g.fill();
+  }
+}
+// Piedra con musgo
+function paintMossRock(g, x, y, s, dark) {
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(30,60,30,0.18)"; g.beginPath(); g.ellipse(x + 3, y + 1, 22 * s, 5 * s, 0, 0, TAU); g.fill();
+  const gr = g.createLinearGradient(x - 18 * s, y - 20 * s, x + 18 * s, y);
+  gr.addColorStop(0, dark ? "#5A5E62" : "#B4B6AE"); gr.addColorStop(1, dark ? "#33363A" : "#7F8378");
+  g.fillStyle = gr; g.beginPath(); g.moveTo(x - 20 * s, y); g.quadraticCurveTo(x - 20 * s, y - 16 * s, x - 6 * s, y - 20 * s); g.quadraticCurveTo(x + 14 * s, y - 22 * s, x + 20 * s, y - 6 * s); g.lineTo(x + 20 * s, y); g.closePath(); g.fill();
+  g.fillStyle = dark ? "#2C5A3C" : "#6FAE62"; g.beginPath(); g.moveTo(x - 16 * s, y - 13 * s); g.quadraticCurveTo(x - 8 * s, y - 22 * s, x + 4 * s, y - 20.5 * s); g.quadraticCurveTo(x + 14 * s, y - 20 * s, x + 16 * s, y - 12 * s); g.quadraticCurveTo(x + 6 * s, y - 15 * s, x - 2 * s, y - 13 * s); g.quadraticCurveTo(x - 9 * s, y - 11 * s, x - 16 * s, y - 13 * s); g.fill();
+  g.fillStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.35)"; g.beginPath(); g.ellipse(x - 8 * s, y - 15 * s, 4 * s, 1.6 * s, -0.3, 0, TAU); g.fill();
+}
+// Hongos (de noche brillan un poquito)
+function paintMushrooms(g, x, y, s, dark) {
+  for (const [dx, h2, r2, col] of [[-6, 9, 5, "#FF8A65"], [3, 12, 6.5, "#F4F2EC"], [9, 7, 4, "#FF8A65"]]) {
+    const cx = x + dx * s, c = dark ? (col === "#FF8A65" ? "#C46A55" : "#BFC8B8") : col;
+    g.fillStyle = dark ? "#9C9A8C" : "#F1EBDC"; g.fillRect(cx - 1.4 * s, y - h2 * s, 2.8 * s, h2 * s);
+    g.fillStyle = c; g.beginPath(); g.ellipse(cx, y - h2 * s, r2 * s, r2 * 0.65 * s, 0, Math.PI, TAU); g.fill();
+    g.fillStyle = "rgba(255,255,255,0.75)"; for (const o of [-0.4, 0.25]) { g.beginPath(); g.arc(cx + o * r2 * s, y - h2 * s - r2 * 0.32 * s, 0.9 * s, 0, TAU); g.fill(); }
+  }
+}
+// La hoja grande (tipo costilla de Adán), para las ilustraciones
+function paintBigLeaf(g, x, y, L, rot, dark, col) {
+  g.save(); g.translate(x, y); g.rotate(rot);
+  const c = col || (dark ? "#21452F" : "#3F8457");
+  g.fillStyle = c; g.beginPath(); g.moveTo(0, 0); g.bezierCurveTo(L * 0.25, -L * 0.42, L * 0.85, -L * 0.38, L, 0); g.bezierCurveTo(L * 0.85, L * 0.38, L * 0.25, L * 0.42, 0, 0); g.fill();
+  g.strokeStyle = "rgba(255,255,255,0.22)"; g.lineWidth = Math.max(1, L * 0.02); g.beginPath(); g.moveTo(0, 0); g.lineTo(L * 0.95, 0); g.stroke();
+  g.lineWidth = Math.max(0.8, L * 0.012);
+  for (let i = 1; i < 6; i++) { const u = i / 6; for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(L * u, 0); g.quadraticCurveTo(L * (u + 0.06), sd * L * 0.12, L * (u + 0.1), sd * L * 0.28 * (1 - u * 0.5)); g.stroke(); } }
+  g.restore();
+}
+
+function buildJungle() {
+  const dark = PAL.dark, R = artRng(5150), rr = (a, b) => a + (b - a) * R(), pick = (a) => a[Math.floor(R() * a.length)], small = W < PHONE_WIDTH, k = small ? 0.8 : 1, top = seaH;
+  const [c0, c1, c2, c3] = JUNGLE_LEAF(dark);
+  const c = document.createElement("canvas");
+  c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR);
+  // --- El piso: verde musgo, con manchas de pasto más oscuro, musgo claro y tierra (cada mancha se desvanece a su color)
+  const fl = g.createLinearGradient(0, top, 0, H);
+  if (dark) { fl.addColorStop(0, "#1A281E"); fl.addColorStop(1, "#16211A"); } else { fl.addColorStop(0, "#C3DCA6"); fl.addColorStop(1, "#D3E6BA"); }
+  g.fillStyle = fl; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < Math.round((W * H) / 22000) + 6; i++) {
+    const x = rr(0, W), y = rr(top, H), r = rr(50, 140), t = R(), col = t < 0.45 ? (dark ? "0,0,0" : "70,125,60") : t < 0.75 ? (dark ? "60,90,55" : "235,250,215") : dark ? "60,45,30" : "170,140,95";
+    g.save(); g.translate(x, y); g.scale(1, 0.55);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(${col},${t < 0.45 ? 0.14 : t < 0.75 ? 0.35 : 0.16})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
+  }
+  // --- Un caminito de tierra que sube serpenteando hasta la selva (de abajo hacia el dosel)
+  const path = [[W * rr(0.35, 0.5), H + 10], [W * rr(0.55, 0.7), H * 0.7], [W * rr(0.3, 0.45), H * 0.42], [W * rr(0.5, 0.62), top + 6]];
+  const trail = (lw, col) => { g.strokeStyle = col; g.lineWidth = lw; g.lineCap = "round"; g.lineJoin = "round"; g.beginPath(); g.moveTo(path[0][0], path[0][1]); g.bezierCurveTo(path[1][0], path[1][1], path[2][0], path[2][1], path[3][0], path[3][1]); g.stroke(); };
+  const pw = clamp(W * 0.07, 26, 46);
+  trail(pw + 8, dark ? "rgba(0,0,0,0.18)" : "rgba(120,100,60,0.14)");
+  trail(pw, dark ? "#3A3224" : "#D9C49A");
+  trail(pw * 0.55, dark ? "rgba(255,240,210,0.03)" : "rgba(255,248,230,0.35)");
+  const bz = (u) => { const [p0, p1, p2, p3] = path, m = 1 - u; return [m ** 3 * p0[0] + 3 * m * m * u * p1[0] + 3 * m * u * u * p2[0] + u ** 3 * p3[0], m ** 3 * p0[1] + 3 * m * m * u * p1[1] + 3 * m * u * u * p2[1] + u ** 3 * p3[1]]; };
+  for (let i = 0; i < 160; i++) { const [px, py] = bz(R()), a = rr(0, TAU), d = rr(0, pw * 0.45); g.fillStyle = R() < 0.5 ? (dark ? "rgba(0,0,0,0.25)" : "rgba(140,110,70,0.35)") : dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.7)"; g.fillRect(px + Math.cos(a) * d, py + Math.sin(a) * d, 1.4, 1.4); }
+  // --- Hojarasca: hojitas caídas de varios verdes, amarillos y cafés
+  const lc = dark ? ["#2C4A30", "#3E3A22", "#3A2C20", "#24402A"] : ["#7FB069", "#C9B160", "#B98B5A", "#5E9A5A", "#E0C27A"];
+  for (let i = 0; i < Math.round((W * H) / 2200); i++) {
+    const x = rr(0, W), y = rr(top + 6, H), a = rr(0, TAU), l = rr(3, 6.5);
+    g.globalAlpha = dark ? 0.5 : 0.55; g.fillStyle = pick(lc); g.beginPath(); g.ellipse(x, y, l, l * 0.42, a, 0, TAU); g.fill();
+    g.globalAlpha = 0.35; g.strokeStyle = "rgba(0,0,0,0.25)"; g.lineWidth = 0.5; g.beginPath(); g.moveTo(x - Math.cos(a) * l, y - Math.sin(a) * l); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+  }
+  g.globalAlpha = 1;
+  // Pasto: matitas en V de varios verdes
+  g.lineCap = "round"; g.lineWidth = 1.1;
+  for (let i = 0; i < Math.round((W * H) / 520); i++) {
+    const x = rr(0, W), y = rr(top + 4, H), lite = R() < 0.22, hgt = rr(3, 6);
+    g.strokeStyle = lite ? (dark ? "rgba(120,170,120,0.15)" : "rgba(235,250,215,0.45)") : dark ? "rgba(0,0,0,0.3)" : "rgba(60,115,55,0.38)";
+    g.beginPath(); g.moveTo(x - 1.6, y); g.lineTo(x - 0.4, y - hgt); g.moveTo(x, y); g.lineTo(x + 0.3, y - hgt * 1.2); g.moveTo(x + 1.6, y); g.lineTo(x + 1.2, y - hgt * 0.9); g.stroke();
+  }
+  // Florecitas regadas
+  const fc = dark ? ["#8C5A6E", "#8A7A44", "#5E6A9A"] : ["#FF8AB0", "#F1C84D", "#FFFFFF", "#A584E8", "#FF8A65"];
+  for (let i = 0; i < Math.round((W * H) / 14000); i++) { const x = rr(10, W - 10), y = rr(top + 20, H - 6), col = pick(fc); for (let j = 0; j < 3; j++) { g.fillStyle = col; g.beginPath(); g.arc(x + rr(-6, 6), y + rr(-3, 3), 1.5, 0, TAU); g.fill(); } }
+  // --- Un estanquito con lirios (en un lado de abajo, para no estorbar en medio)
+  const pond = { x: W * (R() < 0.5 ? rr(0.12, 0.24) : rr(0.76, 0.88)), y: H * rr(0.72, 0.84), rx: clamp(W * 0.1, 40, 80) };
+  pond.ry = pond.rx * 0.45;
+  {
+    const { x, y, rx, ry } = pond;
+    g.fillStyle = dark ? "#2A3A2C" : "#9FBF84"; g.beginPath(); g.ellipse(x, y + 2, rx + 6, ry + 5, 0, 0, TAU); g.fill();
+    const wg = g.createLinearGradient(x, y - ry, x, y + ry);
+    wg.addColorStop(0, dark ? "#173A40" : "#4E9DA6"); wg.addColorStop(1, dark ? "#1E4C52" : "#7DC3C6");
+    g.fillStyle = wg; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+    g.fillStyle = dark ? "rgba(0,0,0,0.2)" : "rgba(30,70,60,0.18)"; g.beginPath(); g.ellipse(x, y - ry * 0.75, rx * 0.95, ry * 0.45, 0, 0, TAU); g.fill();
+    for (const [u, v, r] of [[-0.45, 0.1, 0.22], [0.2, -0.2, 0.18], [0.5, 0.3, 0.15]]) {
+      const lx = x + u * rx, ly = y + v * ry, lr = r * rx;
+      g.fillStyle = dark ? "#2C5A3C" : "#5BA36D"; g.beginPath(); g.moveTo(lx, ly); g.ellipse(lx, ly, lr, lr * 0.5, 0, 0.3, TAU - 0.1); g.closePath(); g.fill();
+      g.strokeStyle = "rgba(255,255,255,0.25)"; g.lineWidth = 0.8; g.beginPath(); g.moveTo(lx, ly); g.lineTo(lx - lr * 0.7, ly - lr * 0.1); g.stroke();
+    }
+    const fx = x + 0.2 * rx, fy = y - 0.2 * ry - 2;
+    for (let p = 0; p < 6; p++) { const a = (p / 6) * TAU; g.fillStyle = dark ? "#B07090" : "#FF9EC4"; g.beginPath(); g.ellipse(fx + Math.cos(a) * 3, fy + Math.sin(a) * 1.6, 2.8, 1.4, a, 0, TAU); g.fill(); }
+    g.fillStyle = dark ? "#C9B45E" : "#FFE07A"; g.beginPath(); g.arc(fx, fy, 1.4, 0, TAU); g.fill();
+    // Piedritas y juncos en la orilla
+    for (let i = 0; i < 6; i++) { const a = rr(0, TAU), px = x + Math.cos(a) * (rx + 5), py = y + Math.sin(a) * (ry + 4); g.fillStyle = dark ? "#4B4F52" : "#A9AC9E"; g.beginPath(); g.ellipse(px, py, rr(2.5, 4.5), rr(1.6, 2.6), 0, 0, TAU); g.fill(); }
+    g.strokeStyle = dark ? "#2C5A3C" : "#4E8A4E"; g.lineWidth = 1.4;
+    for (let i = 0; i < 6; i++) { const px = x - rx * 0.85 + i * 4, py = y - ry * 0.2; g.beginPath(); g.moveTo(px, py + 6); g.quadraticCurveTo(px + rr(-3, 3), py - 6, px + rr(-4, 4), py - rr(12, 20)); g.stroke(); }
+  }
+  // Hongos y piedritas regados (pocos)
+  const shrooms = [];
+  for (let i = 0; i < (small ? 2 : 4); i++) { const x = R() < 0.5 ? rr(20, W * 0.25) : rr(W * 0.75, W - 20), y = rr(top + 60, H - 20); paintMushrooms(g, x, y, k * 0.9, dark); shrooms.push({ x, y }); }
+  // --- El dosel: una pared de hojas arriba (como el mar en la playa, ahí no se entra), con su orilla de hojas en punta
+  const sky = g.createLinearGradient(0, 0, 0, top + 20);
+  sky.addColorStop(0, dark ? "#0B1810" : "#1F4A32"); sky.addColorStop(1, dark ? "#10241A" : "#2F6B45");
+  g.fillStyle = sky; g.fillRect(0, 0, W, top + 4);
+  // Sombra que deja el dosel sobre el piso
+  const sh = g.createLinearGradient(0, top, 0, top + 46);
+  sh.addColorStop(0, dark ? "rgba(0,0,0,0.4)" : "rgba(20,50,30,0.28)"); sh.addColorStop(1, dark ? "rgba(0,0,0,0)" : "rgba(20,50,30,0)");
+  g.fillStyle = sh; g.fillRect(0, top, W, 46);
+  // Racimos de hojas en capas (los de más abajo, más claros)
+  for (const [yy, col, rmin, rmax] of [[top * 0.35, c0, 18, 30], [top * 0.65, c1, 16, 26], [top * 0.95, c2, 12, 20]]) {
+    g.fillStyle = col;
+    for (let x = -20; x < W + 20; x += rr(14, 24)) { const r = rr(rmin, rmax) * k; g.beginPath(); g.arc(x, yy + rr(-6, 6), r, 0, TAU); g.fill(); }
+  }
+  // Hojas en punta colgando de la orilla del dosel
+  for (let x = -10; x < W + 10; x += rr(9, 16)) {
+    const l = rr(10, 22) * k, a = Math.PI / 2 + rr(-0.5, 0.5), y0 = top * 0.95 + rr(-4, 6);
+    g.fillStyle = R() < 0.5 ? c2 : c1; g.beginPath(); g.ellipse(x + Math.cos(a) * l * 0.5, y0 + Math.sin(a) * l * 0.5, l * 0.5, l * 0.18, a, 0, TAU); g.fill();
+  }
+  // Brillos de luz entre las hojas del dosel
+  g.fillStyle = dark ? "rgba(140,200,140,0.12)" : "rgba(210,255,190,0.5)";
+  for (let i = 0; i < W / 18; i++) { g.beginPath(); g.arc(rr(0, W), rr(4, top * 0.9), rr(1.5, 3.5), 0, TAU); g.fill(); }
+  bgLayer = c;
+  // --- Árboles, helechos, arbustos con flores y una piedra con musgo: a los lados (el centro queda libre)
+  const plan = small ? ["tree", "tree", "fern", "bush", "fern"] : ["tree", "tree", "tree", "tree", "fern", "fern", "bush", "bush", "rock", "fern"];
+  const placed = [];
+  plan.forEach((kind, i) => {
+    for (let tries = 0; tries < 60; tries++) {
+      const left = i % 2 === 0, x = left ? rr(14, W * (kind === "tree" ? 0.16 : 0.22)) : rr(W * (kind === "tree" ? 0.84 : 0.78), W - 14);
+      const y = kind === "tree" ? rr(top + 110 * k, H - 30) : rr(top + 50, H - 14);
+      const minD = kind === "tree" ? 120 * k : 60 * k;
+      if (placed.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < minD) || Math.hypot(x - pond.x, (y - pond.y) * 1.8) < pond.rx + 40) continue;
+      placed.push({ kind, x, y });
+      break;
+    }
+  });
+  for (const p of placed) {
+    const seed = Math.floor(p.x * 3 + p.y);
+    if (p.kind === "tree") { const h = rr(150, 190) * k, w0 = h * 1.3, tp = h * 1.1; pines.push({ x: p.x, y: p.y, h, ph: rr(0, TAU), sway: 0.006, spr: makePropSprite((gg) => paintJungleTree(gg, w0 / 2, tp, h, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
+    else if (p.kind === "fern") { const s = k * rr(1, 1.25), w0 = 90 * s, tp = 52 * s; pines.push({ x: p.x, y: p.y, h: 40 * s, ph: rr(0, TAU), sway: 0.02, spr: makePropSprite((gg) => paintFern(gg, w0 / 2, tp, s, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
+    else if (p.kind === "bush") { const s = k * 1.15, w0 = 70 * s, tp = 40 * s; pines.push({ x: p.x, y: p.y, h: 30 * s, ph: rr(0, TAU), sway: 0.01, spr: makePropSprite((gg) => paintFlowerBush(gg, w0 / 2, tp, s, dark, seed), w0, tp + 8, w0 / 2, tp) }); }
+    else { const s = k, w0 = 56 * s, tp = 30 * s; pines.push({ x: p.x, y: p.y, h: 22 * s, sway: 0, spr: makePropSprite((gg) => paintMossRock(gg, w0 / 2, tp, s, dark), w0, tp + 8, w0 / 2, tp) }); }
+  }
+  pines.sort((a, b) => a.y - b.y);
+  // --- Lo que se mueve: lianas que cuelgan del dosel, mariposas o luciérnagas, rayos de luz y los hongos que brillan
+  const vines = [];
+  for (let x = rr(10, 40); x < W; x += rr(60, 120)) vines.push({ x, len: rr(26, 70) * k, ph: rr(0, TAU), leaves: 3 + Math.floor(R() * 3) });
+  const flyers = Array.from({ length: dark ? Math.round((W * H) / 26000) + 6 : small ? 2 : 4 }, () => ({ x: rr(0, W), y: rr(top + 30, H - 30), ph: rr(0, TAU), sp: rr(0.5, 1.2), col: pick(["#FF8A65", "#2FA3C4", "#F1C84D", "#A584E8"]) }));
+  const rays = Array.from({ length: small ? 2 : 4 }, () => ({ x: rr(0.1, 0.9) * W, w: rr(30, 70) * k, ph: rr(0, TAU) }));
+  jungle = { vines, flyers, rays, shrooms, pond, top };
+}
+// Debajo de los marcianitos: el piso (bgLayer), los rayos de luz, una neblina suave, las ondas del estanque y los hongos que brillan
+function drawJungleBg() {
+  if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+  if (!jungle) return;
+  const J = jungle, tt = reduceMotion ? 0 : time;
+  if (!PAL.dark) for (const r of J.rays) {
+    const a = 0.1 + 0.06 * Math.sin(tt * 0.4 + r.ph), x0 = r.x, gr = ctx.createLinearGradient(0, J.top, 0, H * 0.85);
+    gr.addColorStop(0, `rgba(255,250,215,${a})`); gr.addColorStop(1, "rgba(255,250,215,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = gr; poly(ctx, [[x0, J.top], [x0 + r.w, J.top], [x0 + r.w + H * 0.35, H * 0.85], [x0 + H * 0.35 - r.w * 0.4, H * 0.85]]); ctx.fill();
+  }
+  // Ondas en el estanque
+  const P = J.pond;
+  ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 1;
+  for (let i = 0; i < 2; i++) { const u = (tt * 0.3 + i / 2) % 1, rx = P.rx * (0.2 + 0.5 * u); ctx.globalAlpha = (PAL.dark ? 0.2 : 0.45) * (1 - u); ctx.beginPath(); ctx.ellipse(P.x - P.rx * 0.2, P.y + P.ry * 0.2, rx, rx * 0.45, 0, 0, TAU); ctx.stroke(); }
+  // Hongos que brillan de noche
+  if (PAL.dark) for (const s of J.shrooms) { const k = 0.6 + 0.4 * Math.sin(tt * 1.3 + s.x), gr = ctx.createRadialGradient(s.x, s.y - 6, 0, s.x, s.y - 6, 22); gr.addColorStop(0, `rgba(150,255,190,${0.25 * k})`); gr.addColorStop(1, "rgba(150,255,190,0)"); ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(s.x - 22, s.y - 28, 44, 44); }
+  // Neblina baja que pasa despacio
+  for (let i = 0; i < 2; i++) {
+    const x = ((tt * (6 + i * 3) + i * W * 0.5) % (W + 400)) - 200, y = H * (0.55 + i * 0.25), r = 180;
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, PAL.dark ? "rgba(160,200,170,0.06)" : "rgba(255,255,255,0.22)"); gr.addColorStop(1, PAL.dark ? "rgba(160,200,170,0)" : "rgba(255,255,255,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.save(); ctx.translate(x, y); ctx.scale(1, 0.25); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.restore(); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+// Encima de los marcianitos: las lianas que cuelgan (se mecen) y las mariposas o luciérnagas
+function drawJungleTop() {
+  if (!jungle || !isJungle()) return;
+  const J = jungle, tt = reduceMotion ? 0 : time, [c0, c1, c2] = JUNGLE_LEAF(PAL.dark);
+  ctx.lineCap = "round"; ctx.globalAlpha = 1;
+  for (const v of J.vines) {
+    const sw = Math.sin(tt * 0.7 + v.ph) * 5, ex = v.x + sw, ey = J.top + v.len;
+    ctx.strokeStyle = PAL.dark ? "#1E3B28" : "#3B7A4C"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(v.x, J.top - 6); ctx.quadraticCurveTo(v.x + sw * 0.3, J.top + v.len * 0.5, ex, ey); ctx.stroke();
+    for (let i = 1; i <= v.leaves; i++) {
+      const u = i / (v.leaves + 0.5), px = v.x + sw * u * u, py = J.top - 6 + (v.len + 6) * u, sd = i % 2 ? 1 : -1;
+      ctx.fillStyle = i % 2 ? c1 : c2; ctx.beginPath(); ctx.ellipse(px + sd * 4, py, 5, 2.2, sd * 0.6, 0, TAU); ctx.fill();
+    }
+  }
+  // Mariposas de día; luciérnagas de noche
+  for (const f of J.flyers) {
+    const x = f.x + Math.sin(tt * 0.35 * f.sp + f.ph) * 60 + Math.sin(tt * 1.1 + f.ph) * 10, y = f.y + Math.cos(tt * 0.27 * f.sp + f.ph * 2) * 40 + Math.sin(tt * 2.3 + f.ph) * 6;
+    if (PAL.dark) {
+      const k = Math.pow(0.5 + 0.5 * Math.sin(tt * 1.4 + f.ph * 3), 3); if (k < 0.05) continue;
+      const gr = ctx.createRadialGradient(x, y, 0, x, y, 8); gr.addColorStop(0, `rgba(230,250,150,${0.8 * k})`); gr.addColorStop(1, "rgba(230,250,150,0)");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, 8, 0, TAU); ctx.fill();
+    } else {
+      const flap = Math.abs(Math.sin(tt * 9 + f.ph)) * 0.8 + 0.2;
+      ctx.fillStyle = f.col;
+      for (const sd of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x + sd * 3.4 * flap, y - 1, 3.6 * flap, 2.8, sd * 0.4, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + sd * 2.4 * flap, y + 2.2, 2.4 * flap, 1.8, sd * 0.5, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = "#3A2F2C"; ctx.fillRect(x - 0.6, y - 2.5, 1.2, 5.5);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
 // Huellas: dos rayitas (esquís) o una ancha (snowboard) que se borran justo detrás
 function drawTracks() {
   const dark = PAL.onDark;
@@ -6379,6 +6695,7 @@ function render(dt) {
   // Lo que va en el cielo, encima de todo lo demás: nubes de ácido y sus gotas, jets y bombas cayendo
   drawSky();
   drawSnowfall(dt || 0);
+  drawJungleTop();
   // Burbuja del multiplicador (siempre visible para poder tocarla)
   drawBubble();
   // Cursor dibujado (solo con mouse)
@@ -6475,6 +6792,7 @@ const Hero = (() => {
     beach: [{ k: "palm", u: -0.58, v: -0.28, s: 1, r: 7 }, { k: "umbrella", u: 0.58, v: -0.2, s: 1, r: 6 }, { k: "castle", u: 0.4, v: 0.52, s: 1, r: 22 }],
     snow: [{ k: "snowman", u: -0.5, v: 0.45, s: 1, r: 12 }],
     city: [{ k: "tree", u: 0.42, v: 0.68, s: 1, r: 6 }],
+    jungle: [{ k: "jtree", u: -0.58, v: -0.32, s: 1, r: 8 }, { k: "fern", u: 0.62, v: -0.22, s: 1, r: 10 }, { k: "bush", u: -0.42, v: 0.52, s: 1, r: 10 }, { k: "shroom", u: 0.56, v: 0.48, s: 1, r: 5 }],
   };
   const heroProps = (lid, e) => { const k = Math.min(e.ry, 78) / 78; return (HERO_PROPS[lid] || []).map((p) => ({ ...p, sc: k, x: e.cx + p.u * e.rx, y: e.cy + p.v * e.ry, rr: p.r * k })); };
   function drawHeroProp(P, dark) {
@@ -6488,6 +6806,10 @@ const Hero = (() => {
     else if (P.k === "castle") paintCastle(g, x, y, 0.72 * k, dark);
     else if (P.k === "snowman") paintSnowman(g, x, y, 0.92 * k, dark);
     else if (P.k === "tree") paintTree(g, x, y, 70 * k, dark, 5);
+    else if (P.k === "jtree") paintJungleTree(g, x, y, 128 * k, dark, 9);
+    else if (P.k === "fern") paintFern(g, x, y, 0.95 * k, dark, 4);
+    else if (P.k === "bush") paintFlowerBush(g, x, y, 0.9 * k, dark, 6);
+    else if (P.k === "shroom") paintMushrooms(g, x, y, 1.1 * k, dark);
     else if (P.k === "crystal") {
       const s2 = P.s * k, gl = g.createRadialGradient(x, y - 14 * s2, 0, x, y - 14 * s2, 26 * s2);
       gl.addColorStop(0, dark ? "rgba(200,180,255,0.45)" : "rgba(165,132,232,0.3)"); gl.addColorStop(1, "rgba(165,132,232,0)");
@@ -6533,7 +6855,7 @@ const Hero = (() => {
   const drag = { on: false, id: null, x0: 0, ox: 0, vx: 0, lastX: 0, lastT: 0, back: false, from: 0, bt: 0 };
   let sw = null;
   const fallers = [];
-  const LVL_COL = ["#7C5CE0", "#2FA3C4", "#4A86D8", "#E2604F"];
+  const LVL_COL = ["#7C5CE0", "#2FA3C4", "#4A86D8", "#E2604F", "#2E9E62"];
   const maxLvl = () => (real || save).level;
   const canGo = (d) => { const i = save.level + d; return i >= 0 && i <= maxLvl(); };
   const pivot = (e) => [e.cx, e.cy + e.ry * 0.5];
@@ -6838,6 +7160,36 @@ const Hero = (() => {
       if (dark) for (const L of heroCity(e).lamps) { const gx = L.x + L.dir * L.hp * 0.3, gy = L.y, r = L.hp * 0.9, gr = g.createRadialGradient(gx, gy, 0, gx, gy, r); gr.addColorStop(0, "rgba(255,206,130,0.32)"); gr.addColorStop(1, "rgba(255,206,130,0)"); g.fillStyle = gr; g.save(); g.translate(gx, gy); g.scale(1, 0.6); g.beginPath(); g.arc(0, 0, r, 0, TAU); g.restore(); g.fill(); }
       g.restore();
       g.strokeStyle = dark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.9)"; g.lineWidth = 1.6;
+      g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, Math.PI * 1.04, Math.PI * 1.96); g.stroke();
+    } else if (lid === "jungle") {
+      // Una islita de selva en un río: costado de tierra con raíces colgando, pasto con musgo, caminito,
+      // un charquito con un lirio y florecitas
+      const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
+      g.save(); g.translate(e.cx, e.cy); g.scale(1, gs);
+      const riv = g.createRadialGradient(0, 0, Math.min(e.rx * 0.9, GR * 0.7), 0, 0, GR);
+      riv.addColorStop(0, dark ? "#1E4C46" : "#8FD3C2"); riv.addColorStop(1, dark ? "rgba(30,76,70,0)" : "rgba(143,211,194,0)");
+      g.fillStyle = riv; g.beginPath(); g.arc(0, 0, GR, 0, TAU); g.fill(); g.restore();
+      slab(dark ? "#3E3122" : "#9C7650", dark ? "#2A2118" : "#6E5236");
+      g.strokeStyle = dark ? "#2A2118" : "#5E4433"; g.lineWidth = 1.4; g.lineCap = "round";
+      for (let i = 0; i < 7; i++) { const a = Math.PI * (0.18 + i * 0.1), x = e.cx + Math.cos(a) * e.rx * 0.97, y = e.cy + th + Math.sin(a) * e.ry * 0.97, l = th * (0.7 + (i % 3) * 0.4); g.beginPath(); g.moveTo(x, y - 2); g.quadraticCurveTo(x + 3, y + l * 0.5, x - 1, y + l); g.stroke(); }
+      const gt = g.createRadialGradient(e.cx - e.rx * 0.3, e.cy - e.ry * 0.4, 4, e.cx, e.cy, e.rx);
+      gt.addColorStop(0, dark ? "#2C4A30" : "#C2E3A2"); gt.addColorStop(1, dark ? "#1C3022" : "#86BE6C");
+      g.fillStyle = gt; g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.fill();
+      g.save(); g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.clip();
+      // Caminito de tierra y musgo
+      g.strokeStyle = dark ? "#3A3224" : "#D9C49A"; g.lineWidth = e.ry * 0.22;
+      g.beginPath(); g.moveTo(e.cx - e.rx * 0.1, e.cy + e.ry * 1.1); g.quadraticCurveTo(e.cx + e.rx * 0.25, e.cy + e.ry * 0.2, e.cx - e.rx * 0.05, e.cy - e.ry * 1.1); g.stroke();
+      g.lineWidth = 1.1;
+      for (let i = 0; i < 70; i++) { const a = i * 2.399, d = Math.sqrt((i * 0.618) % 1), x = e.cx + Math.cos(a) * e.rx * d * 0.95, y = e.cy + Math.sin(a) * e.ry * d * 0.95; g.strokeStyle = i % 3 ? (dark ? "rgba(0,0,0,0.3)" : "rgba(60,115,55,0.4)") : dark ? "rgba(120,170,120,0.2)" : "rgba(245,255,230,0.8)"; g.beginPath(); g.moveTo(x - 1.4, y); g.lineTo(x, y - 4); g.lineTo(x + 1.4, y); g.stroke(); }
+      g.restore();
+      // Charquito con un lirio
+      const px = e.cx + e.rx * 0.2, py = e.cy + e.ry * 0.15, pr = e.rx * 0.17;
+      g.fillStyle = dark ? "#1E4C52" : "#6FB8BD"; g.beginPath(); g.ellipse(px, py, pr, pr * 0.45, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "#2C5A3C" : "#5BA36D"; g.beginPath(); g.moveTo(px - pr * 0.3, py); g.ellipse(px - pr * 0.3, py, pr * 0.32, pr * 0.15, 0, 0.3, TAU - 0.1); g.closePath(); g.fill();
+      g.fillStyle = dark ? "#B07090" : "#FF9EC4"; g.beginPath(); g.arc(px + pr * 0.25, py - 1, 2.4, 0, TAU); g.fill();
+      // Florecitas
+      for (const [u, v, col] of [[-0.7, 0.05, "#FF8AB0"], [0.75, 0.1, "#F1C84D"], [-0.15, -0.6, "#FFFFFF"], [0.3, 0.7, "#A584E8"]]) { g.fillStyle = dark ? "#8C7A8A" : col; for (let j = 0; j < 3; j++) { g.beginPath(); g.arc(e.cx + u * e.rx + j * 3 - 3, e.cy + v * e.ry + (j % 2) * 2, 1.5, 0, TAU); g.fill(); } }
+      g.strokeStyle = dark ? "rgba(160,220,170,0.25)" : "rgba(255,255,255,0.7)"; g.lineWidth = 1.6;
       g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, Math.PI * 1.04, Math.PI * 1.96); g.stroke();
     } else if (beach) {
       // Una islita en el mar: agua clara alrededor, espuma que va y viene, costado de arena (la orilla que baja
