@@ -682,7 +682,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.12.0";
+const VERSION = "0.13.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -740,7 +740,6 @@ const toolWorld = (id) => TOOLS[id].world || 0;
 const UP = {
   // Ayudantes: cada tipo se compra aparte, hasta 10 de cada uno
   hire:  { tab: "helpers", max: 10, cost: (l) => Math.round(60 * 1.35 ** l) },    // dedo
-  bootH: { tab: "helpers", max: 10, cost: (l) => Math.round(400 * 1.35 ** l) },   // bota
   boltH: { tab: "helpers", max: 10, cost: (l) => Math.round(1500 * 1.35 ** l) },  // nube eléctrica
   // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
   jet:   { tab: "helpers", world: 1, max: 6, cost: [10000, 6000, 10000, 16000, 25000, 40000] }, // jet bombardero
@@ -753,7 +752,7 @@ const UP = {
   luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
   night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
 };
-const UP_ORDER = ["hire", "bootH", "boltH", "jet", "acidH", "speed", "power", "value", "crowd", "luck", "night"];
+const UP_ORDER = ["hire", "boltH", "jet", "acidH", "speed", "power", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   helperInterval: (l) => 2.5 * 0.82 ** l,   // s entre toques de cada ayudante
@@ -769,8 +768,7 @@ const FX = {
 };
 // Tipos de ayudante: every = multiplica la pausa entre golpes; targets = a cuántos alcanza en promedio
 const HELPER_KIND = {
-  finger: { every: 1,   targets: 1 },
-  boot:   { every: 1.5, targets: 2.2, radius: 56 },
+  finger: { every: 1,   targets: 1.6, radius: 40 }, // cada toque aplasta un área chica (antes lo hacía la bota)
   bolt:   { every: 1.8, targets: 4,   chains: 3, range: 140 },
 };
 // Multiplicador: cada cierto tiempo aparece una burbuja ×2 o ×4; si la tocas a tiempo, multiplica tus monedas
@@ -789,7 +787,6 @@ const svgI = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const SOFT = 'fill="currentColor" fill-opacity=".28"', SOLID = 'fill="currentColor" stroke="none"';
 const ICONS = {
   finger: svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/><path d="M5.2 6.6a5 5 0 0 1 1.4-2.3M17.4 4.3a5 5 0 0 1 1.4 2.3" opacity=".65"/>`),
-  boot:   svgI(`<path ${SOFT} d="M7 3.5h6.2v7.2l4.4 2a3.4 3.4 0 0 1 2 3.1V18H5.6V4.9A1.4 1.4 0 0 1 7 3.5z"/><path d="M5 21h15M9.4 7h3.8M9.4 10h3.8"/>`),
   spray:  svgI(`<path ${SOFT} d="M12 21.5c-3.7 0-6.2-2.5-6.2-5.8 0-3.5 2.7-5.2 3.5-8.7 2 1.3 3.1 3.1 3.3 5 1.1-.8 1.9-2.1 2.1-3.7 2.1 2 3.5 4.5 3.5 7.4 0 3.3-2.5 5.8-6.2 5.8z"/><path d="M12 21.5c-1.7 0-2.8-1.1-2.8-2.7 0-1.7 1.2-2.6 1.7-4.1 1 .8 1.7 1.8 1.8 2.9.6-.4 1-1 1.1-1.8 1 .9 1.7 2.1 1.7 3.2 0 1.5-1.5 2.5-3.5 2.5z"/>`),
   bolt:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M13.6 2.5 5 13.6h6.1L10 21.5l9-11.7h-6.3z"/>`),
   bomb:   svgI(`<circle ${SOFT} cx="11" cy="14.5" r="6.5"/><path d="M14.8 9.6 16.6 7.8"/><path d="M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6" stroke-width="1.7"/><circle ${SOLID} cx="20.6" cy="5.4" r="1.2"/>`),
@@ -799,7 +796,6 @@ const ICONS = {
   acidH:  svgI(`<path ${SOFT} d="M7 13a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4A3.3 3.3 0 0 1 17.5 13z"/><path d="M8 16l-.9 2.4M12 16l-.9 2.4M16 16l-.9 2.4"/>`),
   meteor: svgI(`<circle ${SOFT} cx="15" cy="15" r="5.6"/><path d="M11 11 3.5 3.5M14.2 9.4 10 3M9.4 14.2 3 10"/><circle ${SOLID} cx="16.6" cy="13.4" r="1.1"/>`),
   hire:   svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/>`),
-  bootH:  svgI(`<path ${SOFT} d="M7 3.5h6.2v7.2l4.4 2a3.4 3.4 0 0 1 2 3.1V18H5.6V4.9A1.4 1.4 0 0 1 7 3.5z"/><path d="M5 21h15"/>`),
   boltH:  svgI(`<path ${SOFT} d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>`),
   speed:  svgI(`<circle ${SOFT} cx="12" cy="13.5" r="7.5"/><path d="M12 13.5 15 10.5M10 2.5h4M18.6 6.4l1.3-1.3"/>`),
   power:  svgI(`<rect ${SOFT} x="5.2" y="7" width="3.2" height="10" rx="1.2"/><rect ${SOFT} x="15.6" y="7" width="3.2" height="10" rx="1.2"/><path d="M2.6 10v4M21.4 10v4M8.4 12h7.2"/>`),
@@ -813,14 +809,13 @@ const ICONS = {
 const HUE = {
   finger: "#7D8AA3", boot: "#4F86E8", spray: "#F0642E", bolt: "#F0A12E", bomb: "#4A5068", acid: "#6FB23A", meteor: "#EE7537", wave: "#2C9FC2",
   jet: "#5C7CFA", acidH: "#6FB23A",
-  hire: "#8E99AE", bootH: "#4F86E8", boltH: "#6C7FA8", speed: "#22B07D", power: "#E5534B",
+  hire: "#8E99AE", boltH: "#6C7FA8", speed: "#22B07D", power: "#E5534B",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
 };
 
 // Ayudantes: guante, bota y nube (dibujos vectoriales). ax, ay = el punto que toca el piso; size = alto en px
 const HELPER_ART = {
   finger: { svg: "<svg width=\"100\" height=\"140\" viewBox=\"0 0 100 140\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"gw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#E4E0D8\"/></linearGradient> <linearGradient id=\"gc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F7F4EE\"/><stop offset=\"1\" stop-color=\"#DCD7CD\"/></linearGradient> </defs> <g stroke=\"#4A4540\" stroke-opacity=\".5\" stroke-width=\"2.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"> <rect x=\"25\" y=\"5\" width=\"54\" height=\"22\" rx=\"9\" fill=\"url(#gc)\"/> <rect x=\"31\" y=\"50\" width=\"21\" height=\"84\" rx=\"10.5\" fill=\"url(#gw)\"/> <rect x=\"9\" y=\"42\" width=\"17\" height=\"38\" rx=\"8.5\" fill=\"url(#gw)\" transform=\"rotate(26 17.5 61)\"/> <rect x=\"21\" y=\"21\" width=\"63\" height=\"58\" rx=\"24\" fill=\"url(#gw)\"/> <circle cx=\"81\" cy=\"64\" r=\"9\" fill=\"url(#gw)\"/> <circle cx=\"71\" cy=\"74\" r=\"10.5\" fill=\"url(#gw)\"/> <circle cx=\"58\" cy=\"79\" r=\"11\" fill=\"url(#gw)\"/> </g> <path d=\"M35 12h34M35 19h34\" stroke=\"#4A4540\" stroke-opacity=\".22\" stroke-width=\"2\" stroke-linecap=\"round\"/> <path d=\"M37 90v34\" stroke=\"#FFFFFF\" stroke-width=\"4\" stroke-linecap=\"round\"/> <path d=\"M30 42c4-9 12-13 21-13\" stroke=\"#FFFFFF\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>", w: 100, h: 140, ax: 41.5, ay: 135, size: 30 },
-  boot:   { svg: "<svg width=\"130\" height=\"120\" viewBox=\"0 0 130 120\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"bb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#8FB0EA\"/><stop offset=\"1\" stop-color=\"#4E6FB0\"/></linearGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6E8ED0\"/><stop offset=\"1\" stop-color=\"#4B68A6\"/></linearGradient> </defs> <path d=\"M30 14q0-9 9-9h34q9 0 9 9v52l24 8q18 6 18 22v4H24V14z\" fill=\"url(#bb)\"/> <rect x=\"26\" y=\"4\" width=\"60\" height=\"16\" rx=\"8\" fill=\"url(#bc)\"/> <rect x=\"20\" y=\"96\" width=\"98\" height=\"16\" rx=\"8\" fill=\"#3B3F4C\"/> <path d=\"M28 104h86\" stroke=\"#FFFFFF\" stroke-opacity=\".12\" stroke-width=\"3\" stroke-linecap=\"round\"/> <path d=\"M40 30v52\" stroke=\"#FFFFFF\" stroke-opacity=\".45\" stroke-width=\"6\" stroke-linecap=\"round\"/> <path d=\"M86 78q14 3 22 10\" stroke=\"#FFFFFF\" stroke-opacity=\".35\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>",  w: 130, h: 120, ax: 69,   ay: 112, size: 30 },
   jet:    { svg: "<svg width=\"130\" height=\"80\" viewBox=\"0 0 130 80\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"jb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C3CCDA\"/></linearGradient> <linearGradient id=\"jw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#BFC9D8\"/><stop offset=\"1\" stop-color=\"#EEF2F7\"/></linearGradient> <linearGradient id=\"jg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B9DCFA\"/><stop offset=\"1\" stop-color=\"#3E6FB8\"/></linearGradient></defs> <g stroke=\"#4A5468\" stroke-opacity=\".28\" stroke-width=\"1.2\" stroke-linejoin=\"round\"> <path d=\"M58 35 L38 5 Q37 3 40 3 L49 3 Q51 3 52 5 L80 35 Z\" fill=\"url(#jw)\"/> <path d=\"M58 45 L38 75 Q37 77 40 77 L49 77 Q51 77 52 75 L80 45 Z\" fill=\"url(#jw)\"/> <path d=\"M20 36 L9 21 L16 21 L31 36 Z\" fill=\"url(#jw)\"/> <path d=\"M20 44 L9 59 L16 59 L31 44 Z\" fill=\"url(#jw)\"/> <path d=\"M7 40 C7 35 13 33 23 33 L100 33 C114 33 124 37 127 40 C124 43 114 47 100 47 L23 47 C13 47 7 45 7 40 Z\" fill=\"url(#jb)\"/> </g> <path d=\"M30 40 H95\" stroke=\"#4F86E8\" stroke-width=\"2.6\" stroke-linecap=\"round\"/> <path d=\"M44 12 L50 12 M44 68 L50 68\" stroke=\"#4F86E8\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\".7\"/> <ellipse cx=\"105\" cy=\"40\" rx=\"9.5\" ry=\"4.4\" fill=\"url(#jg)\"/> <ellipse cx=\"102\" cy=\"38.6\" rx=\"4\" ry=\"1.4\" fill=\"#FFFFFF\" opacity=\".7\"/> </svg>", w: 130, h: 80, ax: 65, ay: 40, size: 200 },
   bomb:   { svg: "<svg width=\"60\" height=\"66\" viewBox=\"0 0 60 66\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><radialGradient id=\"bb\" cx=\".36\" cy=\".32\" r=\".78\"><stop offset=\"0\" stop-color=\"#727A92\"/><stop offset=\".5\" stop-color=\"#363B50\"/><stop offset=\"1\" stop-color=\"#1A1C26\"/></radialGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9AFC0\"/><stop offset=\"1\" stop-color=\"#5B6174\"/></linearGradient></defs> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#B88C55\" stroke-width=\"3.4\" stroke-linecap=\"round\"/> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#7C5A32\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-dasharray=\"2 4\" opacity=\".6\"/> <circle cx=\"28\" cy=\"41\" r=\"22\" fill=\"url(#bb)\"/> <rect x=\"21\" y=\"13\" width=\"14\" height=\"9\" rx=\"3\" fill=\"url(#bc)\" transform=\"rotate(14 28 17.5)\"/> <ellipse cx=\"19.5\" cy=\"31.5\" rx=\"7\" ry=\"4.2\" fill=\"#FFFFFF\" opacity=\".33\" transform=\"rotate(-38 19.5 31.5)\"/> </svg>", w: 60, h: 66, ax: 28, ay: 63, size: 66 },
   acid:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"ac\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#C7D3C0\"/><stop offset=\".6\" stop-color=\"#7C8C74\"/><stop offset=\"1\" stop-color=\"#55654D\"/></linearGradient></defs> <g fill=\"url(#ac)\"><circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/><rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/></g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/> <path d=\"M26 76h80\" stroke=\"#9BE15D\" stroke-opacity=\".75\" stroke-width=\"3.5\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 66, ay: 78, size: 200 },
@@ -840,7 +835,7 @@ const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, acid: 0, meteor: 0, wave: 0 }, // 0 = sin comprar; 1+ = nivel
-  up: { hire: 0, bootH: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
+  up: { hire: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 2, // versión del guardado
   level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
@@ -867,10 +862,18 @@ function loadSave() {
     if (!(s.v >= 2)) {
       // Guardado de antes: botas y nubes eran dedos convertidos; ahora cada tipo se cuenta aparte
       const u = s.up || {}, hire = Math.floor(num(u.hire)), bootH = Math.floor(num(u.bootH)), boltH = Math.floor(num(u.boltH));
-      d.up.hire = clamp(hire - bootH, 0, 10); d.up.bootH = clamp(bootH - boltH, 0, 10); d.up.boltH = clamp(boltH, 0, 10);
+      d.up.hire = clamp(hire - bootH, 0, 10); d.up.boltH = clamp(boltH, 0, 10); d.oldBoots = clamp(bootH - boltH, 0, 10);
       // Herramientas que ya no existen (Láser, Agujero negro, Rayo de sol, Tsunami): se devuelve lo que costaron
       const OLD = { laser: [4000, 8000, 16000], vortex: [8000, 15000, 30000], sun: [15000, 30000, 60000], wave: [30000, 60000, 120000] };
       for (const k in OLD) { const l = clamp(Math.floor(num(s.tools && s.tools[k])), 0, 3); for (let i = 0; i < l; i++) { d.coins += OLD[k][i]; d.spent = Math.max(0, d.spent - OLD[k][i]); } }
+    }
+    // La Bota ayudante ya no existe: cada bota se vuelve un dedo (hasta 10) y las que no quepan se devuelven en monedas
+    const boots = s.v >= 2 ? clamp(Math.floor(num(s.up && s.up.bootH)), 0, 10) : d.oldBoots || 0;
+    delete d.oldBoots;
+    if (boots) {
+      const room = Math.max(0, 10 - d.up.hire), moved = Math.min(room, boots);
+      d.up.hire += moved;
+      for (let l = moved; l < boots; l++) { const c = Math.round(400 * 1.35 ** l); d.coins += c; d.spent = Math.max(0, d.spent - c); }
     }
     d.v = 2;
     d.level = clamp(Math.floor(num(s.level)), 0, LEVELS.length - 1);
@@ -966,12 +969,11 @@ const STR = {
   soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianitos, nuevas herramientas."],
   ready: ["Ready!", "¡Listo!"], welcomeTo: ["Welcome to", "Bienvenido a"],
   currentLevel: ["Level", "Nivel"],
-  bootH: ["Boot", "Bota"], bootHD: ["Stomps a whole area at once.", "Pisa un área completa de un golpe."],
   boltH: ["Shock cloud", "Nube eléctrica"], boltHD: ["Floats over the aliens and zaps them in a chain.", "Flota sobre los marcianitos y los electrocuta en cadena."],
   needFinger: ["Needs a finger", "Falta un dedo"], needBoot: ["Needs a boot", "Falta una bota"],
   convert: ["Convert", "Convertir"],
   escaped: ["Got away", "Se escaparon"],
-  hire: ["Finger", "Dedo"], hireD: ["Taps aliens on its own, even while you're away.", "Aplasta marcianitos solo, incluso cuando no estás."],
+  hire: ["Finger", "Dedo"], hireD: ["Taps aliens on its own, smushing a small area each time, even while you're away.", "Aplasta marcianitos solo, un área chica en cada toque, incluso cuando no estás."],
   speed: ["Quick hands", "Manos rápidas"], speedD: ["Helpers tap more often.", "Los ayudantes tocan más seguido."],
   power: ["Strong hands", "Manos fuertes"], powerD: ["Helpers hit harder. Great for purples.", "Los ayudantes pegan más fuerte. Ideal para los morados."],
   value: ["Golden touch", "Toque de oro"], valueD: ["Every alien is worth more coins.", "Cada marcianito vale más monedas."],
@@ -1019,7 +1021,6 @@ function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
     case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "dedo" : "dedos"}` : `${l} ${l === 1 ? "finger" : "fingers"}`;
-    case "bootH": return short ? String(l) : es ? `${l} ${l === 1 ? "bota" : "botas"}` : `${l} ${l === 1 ? "boot" : "boots"}`;
     case "jet": case "acidH": {
       if (!l) return tx("notHired");
       const s = n(k === "jet" ? FX.jetEvery(l) : FX.acidEvery(l));
@@ -1831,7 +1832,6 @@ const helperImg = {};
 function helperKinds() {
   const u = save.up, out = [];
   for (let i = 0; i < u.boltH; i++) out.push("bolt");
-  for (let i = 0; i < u.bootH; i++) out.push("boot");
   for (let i = 0; i < u.hire; i++) out.push("finger");
   return out;
 }
@@ -1849,7 +1849,7 @@ function syncHelpers() {
   });
 }
 // Altura a la que flota cada tipo (px sobre el piso)
-const HOVER = { finger: 7, boot: 16, bolt: 46 };
+const HOVER = { finger: 7, bolt: 46 };
 const HELPER_ALPHA = 0.82; // los ayudantes se ven un poco translúcidos para no distraer
 function updateHelpers(dt) {
   if (!helpers.length) return;
@@ -1866,7 +1866,7 @@ function updateHelpers(dt) {
     h.born = Math.min(1, h.born + dt * 2.5);
     h.bob += dt * 2.2;
     h.timer -= dt;
-    h.press = Math.max(0, h.press - dt / (h.kind === "boot" ? 0.3 : 0.18));
+    h.press = Math.max(0, h.press - dt / 0.18);
     if (h.target && (h.target.state === "die" || h.target.pull || isOut(h.target))) h.target = null;
     // Elige un marcianito cercano y poco "ocupado" que ya esté en la pantalla
     if (!h.target && playing) {
@@ -1885,16 +1885,16 @@ function updateHelpers(dt) {
     // Se desliza con suavidad (rápido de lejos, lento al llegar)
     if (d > 0.5) { const step = Math.min(d, (90 + d * 2.6) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
     const near = h.target && d < (h.kind === "bolt" ? 30 : 12);
-    // La bota se levanta un poco antes de pisar
-    h.wind += ((near && h.kind === "boot" && h.timer < 0.25 ? 1 : 0) - h.wind) * Math.min(1, dt * 10);
     if (near && h.timer <= 0) {
       h.press = 1; h.timer = iv0 * K.every * rand(0.9, 1.1);
       const t = h.target;
       if (h.kind === "finger") {
-        ring(h.x, h.y, 2, 10, 0.25, PAL.text, 1.2, 0.1);
-        if (hit(t, dmg, h.x, h.y - 10, false, true)) h.target = null;
-      } else if (h.kind === "boot") {
-        stompAt(h.x, h.y, K.radius, dmg, true);
+        // El dedo aplasta un área chica: su objetivo y los que estén pegaditos
+        ring(h.x, h.y, 3, K.radius, 0.3, PAL.text, 1.2, 0.12, 0.03);
+        const hits = balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - h.x, b.y - h.y) < K.radius + b.r * 0.4);
+        if (!hits.includes(t)) hits.push(t);
+        hits.forEach((b, i) => hit(b, dmg, h.x, h.y - 10, i > 0, true));
+        if (t.state === "die") h.target = null;
       } else {
         zapChain(h.x, h.y - HOVER.bolt + 4, t, K.chains, K.range, dmg, true);
       }
@@ -1908,7 +1908,6 @@ function drawHelper(h) {
   const press = h.press;
   let height = HOVER[h.kind];
   if (h.kind === "finger") height = height - Math.sin(press * Math.PI) * 5;
-  else if (h.kind === "boot") height = press > 0 ? height * (1 - press) * 0.9 : height + h.wind * 6; // pisa y vuelve a subir
   else height += Math.sin(h.bob) * 1.5;
   const s = A.size / A.h, w = A.w * s, hh = A.h * s;
   // Sombra en el piso: más chica y nítida entre más cerca está
@@ -1920,7 +1919,7 @@ function drawHelper(h) {
   const sc = 0.7 + 0.3 * h.born;
   ctx.save();
   ctx.translate(h.x, h.y - height);
-  ctx.scale(sc, sc * (h.kind === "boot" && press > 0.85 ? 0.94 : 1));
+  ctx.scale(sc, sc);
   ctx.drawImage(img, -A.ax * s, -A.ay * s, w, hh);
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -2838,7 +2837,7 @@ function buyUp(k) {
   if (save.coins < price || !upReady(k)) { Sound.nope(); return; }
   const was = save.up[k];
   save.coins -= price; save.spent += price; save.up[k] = was + 1;
-  if (k === "hire" || k === "bootH" || k === "boltH") syncHelpers();
+  if (k === "hire" || k === "boltH") syncHelpers();
   if (k === "jet") jetClock = Math.min(jetClock, 1.5);
   if (k === "acidH") acidClock = Math.min(acidClock, 2);
   if (k === "crowd") updateTarget();
@@ -2955,11 +2954,11 @@ function toolCard(id) {
 function upCard(k) {
   const l = save.up[k], u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
   const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
-  const hireLike = k === "hire" || k === "bootH" || k === "boltH" || ((k === "jet" || k === "acidH") && l === 0);
+  const hireLike = k === "hire" || k === "boltH" || ((k === "jet" || k === "acidH") && l === 0);
   const btn = !ready
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
     : buyButton("up", k, price, hireLike ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade"));
-  const art = { hire: "finger", bootH: "boot", boltH: "bolt", jet: "jet", acidH: "acid" }[k];
+  const art = { hire: "finger", boltH: "bolt", jet: "jet", acidH: "acid" }[k];
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
   return shopCard({
     key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : ""), icon, name: tx(k),
@@ -2975,7 +2974,7 @@ function renderShop(animate) {
     html = sect("secVoid") + ["finger", "bolt", "spray"].map(toolCard).join("")
       + sect("secBeach") + ["bomb", "acid", "meteor", "wave"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
-    html = sect("secTeam") + ["hire", "bootH", "boltH"].map(upCard).join("")
+    html = sect("secTeam") + ["hire", "boltH"].map(upCard).join("")
       + sect("secBeach") + ["jet", "acidH"].map(upCard).join("");
   } else {
     html = sect("secBoostWorld") + ["value", "crowd", "luck", "night"].map(upCard).join("")
