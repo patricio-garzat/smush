@@ -164,42 +164,49 @@ h1, h2, h3, .coins, .home-title, #splash .word, .play-txt b, .hc-t b, .shop-txt 
 #coins { display: inline-block; transform-origin: left center; }
 #coins.long { font-size: 25px; } #coins.xlong { font-size: 21px; } /* con muchos dígitos se achica para que siempre quepa */
 .sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* Chip del nivel: nombre, progreso hacia el siguiente y un anillito */
+/* Chip del nivel: un puntito de su color y el nombre (abre Niveles) */
 #lvl-chip {
-  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px 0 4px; border: 0; border-radius: 12px;
-  background: var(--card); box-shadow: var(--shadow); color: var(--text); font-size: 12.5px; font-weight: 750; white-space: nowrap;
-  transition: transform 0.14s ease, box-shadow 0.3s ease;
+  position: relative; display: inline-flex; flex: none; align-items: center; gap: 7px; height: 36px; padding: 0 12px 0 11px; border: 0; border-radius: 18px;
+  background: var(--card); box-shadow: var(--shadow); color: var(--text); font-size: 13px; font-weight: 750; white-space: nowrap;
+  transition: transform 0.14s ease;
 }
-#lvl-chip:active { transform: scale(0.96); }
-#lvl-chip .ring { width: 16px; height: 16px; transform: rotate(-90deg); }
-#lvl-chip .ring circle { fill: none; stroke-width: 3; }
-#lvl-chip .ring .bg { stroke: var(--field); }
-#lvl-chip .ring .fg { stroke: var(--lvl); stroke-linecap: round; stroke-dasharray: 50.27; stroke-dashoffset: 50.27; transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 0.8, 0.24, 1); }
-#lvl-prog { color: var(--muted); font-weight: 650; }
-/* Meta del nivel: la pastilla se llena con el color del nivel conforme avanzas */
-#smushed-pill.goal { --p: 0; background: linear-gradient(90deg, var(--lvl-soft) calc(var(--p) * 100%), var(--card) 0); }
-#smushed-pill.goal.done { background: var(--lvl-soft); }
-#goal-of { color: var(--muted); font-weight: 650; }
-@media (max-width: 430px) { #goal-lbl.to { display: none; } }
-#lvl-chip .badge { top: -2px; right: -2px; background: var(--lvl); }
-#lvl-chip.ready { animation: chipGlow 2.4s ease-in-out infinite; }
-@keyframes chipGlow { 0%, 100% { box-shadow: var(--shadow), 0 0 0 0 var(--lvl-soft); } 50% { box-shadow: var(--shadow), 0 0 0 5px var(--lvl-soft); } }
+#lvl-chip:active, #trip:active { transform: scale(0.97); }
+.lvl-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--lvl); box-shadow: 0 0 0 3px var(--lvl-soft); }
+/* El viaje a la siguiente isla: progreso → juntar monedas → ¡listo para viajar! */
+#trip {
+  --p: 0; --fill: var(--lvl-soft);
+  position: relative; display: flex; flex: 1; min-width: 0; align-items: center; gap: 9px; height: 40px; padding: 0 12px 0 8px; border: 0; border-radius: 20px;
+  background: linear-gradient(90deg, var(--fill) calc(var(--p) * 100%), var(--card) 0); box-shadow: var(--shadow); color: var(--text); text-align: left;
+  transition: transform 0.14s ease;
+}
+#trip[hidden] { display: none; }
+.trip-ic { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--card); color: var(--lvl); box-shadow: 0 0 0 2px var(--lvl-soft); }
+.trip-ic svg { width: 15px; height: 15px; }
+.trip-body { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+#trip-cap { font-size: 10.5px; font-weight: 700; color: var(--muted); letter-spacing: 0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#trip-title { font-family: var(--font-display); font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#trip-count { flex: none; font-size: 12px; font-weight: 750; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Juntando monedas para el viaje: se llena en dorado */
+#trip.coins { --fill: rgba(241, 200, 77, 0.3); }
+#trip.coins .trip-ic { color: #C9962A; box-shadow: 0 0 0 2px rgba(241, 200, 77, 0.35); }
+/* ¡Lista! El botón se llena del color del nivel y brilla suave */
+#trip.go { background: var(--lvl); background: linear-gradient(135deg, var(--lvl), color-mix(in srgb, var(--lvl) 70%, #FFFFFF)); color: #FFFFFF; animation: tripGlow 2.4s ease-in-out infinite; }
+#trip.go .trip-ic { background: rgba(255, 255, 255, 0.25); color: #FFFFFF; box-shadow: none; }
+#trip.go #trip-cap, #trip.go #trip-count { color: rgba(255, 255, 255, 0.9); }
+@keyframes tripGlow { 0%, 100% { box-shadow: var(--shadow), 0 0 0 0 var(--lvl-soft); } 50% { box-shadow: var(--shadow), 0 0 0 6px var(--lvl-soft); } }
+@media (prefers-reduced-motion: reduce) { #trip.go { animation: none; } }
 /* Pastillas de estadísticas: marcianitos aplastados y monedas por segundo */
-.mini, #rate { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 6px; border-radius: 12px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; }
+.mini { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 6px; border-radius: 12px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; }
 .mini img { width: 16px; height: 16px; object-fit: contain; }
 /* De visita: botón para regresar a tu nivel (en el lugar de la cuenta de aplastados) */
-#visit-btn { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px 0 8px; border: 0; border-radius: 12px; background: var(--lvl); color: #FFFFFF; box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; transition: transform 0.14s; }
+#visit-btn { display: inline-flex; flex: 1; justify-content: center; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 12px; border: 0; border-radius: 18px; background: var(--lvl); color: #FFFFFF; box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; transition: transform 0.14s; }
 #visit-btn[hidden] { display: none; }
 #visit-btn:active { transform: scale(0.96); }
 #visit-btn svg { width: 13px; height: 13px; }
-#smushed-pill[hidden] { display: none; }
 .lvl-status.visit { background: var(--lvl); color: #FFFFFF; }
 .travel-btn.visit { background: var(--lvl-soft); color: var(--lvl); }
 .mini .lbl { color: var(--muted); font-weight: 650; }
 @media (max-width: 370px) { .mini .lbl { display: none; } }
-#rate { display: none; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 6px; border-radius: 11px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12px; font-weight: 750; }
-#rate.on { display: inline-flex; }
-#rate svg { width: 12px; height: 12px; }
 .actions { display: flex; align-items: center; gap: 8px; }
 .pill, .icon-btn {
   position: relative; height: 42px; border: 0; background: var(--card); box-shadow: var(--shadow);
@@ -709,7 +716,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg>
       </button>
     </div>
-      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="smushed-pill" class="mini"><img id="smushed-ic" alt=""><b id="smushed">0</b><span id="goal-of"></span><span class="lbl" id="goal-lbl">smushed</span></span><button id="visit-btn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span id="visit-txt"></span></button><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
+      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><i class="lvl-dot"></i><span id="lvl-name">The Void</span></button><button id="trip" type="button"><span class="trip-ic" id="trip-ic"></span><span class="trip-body"><small id="trip-cap"></small><b id="trip-title"></b></span><span id="trip-count"></span></button><button id="visit-btn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span id="visit-txt"></span></button></div>
   </header>
   <main id="field">
     <canvas id="cv" aria-label="Game area"></canvas>
@@ -951,7 +958,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.30.0";
+const VERSION = "0.30.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1344,6 +1351,7 @@ const STR = {
   cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
   visitLvl: ["Visit", "Visitar"], visitKicker: ["Just visiting", "De visita"], visitingNow: ["Visiting", "De visita"], backTo: ["Back to", "Regresar a"],
   visitNote: ["Just a visit: you arrive with your coins, tools and helpers, and you can smush and buy as usual, but nothing there counts. Your progress stays exactly as it is.", "Solo de visita: llegas con tus monedas, herramientas y ayudantes, y puedes aplastar y comprar como siempre, pero nada de lo de allá cuenta. Tu progreso se queda exactamente igual."],
+  tripNext: ["Next island", "Siguiente isla"], tripSaving: ["Coins for the trip", "Monedas para el viaje"], tripReady: ["Ready to travel!", "¡Lista para viajar!"],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
@@ -3122,41 +3130,45 @@ function applyLevel() {
   syncThemeColor();
   levelShown = "";
 }
-// Chip del nivel en el encabezado: nombre + progreso hacia el siguiente
-let levelShown = "";
+// Chip del nivel (solo el nombre) y el botón del viaje con sus tres estados
+const TRIP_ICONS = {
+  isle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18c3 0 3-1.5 6-1.5s3 1.5 6 1.5 3-1.5 6-1.5"/><path d="M12 15V7"/><path d="M12 7c-2-2.5-5-2.5-6.5-.5M12 7c2-2.5 5-2.5 6.5-.5M12 7c-1-2.8-.2-4.5 1.5-5"/></svg>',
+  coin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5v11"/></svg>',
+  plane: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12c0-.8-.7-1.4-1.6-1.4H14L9.5 3.5H7.6l2.2 7.1H5.6L3.9 8.4H2.6l1 3.6-1 3.6h1.3l1.7-2.2h4.2l-2.2 7.1h1.9L14 13.4h5.4c.9 0 1.6-.6 1.6-1.4z"/></svg>',
+};
+let levelShown = "", tripState = "";
 function renderLevelChip() {
-  const n = nextLvl(), done = n ? Math.min(save.smushed, n.smush) : 0;
-  const key = save.level + "|" + done + "|" + (n && save.coins >= n.cost) + LANG;
-  if (key === levelShown) return;
-  levelShown = key;
+  if (levelShown === lvl().name + LANG) return;
+  levelShown = lvl().name + LANG;
   $("#lvl-name").textContent = lvl().name;
-  $("#lvl-prog").textContent = "";
-  const pct = n ? done / n.smush : 1;
-  $("#lvl-ring").style.strokeDashoffset = String(50.27 * (1 - pct));
-  const ready = !!n && done >= n.smush;
-  $("#lvl-chip").classList.toggle("ready", ready);
-  $("#lvl-badge").classList.toggle("on", ready && save.coins >= n.cost);
 }
-// Pastilla de la meta: cuántos llevas de los que pide el siguiente nivel (en el último, el total)
 function renderGoal() {
-  const n = nextLvl(), pill = $("#smushed-pill");
-  pill.classList.toggle("goal", !!n);
-  if (n) {
-    const done = Math.min(save.smushed, n.smush);
-    $("#smushed").textContent = fmt(done);
-    $("#goal-of").textContent = `/ ${fmt(n.smush)}`;
-    $("#goal-lbl").textContent = done >= n.smush ? "✓" : `→ ${n.name}`;
-    $("#goal-lbl").classList.toggle("to", done < n.smush);
-    pill.style.setProperty("--p", (done / n.smush).toFixed(4));
-    pill.classList.toggle("done", done >= n.smush);
-  } else {
-    $("#smushed").textContent = fmt(save.smushed);
-    $("#goal-of").textContent = "";
-    $("#goal-lbl").textContent = tx("smushed");
-    $("#goal-lbl").classList.remove("to");
-    pill.classList.remove("done");
+  const n = nextLvl(), el = $("#trip");
+  if (real) { el.hidden = true; return; }
+  el.hidden = false;
+  // Tres estados: avanzar hacia la meta → juntar las monedas del viaje → ¡lista! (en el último nivel, el total)
+  let state, cap, title, count, p;
+  const pair = (a, b) => (b >= 100000 ? `${fmtShort(a)} / ${fmtShort(b)}` : `${fmt(a)} / ${fmt(b)}`); // los dos números con el mismo formato
+  if (!n) { state = "max"; cap = tx("max"); title = `${fmt(save.smushed)} ${tx("smushed")}`; count = ""; p = 0; }
+  else if (save.smushed < n.smush) { state = "prog"; cap = tx("tripNext"); title = n.name; count = pair(save.smushed, n.smush); p = save.smushed / n.smush; }
+  else if (save.coins < n.cost) { state = "coins"; cap = tx("tripSaving"); title = n.name; count = pair(Math.floor(save.coins), n.cost); p = save.coins / n.cost; }
+  else { state = "go"; cap = tx("tripReady"); title = `${tx("travelTo")} ${n.name}`; count = ""; p = 1; }
+  const key = state + cap + title + count + LANG;
+  if (key !== tripState) {
+    tripState = key;
+    el.classList.toggle("coins", state === "coins"); el.classList.toggle("go", state === "go");
+    $("#trip-ic").innerHTML = state === "go" ? TRIP_ICONS.plane : state === "coins" ? TRIP_ICONS.coin : TRIP_ICONS.isle;
+    $("#trip-cap").textContent = cap; $("#trip-title").textContent = title; $("#trip-count").textContent = count;
+    el.setAttribute("aria-label", state === "go" ? `${tx("travelTo")} ${n.name}` : tx("levels"));
   }
+  el.style.setProperty("--p", clamp(p, 0, 1).toFixed(4));
 }
+// Al tocarlo: si ya puedes viajar, la ventanita para confirmar; si no, Niveles
+$("#trip").addEventListener("click", () => {
+  Sound.unlock(); Sound.tick();
+  const n = nextLvl();
+  if (n && save.smushed >= n.smush && save.coins >= n.cost) openReady(); else openSheet($("#sheet-levels"));
+});
 function renderLevels(animate) {
   const list = $("#levels-list");
   let html = "";
@@ -3196,6 +3208,11 @@ function checkReady() {
   if (save.smushed < n.smush || save.coins < n.cost) return;
   if (document.querySelector(".sheet.open, .dialog.open") || !$("#travel").hidden || waves.length) return;
   save.readyAsked = save.level; markSave();
+  openReady();
+}
+function openReady() {
+  const n = nextLvl();
+  if (!n || document.querySelector(".dialog.open")) return;
   const es = LANG === "es";
   $("#ready-art").innerHTML = levelArt(n.id, save.level + 2);
   mountArts($("#ready-art"), "rd");
@@ -3320,7 +3337,7 @@ function endVisit() {
 // En el encabezado: de visita, en lugar de la cuenta de aplastados sale el botón para regresar
 function renderVisit() {
   const v = !!real;
-  $("#visit-btn").hidden = !v; $("#smushed-pill").hidden = v;
+  $("#visit-btn").hidden = !v; renderGoal();
   if (v) { $("#visit-txt").textContent = `${tx("backTo")} ${LEVELS[real.level].name}`; $("#visit-btn").setAttribute("aria-label", `${tx("backTo")} ${LEVELS[real.level].name}`); }
 }
 $("#visit-btn").addEventListener("click", () => { Sound.unlock(); Sound.tick(); endVisit(); });
@@ -6276,9 +6293,6 @@ let shopShownN = 0;
 function updateUI() {
   uiDirty = false;
   shopCoinsEl.textContent = fmtFull(save.coins);
-  const rate = helperRate();
-  $("#rate").classList.toggle("on", rate > 0);
-  if (rate > 0) $("#rate-v").textContent = "+" + fmt1(rate) + "/s";
   if (coinBump && !reduceMotion && (!bumpAnim || bumpAnim.playState === "finished")) {
     bumpAnim = coinsEl.animate([{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
   }
@@ -7710,7 +7724,6 @@ function startGame() {
   checkAway(save.lastSeen);
   writeSave();
   loadArt().then(() => { buildSprites(); });
-  $("#smushed-ic").src = alienUrl("green");
   startLoop();
   const studio = $("#studio");
   // La intro del estudio arranca sola. Si el navegador ya deja sonar, suena desde el inicio;
