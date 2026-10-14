@@ -90,7 +90,7 @@
 :root { --lvl: #7C5CE0; --lvl-soft: rgba(124, 92, 224, 0.14); }
 :root[data-level] { --speck: transparent; } /* del nivel 2 en adelante, sin los puntitos del piso */
 :root[data-level="beach"] {
-  --bg: #FCFAF5; --field: #F9F2E2; --field-hi: #FEFBF4; --speck: transparent;
+  --bg: #FCFAF5; --field: #EBD3A6; --field-hi: #F3E2C0; --speck: transparent;
   --lvl: #2FA3C4; --lvl-soft: rgba(47, 163, 196, 0.14); --mist: #B7A68A;
 }
 @media (prefers-color-scheme: dark) {
@@ -99,7 +99,7 @@
 :root[data-level="beach"][data-theme="dark"] { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
 /* Tema de The Slopes (nivel 3): nieve fresca, azul de montaña. De noche, nieve bajo la luna */
 :root[data-level="snow"] {
-  --bg: #F5F8FC; --field: #EDF3F9; --field-hi: #F8FBFE; --speck: transparent;
+  --bg: #F5F8FC; --field: #D6E3F2; --field-hi: #E7EFF9; --speck: transparent;
   --lvl: #4A86D8; --lvl-soft: rgba(74, 134, 216, 0.14); --mist: #9DB0C8;
 }
 @media (prefers-color-scheme: dark) {
@@ -140,7 +140,7 @@ button { font: inherit; color: inherit; cursor: pointer; -webkit-user-select: no
 button:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
 a { color: inherit; }
 /* Títulos, números grandes y el logo con la tipografía de la marca */
-h1, h2, h3, .coins, .home-title, #splash .word, .play-txt b, .hc-t b, .shop-txt b, .rec-hero b, #travel-name, #welcome .big, #mult-hud, .lvl-body h3, #ready h3 { font-family: var(--font-display); }
+h1, h2, h3, .coins, .home-title, #splash .word, .play-txt b, .hc-t b, .shop-txt b, .rec-hero b, #arrive .nm, #welcome .big, #mult-hud, .lvl-body h3, #ready h3 { font-family: var(--font-display); }
 .bang { color: #F1C84D; }
 .coin {
   display: inline-block; flex: none; width: 1em; height: 1em;
@@ -528,14 +528,15 @@ body::before {
 #travel { position: fixed; inset: 0; z-index: 190; display: grid; place-items: center; }
 #travel[hidden] { display: none; }
 #trip-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-#travel .mask { display: block; overflow: hidden; padding: 2px 4px 4px; }
-#travel-name { display: block; }
-#travel-line { display: block; width: 46px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, #2FA3C4, #7FD0E3); transform-origin: center; }
-#travel-from { font-size: 12.5px; font-weight: 700; color: #8A8982; }
-#travel-from::before { content: "← "; }
-#travel .travel-text { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 28px; border-radius: 26px; background: rgba(255, 255, 255, 0.82); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18); color: #242521; text-align: center; }
-#travel-kicker { font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6A6A63; }
-#travel-name { font-size: clamp(34px, 11vw, 54px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; }
+#arrive { position: fixed; z-index: 185; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+#arrive[hidden] { display: none; }
+#arrive .glow { position: absolute; left: 50%; top: 50%; width: 520px; height: 260px; max-width: 120vw; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--bg) 88%, transparent), color-mix(in srgb, var(--bg) 0%, transparent)); }
+#arrive .k { position: relative; font-size: 13px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--lvl); display: flex; align-items: center; gap: 10px; }
+#arrive .k::before, #arrive .k::after { content: ""; width: 22px; height: 2px; border-radius: 1px; background: currentColor; opacity: 0.6; }
+#arrive .nm { position: relative; display: flex; font-family: var(--font-display); font-size: clamp(38px, 12vw, 64px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; color: var(--text); white-space: pre; }
+#arrive .nm > span { display: inline-block; overflow: hidden; padding: 0 1px 6px; margin-bottom: -6px; }
+#arrive .nm > span > b { display: inline-block; font-weight: inherit; }
+#arrive .ln { position: relative; display: block; width: 56px; height: 4px; border-radius: 2px; background: var(--lvl); margin-top: 4px; }
 
 /* ============================================================
    Inicio: el menú de la app
@@ -868,8 +869,9 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 <!-- Viaje a un nivel nuevo -->
 <div id="travel" hidden aria-live="polite">
   <canvas id="trip-cv"></canvas>
-  <div class="travel-text"><span id="travel-kicker"></span><span class="mask"><strong id="travel-name"></strong></span><i id="travel-line"></i><span id="travel-from"></span></div>
 </div>
+<!-- Al llegar a un nivel: su nombre aparece encima del juego (sin ventanilla) y se va solo -->
+<div id="arrive" hidden aria-live="polite"><i class="glow"></i><span class="k"></span><span class="nm"></span><i class="ln"></i></div>
 
 <!-- Confirmación para reiniciar -->
 <div id="confirm" class="dialog" hidden>
@@ -966,7 +968,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.33.1";
+const VERSION = "0.34.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3362,12 +3364,38 @@ $("#visit-btn").addEventListener("click", () => { Sound.unlock(); Sound.tick(); 
    0.7–3.0  vuelo: el jet sigue una ruta punteada sobre el mar hasta la isla nueva, con nubes en parallax
    2.9–4.0  llegada: la cámara cae en picada sobre la arena de la isla nueva; aparece el título
    4.0–4.8  la arena se funde con el juego, que ya está en el nivel nuevo */
+// Ya en el nivel nuevo: "NIVEL 3" se abre con el espaciado de letras, el nombre sube letra por letra desde una máscara,
+// la rayita del color del nivel se dibuja desde el centro; a los 2.4 s todo se va hacia arriba y se desvanece
+let arriveT = 0;
+function showArrival(kick, name) {
+  const el = $("#arrive"), k = el.querySelector(".k"), nm = el.querySelector(".nm"), ln = el.querySelector(".ln"), gl = el.querySelector(".glow");
+  clearTimeout(arriveT); el.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+  k.textContent = kick;
+  nm.innerHTML = [...name].map((ch) => `<span><b>${ch === " " ? "&nbsp;" : ch}</b></span>`).join("");
+  const r = field.getBoundingClientRect();
+  Object.assign(el.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+  el.hidden = false;
+  const letters = [...nm.querySelectorAll("b")], E = "cubic-bezier(.2,.8,.2,1)";
+  if (reduceMotion || !el.animate) {
+    el.animate && el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "both" });
+    arriveT = setTimeout(() => { el.hidden = true; }, 2200);
+    return;
+  }
+  gl.animate([{ opacity: 0, transform: "translate(-50%,-50%) scale(0.7)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }], { duration: 700, easing: E, fill: "both" });
+  k.animate([{ opacity: 0, letterSpacing: "0.6em" }, { opacity: 1, letterSpacing: "0.18em" }], { duration: 900, easing: E, fill: "both" });
+  letters.forEach((b, i) => b.animate([{ transform: "translateY(110%) rotate(8deg)" }, { transform: "none" }], { delay: 120 + i * 32, duration: 700, easing: E, fill: "both" }));
+  ln.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], { delay: 300 + letters.length * 32, duration: 650, easing: E, fill: "both" });
+  arriveT = setTimeout(() => {
+    const X = "cubic-bezier(.5,0,.75,0)";
+    letters.forEach((b, i) => b.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(-110%)", opacity: 0 }], { delay: i * 18, duration: 420, easing: X, fill: "forwards" }));
+    k.animate([{ opacity: 1 }, { opacity: 0, transform: "translateY(-8px)" }], { duration: 360, easing: X, fill: "forwards" });
+    ln.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: 380, easing: X, fill: "forwards" });
+    gl.animate([{ opacity: 1 }, { opacity: 0 }], { delay: 150, duration: 450, fill: "forwards" }).onfinish = () => { el.hidden = true; };
+  }, 2400);
+}
 const TRIP = { len: 4.8, fly: [0.7, 3.0], dive: [2.9, 4.0], fade: 4.0 };
 function playTrip(from, to, num, onSwitch, kicker) {
-  const ov = $("#travel"), cvs = $("#trip-cv"), g = cvs.getContext("2d"), card = ov.querySelector(".travel-text");
-  $("#travel-kicker").textContent = kicker || `${tx("level")} ${num}`;
-  $("#travel-name").textContent = to.name;
-  $("#travel-from").textContent = from.name;
+  const ov = $("#travel"), cvs = $("#trip-cv"), g = cvs.getContext("2d"), title = kicker || `${tx("level")} ${num}`;
   const quick = reduceMotion || !ov.animate;
   const dpr = Math.min(window.devicePixelRatio || 1, 2), vw = window.innerWidth, vh = window.innerHeight;
   cvs.width = Math.round(vw * dpr); cvs.height = Math.round(vh * dpr);
@@ -3378,10 +3406,9 @@ function playTrip(from, to, num, onSwitch, kicker) {
   if (quick) {
     // Movimiento reducido: un fundido sencillo con el título
     g.fillStyle = "#F6EBD3"; g.fillRect(0, 0, vw, vh);
-    card.style.opacity = 1;
     Sound.levelUp();
     setTimeout(onSwitch, 300);
-    setTimeout(() => { ov.hidden = true; card.style.opacity = ""; Music.tick(); }, 1800);
+    setTimeout(() => { ov.hidden = true; Music.tick(); showArrival(title, to.name); }, 900);
     return;
   }
   // El mapa: islas en coordenadas de mundo; la ruta es una curva suave que sube y baja
@@ -3407,7 +3434,6 @@ function playTrip(from, to, num, onSwitch, kicker) {
   const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
   const img = (k) => (alienImg[k] ? alienImg[k] : null);
   let t0 = performance.now(), switched = false, sfx = { jet: false, arrive: false, dive: false };
-  card.style.opacity = 0;
   ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: "ease", fill: "forwards" });
 
   // Islas en 3D (vistas desde arriba, de frente): la cara de arriba, su costado, agua clara alrededor con espuma
@@ -3700,19 +3726,10 @@ function playTrip(from, to, num, onSwitch, kicker) {
     if (sandK > 0) { g.globalAlpha = sandK; g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#FCFAF5"; g.fillRect(0, 0, vw, vh); g.globalAlpha = 1; }
     // --- Sonido y vibración en los momentos clave
     if (!sfx.jet && t > TRIP.fly[0]) { sfx.jet = true; Sound.jet(); buzz([8, 40, 8]); }
-    if (!sfx.dive && t > TRIP.dive[0]) { sfx.dive = true; Sound.whoosh(); showCard(); }
+    if (!sfx.dive && t > TRIP.dive[0]) { sfx.dive = true; Sound.whoosh(); }
     if (!sfx.arrive && t > 3.35) { sfx.arrive = true; Sound.levelUp(); buzz([16, 80, 16, 80, 30]); }
-    if (!switched && t > TRIP.fade) { switched = true; onSwitch(); ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: "ease", fill: "forwards" }).onfinish = () => { ov.hidden = true; Music.tick(); ov.getAnimations().forEach((a) => a.cancel()); card.style.opacity = ""; }; }
+    if (!switched && t > TRIP.fade) { switched = true; onSwitch(); ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: "ease", fill: "forwards" }).onfinish = () => { ov.hidden = true; Music.tick(); ov.getAnimations().forEach((a) => a.cancel()); }; setTimeout(() => showArrival(title, to.name), 380); }
     if (t < TRIP.len) requestAnimationFrame(frame);
-  }
-  // Título: "Nivel 2" se acomoda con el espaciado de letras y el nombre sube desde una máscara
-  function showCard() {
-    card.style.opacity = 1;
-    card.animate([{ opacity: 0, transform: "translateY(14px) scale(0.96)" }, { opacity: 1, transform: "none" }], { duration: 650, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
-    $("#travel-kicker").animate([{ letterSpacing: "0.5em", opacity: 0 }, { letterSpacing: "0.14em", opacity: 1 }], { duration: 900, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
-    $("#travel-name").animate([{ transform: "translateY(105%)" }, { transform: "none" }], { delay: 120, duration: 700, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
-    $("#travel-line").animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], { delay: 260, duration: 700, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
-    $("#travel-from").animate([{ opacity: 0 }, { opacity: 1 }], { delay: 380, duration: 500, fill: "both" });
   }
   requestAnimationFrame(frame);
 }
@@ -3745,7 +3762,7 @@ function buildBackground() {
     const x = rand(0, W), y = rand(seaH, H), r = rand(50, 150), lite = i % 2 === 0, col = lite ? (dark ? "255,240,210" : "255,255,255") : dark ? "0,0,0" : "200,160,95";
     g.save(); g.translate(x, y); g.scale(1, 0.55);
     const gr = g.createRadialGradient(0, 0, 0, 0, 0, r);
-    gr.addColorStop(0, `rgba(${col},${lite ? (dark ? 0.04 : 0.45) : dark ? 0.1 : 0.09})`); gr.addColorStop(1, `rgba(${col},0)`);
+    gr.addColorStop(0, `rgba(${col},${lite ? (dark ? 0.04 : 0.22) : dark ? 0.1 : 0.12})`); gr.addColorStop(1, `rgba(${col},0)`);
     g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
   }
   // La orilla mojada: más oscura, con agujeritos de burbujas
@@ -3771,7 +3788,7 @@ function buildBackground() {
   }
   // Granitos y piedritas
   for (let i = 0; i < Math.round((W * H) / 80); i++) {
-    g.fillStyle = Math.random() < 0.5 ? (dark ? "rgba(255,240,210,0.06)" : "rgba(255,255,255,0.85)") : dark ? "rgba(0,0,0,0.18)" : "rgba(160,125,75,0.16)";
+    g.fillStyle = Math.random() < 0.5 ? (dark ? "rgba(255,240,210,0.06)" : "rgba(255,255,255,0.4)") : dark ? "rgba(0,0,0,0.18)" : "rgba(160,125,75,0.16)";
     g.fillRect(rand(0, W), rand(seaH, H), 1.1, 1.1);
   }
   for (let i = 0; i < Math.round((W * H) / 30000) + 2; i++) {
@@ -4009,7 +4026,7 @@ function buildSnow() {
   for (let i = 0; i < Math.round((W * H) / 40000) + 4; i++) {
     const x = rand(0, W), y = rand(top, H), r = rand(60, 170), sh = i % 3 !== 0;
     const gr = g.createRadialGradient(x, y, 0, x, y, r);
-    const col = sh ? (dark ? "0,0,0" : "110,145,200") : "255,255,255", a = sh ? (dark ? 0.14 : 0.1) : dark ? 0.04 : 0.6;
+    const col = sh ? (dark ? "0,0,0" : "90,130,195") : "255,255,255", a = sh ? (dark ? 0.14 : 0.14) : dark ? 0.04 : 0.35;
     gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`);
     g.fillStyle = gr; g.save(); g.translate(x, y); g.scale(1, 0.45); g.translate(-x, -y); g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.restore();
   }
@@ -4509,11 +4526,11 @@ function buildVoid() {
   const g = c.getContext("2d"); g.scale(DPR, DPR);
   // --- El piso: polvo lunar lila, con manchas suaves de lila, menta y rosa (se desvanecen a su mismo color)
   const fl = g.createLinearGradient(0, top, 0, H);
-  if (dark) { fl.addColorStop(0, "#2A2450"); fl.addColorStop(1, "#1F1A3C"); } else { fl.addColorStop(0, "#E2D9FA"); fl.addColorStop(1, "#EEE9FC"); }
+  if (dark) { fl.addColorStop(0, "#2A2450"); fl.addColorStop(1, "#1F1A3C"); } else { fl.addColorStop(0, "#CFC0F4"); fl.addColorStop(1, "#DCD0F7"); }
   g.fillStyle = fl; g.fillRect(0, 0, W, H);
   const tints = dark ? ["120,95,220", "0,0,0", "70,170,170", "200,90,150"] : ["255,255,255", "165,132,232", "120,210,200", "255,158,196"];
   for (let i = 0; i < Math.round((W * H) / 22000) + 6; i++) {
-    const x = rr(0, W), y = rr(top, H), r = rr(60, 170), col = tints[i % tints.length], al = dark ? (col === "0,0,0" ? 0.16 : 0.08) : col === "255,255,255" ? 0.5 : 0.16;
+    const x = rr(0, W), y = rr(top, H), r = rr(60, 170), col = tints[i % tints.length], al = dark ? (col === "0,0,0" ? 0.16 : 0.08) : col === "255,255,255" ? 0.22 : 0.18;
     g.save(); g.translate(x, y); g.scale(1, 0.55);
     const gr = g.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(${col},${al})`); gr.addColorStop(1, `rgba(${col},0)`);
     g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
@@ -5941,7 +5958,7 @@ function buildJungle() {
   const g = c.getContext("2d"); g.scale(DPR, DPR);
   // --- El piso: verde musgo, con manchas de pasto más oscuro, musgo claro y tierra (cada mancha se desvanece a su color)
   const fl = g.createLinearGradient(0, top, 0, H);
-  if (dark) { fl.addColorStop(0, "#132018"); fl.addColorStop(1, "#16241A"); } else { fl.addColorStop(0, "#94C27A"); fl.addColorStop(1, "#A9D08C"); }
+  if (dark) { fl.addColorStop(0, "#132018"); fl.addColorStop(1, "#16241A"); } else { fl.addColorStop(0, "#84B868"); fl.addColorStop(1, "#97C47A"); }
   g.fillStyle = fl; g.fillRect(0, 0, W, H);
   for (let i = 0; i < Math.round((W * H) / 22000) + 6; i++) {
     const x = rr(0, W), y = rr(top, H), r = rr(50, 140), t = R(), col = t < 0.45 ? (dark ? "0,0,0" : "70,125,60") : t < 0.75 ? (dark ? "60,90,55" : "235,250,215") : dark ? "60,45,30" : "170,140,95";
@@ -6092,7 +6109,7 @@ function drawJungleBg() {
   for (let i = 0; i < 2; i++) {
     const x = ((tt * (6 + i * 3) + i * W * 0.5) % (W + 400)) - 200, y = H * (0.55 + i * 0.25), r = 180;
     const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
-    gr.addColorStop(0, PAL.dark ? "rgba(160,200,170,0.06)" : "rgba(255,255,255,0.22)"); gr.addColorStop(1, PAL.dark ? "rgba(160,200,170,0)" : "rgba(255,255,255,0)");
+    gr.addColorStop(0, PAL.dark ? "rgba(160,200,170,0.06)" : "rgba(255,255,255,0.1)"); gr.addColorStop(1, PAL.dark ? "rgba(160,200,170,0)" : "rgba(255,255,255,0)");
     ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.save(); ctx.translate(x, y); ctx.scale(1, 0.25); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.restore(); ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -7348,7 +7365,7 @@ const Hero = (() => {
   // del escenario hacia abajo): así nada se corta en la orilla del escenario, la isla se desvanece al irse de lado
   // y los marcianitos caen hasta abajo de la pantalla
   const fxc = $("#home-fx"), fg = fxc.getContext("2d");
-  let g = hg, fxOn = false, fx = { x: 0, y: 0, w: 0, h: 0, d: 1 };
+  let g = hg, fxOn = false, fx = { x: 0, y: 0, w: 0, h: 0, d: 1 }, fxRects = [], bumpAt = 0;
   // Transparencia de todo lo que se pinta en un contexto (el dibujo de la isla pone su propio globalAlpha, así que se multiplica)
   const AL = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "globalAlpha");
   let fxMul = 1;
@@ -7411,6 +7428,8 @@ const Hero = (() => {
     fxc.style.top = fx.y + "px"; fxc.style.width = fx.w + "px"; fxc.style.height = fx.h + "px";
     const pw = Math.round(fx.w * d), ph = Math.round(fx.h * d);
     if (fxc.width !== pw || fxc.height !== ph) { fxc.width = pw; fxc.height = ph; }
+    // Los botones de abajo (en coordenadas del escenario): ahí rebotan los que se caen
+    fxRects = [$("#btn-play"), ...homeEl.querySelectorAll(".hcard")].map((el) => { const q = el.getBoundingClientRect(); return { el, x: q.left - r.left, y: q.top - r.top, w: q.width }; }).filter((q) => q.w > 0);
   }
   function size() {
     const r = cvh.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
@@ -7525,7 +7544,23 @@ const Hero = (() => {
   function stepFallers(dt) {
     for (let i = fallers.length - 1; i >= 0; i--) {
       const f = fallers[i];
+      const py = f.y;
       f.t += dt; f.vy += 1500 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.spin * dt;
+      if (f.sq) f.sq = Math.max(0, f.sq - dt * 5);
+      // Rebotan en los botones de abajo: brincan hacia afuera (para irse cayendo de botón en botón) y el botón se hunde tantito
+      if (f.vy > 0 && (f.b || 0) < 6) for (const q of fxRects) {
+        const hw = BALL_TYPES[f.k].baseR * 0.8;
+        if (py > q.y + 2 || f.y < q.y || f.x + hw < q.x + 8 || f.x - hw > q.x + q.w - 8) continue;
+        const out = f.x < q.x + q.w / 2 ? -1 : 1;
+        f.y = q.y; f.b = (f.b || 0) + 1; f.sq = 1;
+        f.vy = -Math.max(230, f.vy * 0.5);
+        f.vx = out * Math.max(Math.abs(f.vx) * 0.9, rand(130, 230));
+        f.spin = out * rand(4, 8);
+        const now = performance.now();
+        if (now - bumpAt > 70) { bumpAt = now; Sound.hit(true); buzz(5); }
+        if (q.el.animate && !reduceMotion) q.el.animate([{ transform: "none" }, { transform: "translateY(2px) scale(0.995)" }, { transform: "none" }], { duration: 240, easing: "ease-out" });
+        break;
+      }
       if (f.y > fx.h + 140) fallers.splice(i, 1);
     }
   }
@@ -7536,7 +7571,8 @@ const Hero = (() => {
       if (!im) continue;
       const hgt = T.baseR * 2.9, wid = hgt * (im.width / im.height), wob = Math.sin(f.t * 22 + f.ph) * 0.1;
       g.globalAlpha = 1; g.save(); g.translate(f.x, f.y - hgt * 0.45); g.rotate(f.rot);
-      g.scale(Math.sign(f.flip) * (1 + wob), 1 - wob); g.drawImage(im, -wid / 2, -hgt * 0.55, wid, hgt); g.restore();
+      const sq = (f.sq || 0) * 0.28;
+      g.scale(Math.sign(f.flip) * (1 + wob + sq), 1 - wob - sq); g.drawImage(im, -wid / 2, -hgt * 0.55, wid, hgt); g.restore();
       if (f.t < 0.42) {
         const k = Math.min(1, f.t / 0.08) * (1 - Math.max(0, (f.t - 0.3) / 0.12));
         g.globalAlpha = k; g.fillStyle = PAL.dark ? "#FFFFFF" : "#242521";
