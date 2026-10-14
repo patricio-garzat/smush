@@ -958,7 +958,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.30.2";
+const VERSION = "0.30.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -7023,14 +7023,41 @@ const Hero = (() => {
     const d = dx < 0 ? 1 : -1, k = canGo(d) ? 0.85 : 0.22; // si no hay nivel de ese lado, se resiste
     drag.ox = clamp(dx * k, -w * 0.6, w * 0.6);
   });
+  // En compu (mouse o trackpad), las flechitas de los lados son botones
+  const finePointer = matchMedia("(pointer: fine)").matches;
+  let hoverSide = 0;
+  const arrowAt = (ev) => {
+    const r = cvh.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top, cy = ground().cy;
+    if (Math.abs(y - cy) > 30) return 0;
+    if (x > w - 46 && canGo(1)) return 1;
+    if (x < 46 && canGo(-1)) return -1;
+    return 0;
+  };
+  cvh.addEventListener("pointermove", (ev) => { if (drag.on || sw) return; hoverSide = arrowAt(ev); cvh.style.cursor = hoverSide ? "pointer" : ""; });
+  cvh.addEventListener("pointerleave", () => { hoverSide = 0; cvh.style.cursor = ""; });
   const release = (ev) => {
     if (!drag.on || (ev && ev.pointerId !== drag.id)) return;
     drag.on = false;
+    if (ev && Math.abs(ev.clientX - drag.x0) < 6) { const side = arrowAt(ev); if (side) { drag.ox = 0; Sound.tick(); commit(side); return; } }
     const d = drag.ox < 0 ? 1 : -1, fling = Math.abs(drag.vx) > 550 && Math.sign(drag.vx) === -d;
     if (canGo(d) && (Math.abs(drag.ox) > w * 0.16 || (fling && Math.abs(drag.ox) > 10))) commit(d);
     else if (drag.ox) { drag.back = true; drag.from = drag.ox; drag.bt = 0; }
   };
   cvh.addEventListener("pointerup", release); cvh.addEventListener("pointercancel", release);
+  // Trackpad: dos dedos a los lados mueven la isla como el dedo; al pasar cierto punto, cambia de nivel.
+  // La inercia del trackpad no cambia otro nivel: hay que soltar (que paren los eventos) antes de volver a deslizar
+  const wheel = { acc: 0, lock: false, timer: 0 };
+  cvh.addEventListener("wheel", (ev) => {
+    if (Math.abs(ev.deltaX) <= Math.abs(ev.deltaY) * 1.2 || drag.on) return;
+    ev.preventDefault(); // que el navegador no lo tome como "atrás / adelante"
+    clearTimeout(wheel.timer);
+    wheel.timer = setTimeout(() => { wheel.lock = false; wheel.acc = 0; if (!sw && drag.ox) { drag.back = true; drag.from = drag.ox; drag.bt = 0; } }, 220);
+    if (wheel.lock || sw) return;
+    wheel.acc += ev.deltaMode === 1 ? ev.deltaX * 16 : ev.deltaX;
+    const d = wheel.acc > 0 ? 1 : -1, k = canGo(d) ? 0.85 : 0.22;
+    drag.back = false; drag.ox = clamp(-wheel.acc * k, -w * 0.6, w * 0.6);
+    if (canGo(d) && Math.abs(drag.ox) > w * 0.16) { wheel.lock = true; commit(d); }
+  }, { passive: false });
   function commit(d) {
     if (sw || !canGo(d)) return false;
     const out = -d, rot0 = (drag.ox / Math.max(1, w)) * 0.22, old = actors.filter((a) => !a.die && !(a.wait > 0));
@@ -7101,12 +7128,21 @@ const Hero = (() => {
       x += ww + gap - 6;
     }
     if (!sw && !drag.on) {
-      g.strokeStyle = PAL.dark ? "#FFFFFF" : "#242521"; g.lineWidth = 2.4; g.lineCap = "round"; g.lineJoin = "round";
+      g.lineCap = "round"; g.lineJoin = "round";
       for (const d of [-1, 1]) {
         if (!canGo(d)) continue;
-        const cx = d > 0 ? w - 12 - Math.sin(t * 2.2) * 2 : 12 + Math.sin(t * 2.2) * 2, cy = e.cy;
-        g.globalAlpha = PAL.dark ? 0.32 : 0.22;
-        g.beginPath(); g.moveTo(cx - 4 * d, cy - 8); g.lineTo(cx + 4 * d, cy); g.lineTo(cx - 4 * d, cy + 8); g.stroke();
+        if (finePointer) {
+          // Botón redondo con su flecha (más visible y se ilumina al pasar el mouse)
+          const on = hoverSide === d, cx = d > 0 ? w - 24 : 24, cy = e.cy, r = on ? 18 : 16.5;
+          g.globalAlpha = 1; g.fillStyle = PAL.dark ? "rgba(0,0,0,0.35)" : "rgba(30,30,40,0.12)"; g.beginPath(); g.arc(cx, cy + 2, r, 0, TAU); g.fill();
+          g.fillStyle = PAL.dark ? "#2B2B29" : "#FFFFFF"; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
+          g.strokeStyle = on ? LVL_COL[save.level + d] || PAL.text : PAL.dark ? "#E8E6E0" : "#242521"; g.globalAlpha = on ? 1 : 0.75; g.lineWidth = 2.6;
+          g.beginPath(); g.moveTo(cx - 3 * d, cy - 6); g.lineTo(cx + 3.5 * d, cy); g.lineTo(cx - 3 * d, cy + 6); g.stroke();
+        } else {
+          const cx = d > 0 ? w - 12 - Math.sin(t * 2.2) * 2 : 12 + Math.sin(t * 2.2) * 2, cy = e.cy;
+          g.strokeStyle = PAL.dark ? "#FFFFFF" : "#242521"; g.lineWidth = 2.4; g.globalAlpha = PAL.dark ? 0.32 : 0.22;
+          g.beginPath(); g.moveTo(cx - 4 * d, cy - 8); g.lineTo(cx + 4 * d, cy); g.lineTo(cx - 4 * d, cy + 8); g.stroke();
+        }
       }
     }
     g.globalAlpha = 1;
