@@ -958,7 +958,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.30.3";
+const VERSION = "0.30.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1778,9 +1778,12 @@ const Music = (() => {
     }
     voices = []; cur = null;
   }
+  const travelEl = document.getElementById("travel");
   function tick() {
-    const src = MUSIC.tracks[lvl().id];
-    const want = musicReady && settings.music && settings.musicVol > 0 && !!src && !document.hidden ? src : null;
+    // Suena la canción del nivel que estás viendo (en el Inicio o jugando). Durante el vuelo en avión, nada de música:
+    // solo el avión (se desvanece al despegar y la del nivel nuevo entra suave al llegar)
+    const src = MUSIC.tracks[lvl().id], flying = travelEl && !travelEl.hidden;
+    const want = musicReady && settings.music && settings.musicVol > 0 && !!src && !document.hidden && !flying ? src : null;
     const ctx = want || playing ? Sound.ctxAny() : null;
     if (ctx && ctx !== c) { c = ctx; voices = []; cur = null; playing = null; out = c.createGain(); out.gain.value = 0; out.connect(c.destination); } // audio nuevo
     if (!c) return;
@@ -3358,6 +3361,7 @@ function playTrip(from, to, num, onSwitch, kicker) {
   cvs.width = Math.round(vw * dpr); cvs.height = Math.round(vh * dpr);
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   ov.hidden = false;
+  Music.tick(); // la música se desvanece: en el vuelo solo se oye el avión
   Sound.unlock(); buzz(10);
   if (quick) {
     // Movimiento reducido: un fundido sencillo con el título
@@ -3365,7 +3369,7 @@ function playTrip(from, to, num, onSwitch, kicker) {
     card.style.opacity = 1;
     Sound.levelUp();
     setTimeout(onSwitch, 300);
-    setTimeout(() => { ov.hidden = true; card.style.opacity = ""; }, 1800);
+    setTimeout(() => { ov.hidden = true; card.style.opacity = ""; Music.tick(); }, 1800);
     return;
   }
   // El mapa: islas en coordenadas de mundo; la ruta es una curva suave que sube y baja
@@ -3686,7 +3690,7 @@ function playTrip(from, to, num, onSwitch, kicker) {
     if (!sfx.jet && t > TRIP.fly[0]) { sfx.jet = true; Sound.jet(); buzz([8, 40, 8]); }
     if (!sfx.dive && t > TRIP.dive[0]) { sfx.dive = true; Sound.whoosh(); showCard(); }
     if (!sfx.arrive && t > 3.35) { sfx.arrive = true; Sound.levelUp(); buzz([16, 80, 16, 80, 30]); }
-    if (!switched && t > TRIP.fade) { switched = true; onSwitch(); ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: "ease", fill: "forwards" }).onfinish = () => { ov.hidden = true; ov.getAnimations().forEach((a) => a.cancel()); card.style.opacity = ""; }; }
+    if (!switched && t > TRIP.fade) { switched = true; onSwitch(); ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: "ease", fill: "forwards" }).onfinish = () => { ov.hidden = true; Music.tick(); ov.getAnimations().forEach((a) => a.cancel()); card.style.opacity = ""; }; }
     if (t < TRIP.len) requestAnimationFrame(frame);
   }
   // Título: "Nivel 2" se acomoda con el espaciado de letras y el nombre sube desde una máscara
