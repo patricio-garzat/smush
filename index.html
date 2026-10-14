@@ -937,7 +937,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.26.0";
+const VERSION = "0.26.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1681,7 +1681,7 @@ const Sound = (() => {
 /* ---------- 4b. Música: cada nivel puede tener su canción, en repeat. Antes de que termine, vuelve a empezar
    y las dos vueltas se funden (fade de 4 s), así suena como si nunca acabara. Al cambiar de nivel, una canción
    se desvanece mientras entra la otra. Se apaga suave al salir de la app. ---------- */
-const MUSIC = { fade: 4, tracks: { beach: "audio/beach.m4a", snow: "audio/slopes.m4a" } };
+const MUSIC = { fade: 4, tracks: { beach: "audio/beach.m4a?v=2", snow: "audio/slopes.m4a" } }; // ?v= cambia cuando se cambia la canción (para que no se quede la vieja en caché)
 let musicReady = false; // suena hasta que terminan las intros
 const Music = (() => {
   const bufs = {}, loading = {}, failed = {};
