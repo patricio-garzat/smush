@@ -951,7 +951,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.29.0";
+const VERSION = "0.29.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1025,9 +1025,11 @@ const TOOLS = {
   meteor: { price: 40000, world: 2, max: 20, upgrades: ups(60000, 1.34), count: L20((v) => 5 + Math.floor((v - 1) * 0.6)), radius: 52, damage: 3, spread: L20((v) => Math.round(curve(120, 175, v))), cooldown: L20((v) => Math.round(geo(3, 1, v) * 10) / 10) },
   // The City
   car:    { price: 120000, world: 3, only: 3, max: 20, upgrades: ups(150000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.2, v) * 10) / 10) }, // carro: pasa por un carril y atropella a todos
+  // The Jungle
+  arrows: { price: 250000, world: 4, only: 4, max: 10, upgrades: Array.from({ length: 9 }, (_, i) => nice(320000 * 1.45 ** i)), count: [3, 4, 5, 5, 6, 7, 8, 8, 9, 10], cooldown: [5, 4.7, 4.4, 4.1, 3.8, 3.5, 3.2, 3, 2.8, 2.5] }, // flechas por lado (3 → 10)
   aval:   { price: 60000, world: 2, only: 2, max: 20, upgrades: ups(80000, 1.34), cooldown: L20((v) => Math.round(geo(9, 3.5, v) * 10) / 10), dur: L20((v) => curve(2.3, 1.6, v)) }, // avalancha: baja de los picos y arrastra a todos
 };
-const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car"];
+const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car", "arrows"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
 const toolWorld = (id) => TOOLS[id].world || 0;
@@ -1108,6 +1110,7 @@ const ICONS = {
   crowd:  svgI(`<circle ${SOFT} cx="6.8" cy="15" r="3.4"/><circle ${SOFT} cx="17.2" cy="15" r="3.4"/><circle ${SOFT} cx="12" cy="11" r="4"/><path d="M10.6 7.1 9.6 4.4M13.4 7.1l1-2.7"/>`),
   luck:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M12 3.2l2.7 5.4 6 .9-4.3 4.2 1 5.9L12 16.8l-5.4 2.8 1-5.9-4.3-4.2 6-.9z"/>`),
   night:  svgI(`<path ${SOFT} d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z"/><path d="M17 3.5v3M15.5 5h3M20.5 9v2M19.5 10h2" stroke-width="1.6"/>`),
+  arrows: svgI(`<path d="M4 20 18.5 5.5"/><path ${SOFT} d="M20.5 3.5l-1 4.6-3.6-3.6z"/><path d="M4 20l-.5-3.2M4 20l3.2.5M6.6 17.4l-.5-3.2M6.6 17.4l3.2.5"/>`),
   car:    svgI(`<path ${SOFT} d="M3 15.6V13l2.1-4.2A2 2 0 0 1 6.9 7.7h9a2 2 0 0 1 1.7 1l2.4 3.9 1 .7v2.3z"/><path d="M4 12.6h16.2M11.6 7.9v4.6"/><circle cx="7.4" cy="16.4" r="2" fill="currentColor"/><circle cx="16.6" cy="16.4" r="2" fill="currentColor"/>`),
   levels: svgI(`<path ${SOFT} d="M4 20 9 9l4 6 3-4 4 9z"/><circle cx="16.5" cy="6" r="2"/>`),
   aval:   svgI(`<path ${SOFT} d="M2.5 20 10 7l4 6 2.5-3.5L21.5 20z"/><path d="M10 7l-1.8 3.2 1.6-.6 1.4 1.3"/><circle cx="7" cy="17.5" r="2.4"/><circle cx="11.6" cy="18.3" r="1.7"/>`),
@@ -1115,7 +1118,7 @@ const ICONS = {
 // El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
 const HUE = {
   finger: "#7D8AA3", boot: "#4F86E8", saw: "#E5653A", bolt: "#F0A12E", bomb: "#4A5068", meteor: "#EE7537", wave: "#2C9FC2",
-  jet: "#5C7CFA", aval: "#5E9BE0", car: "#E2604F",
+  jet: "#5C7CFA", aval: "#5E9BE0", car: "#E2604F", arrows: "#C8763A",
   hire: "#8E99AE", cloud: "#6C7FA8", fspeed: "#22B07D", farea: "#E5534B", fmove: "#F0A12E", carea: "#4F86E8", cchain: "#7C5CE0",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
 };
@@ -1143,7 +1146,7 @@ const TAU = Math.PI * 2;
 const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
-  tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0, car: 0 }, // 0 = sin comprar; 1+ = nivel
+  tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0, car: 0, arrows: 0 }, // 0 = sin comprar; 1+ = nivel
   up: { hire: 0, cloud: 0, fspeed: 0, farea: 0, fmove: 0, carea: 0, cchain: 0, jet: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 4, // versión del guardado
@@ -1304,6 +1307,8 @@ const STR = {
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies across the middle of the field and scatters 6 huge bombs all over it.", "Cruza por en medio del campo y reparte 6 bombas enormes por todos lados."],
+  arrows: ["Arrows", "Flechas"], arrowsD: ["Tap to shoot: arrows fly in from both sides and go right through every alien in their way. Upgrade it for more arrows on each side.", "Toca para disparar: salen flechas volando desde los dos lados y atraviesan a todos los marcianitos en su camino. Mejórala para que salgan más flechas por lado."],
+  secJungle: ["The Jungle", "The Jungle"],
   car: ["Car", "Carro"], carD: ["Tap to send it: a car speeds down its lane and runs over every alien in the way, leaving them flattened on the pavement with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: un carro pasa a toda velocidad por su carril y atropella a todos los marcianitos en su camino; quedan embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
   secCity: ["The City", "The City"],
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
@@ -1376,6 +1381,7 @@ function statText(id, lvl) {
   if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]); return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   if (id === "car") { const c = TOOLS.car.cooldown[i]; return es ? `Atropella un carril · cada ${c} s` : `Runs over a lane · every ${c}s`; }
+  if (id === "arrows") { const n = TOOLS.arrows.count[i], c = TOOLS.arrows.cooldown[i]; return es ? `${n} flechas por lado · cada ${c} s` : `${n} arrows per side · every ${c}s`; }
   if (id === "bomb") { const n = TOOLS.bomb.count[i], r = px(TOOLS.bomb.radius[i]); return es ? `${n} ${n === 1 ? "bomba" : "bombas"} · ${r} px` : `${n} ${n === 1 ? "bomb" : "bombs"} · ${r} px`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
@@ -1387,6 +1393,7 @@ function statShort(id, lvl) {
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${px(TOOLS.bolt.range[i])} px`;
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval" || id === "car") return `${TOOLS[id].cooldown[i]}${s}`;
+  if (id === "arrows") return `${TOOLS.arrows.count[i]}×2`;
   if (id === "bomb") return `${TOOLS.bomb.count[i]} · ${px(TOOLS.bomb.radius[i])} px`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
@@ -1539,6 +1546,16 @@ const Sound = (() => {
     noise({ t, dur, vol, freq: vary(from, 0.08), sweep: to / from, q: 0.6, attack: dur * 0.45 });
   }
   let lastPop = 0, popsInRow = 0, lastSplat = 0;
+  // Clips grabados (como el "huy huy" de las flechas): se bajan una vez y se decodifican con el audio actual
+  const clips = {};
+  function loadClip(url) { if (!clips[url]) { const C = (clips[url] = { raw: null, buf: null, ctx: null }); fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).then((a) => { C.raw = a; }).catch(() => {}); } return clips[url]; }
+  function clip(url, vol = 0.85) {
+    const c = ensure(); if (!c) return;
+    const C = loadClip(url);
+    const play = () => { const src = c.createBufferSource(), g = c.createGain(); src.buffer = C.buf; g.gain.value = vol; src.connect(g).connect(c.destination); src.start(); };
+    if (C.buf && C.ctx === c) { play(); return; }
+    if (C.raw) c.decodeAudioData(C.raw.slice(0), (b) => { C.buf = b; C.ctx = c; play(); }, () => {});
+  }
   return {
     get on() { return settings.sound; },
     set(v) { settings.sound = v; saveSettings(); if (v) this.unlock(); },
@@ -1610,6 +1627,9 @@ const Sound = (() => {
     // Láser: un zumbido suave mientras se arrastra
     // Agujero negro: un soplo que baja y un tono grave que respira
     whoosh() { breath({ dur: 0.35, vol: 0.035, from: 1800, to: 500 }); },
+    preload(url) { loadClip(url); },
+    // Flechas: el "huy huy"
+    huy() { clip("audio/huy.m4a", 0.9); },
     // Cambiar de nivel en el Inicio: un soplido y un "uuuh" que baja (se caen de la isla)
     homeSwap() { breath({ dur: 0.45, vol: 0.04, from: 1500, to: 450 }); tone(620, { t: 0.06, dur: 0.5, vol: 0.025, type: "triangle", slide: 0.5, attack: 0.03 }); },
     // El carro: un claxon suavecito y el motor que pasa de lejos a cerca y se va
@@ -2332,6 +2352,10 @@ function useTool(x, y, pid) {
     startCd(id, TOOLS.wave.cooldown[L]);
     waves.push({ t: 0, dur: TOOLS.wave.dur[L], id: ++waveId, front: -60, caught: [] });
     Sound.wave(); buzz([12, 60, 18, 60, 24]);
+  } else if (id === "arrows") {
+    if (cdLeft(id) > 0) { notReady(x, y); return; }
+    startCd(id, TOOLS.arrows.cooldown[L]);
+    launchArrows(TOOLS.arrows.count[L]);
   } else if (id === "car") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
     if (launchCar()) startCd(id, TOOLS.car.cooldown[L]);
@@ -3074,6 +3098,7 @@ const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" str
 
 function applyLevel() {
   const root = document.documentElement;
+  if (lvl().id === "jungle") Sound.preload("audio/huy.m4a");
   if (lvl().id === "void") delete root.dataset.level; else root.dataset.level = lvl().id;
   readPalette(); if (W) { buildSprites(); buildBackground(); }
   syncThemeColor();
@@ -3200,7 +3225,7 @@ function travel() {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
     meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
-    cars.length = 0; roadkills.length = 0; skids.length = 0;
+    cars.length = 0; roadkills.length = 0; skids.length = 0; arrows.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
     if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
@@ -3213,7 +3238,7 @@ function travel() {
 function resetWorld() {
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
   meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
-  cars.length = 0; roadkills.length = 0; skids.length = 0; saws.length = 0; slashes.length = 0;
+  cars.length = 0; roadkills.length = 0; skids.length = 0; saws.length = 0; slashes.length = 0; arrows.length = 0;
 }
 // Cambia el mundo por debajo (el campo, la Tienda, la barra y el tema del nivel)
 function applyWorld(swap) {
@@ -5318,6 +5343,73 @@ function drawCar(c) {
   ctx.globalAlpha = 1;
   ctx.drawImage(S.c, c.x - S.ax, c.y - S.ay - bob, S.w, S.h);
 }
+/* ---------- Flechas (The Jungle): al tocar, salen flechas volando desde los dos lados a la vez. Atraviesan el campo
+   y se llevan a todos los marcianitos que encuentran en su camino. Empiezas con 3 por lado y llegas a 10. ---------- */
+const arrows = [];
+const ARROW_COLORS = ["#FF8A65", "#2FA3C4", "#F1C84D", "#A584E8", "#6BCB9B"];
+function launchArrows(n) {
+  const top = (seaTop() || 0) + 26, bot = H - 16, span = Math.max(40, bot - top), L = clamp(W * 0.09, 40, 74);
+  for (const side of [-1, 1]) {
+    // Repartidas en alto (las de un lado entre las del otro, para cubrir bien el campo)
+    for (let i = 0; i < n; i++) {
+      const y = top + span * ((i + (side > 0 ? 0.5 : 0.25)) / n) + rand(-span / n * 0.18, span / n * 0.18);
+      arrows.push({
+        x: side < 0 ? -L - rand(0, 60) : W + L + rand(0, 60), y, dir: -side, L, v: rand(900, 1150), t: -i * 0.05 - (side > 0 ? 0.025 : 0) - rand(0, 0.03),
+        alt: rand(14, 24), arc: rand(6, 14), col: ARROW_COLORS[(i + (side > 0 ? 2 : 0)) % ARROW_COLORS.length], hits: 0, wob: rand(0, TAU),
+      });
+    }
+  }
+  Sound.huy(); Sound.whoosh(); buzz([8, 30, 8]);
+}
+function updateArrows(dt) {
+  for (let i = arrows.length - 1; i >= 0; i--) {
+    const a = arrows[i];
+    a.t += dt;
+    if (a.t < 0) continue;
+    const px = a.x;
+    a.x += a.dir * a.v * dt;
+    // La punta va adelante: cualquiera cuyo cuerpo cruce entre donde estaba y donde está, cae
+    const tip0 = px + a.dir * a.L * 0.5, tip1 = a.x + a.dir * a.L * 0.5, lo = Math.min(tip0, tip1), hi = Math.max(tip0, tip1);
+    for (const b of balls) {
+      if (b.state === "die" || b.pull) continue;
+      if (b.x + b.r * 0.6 < lo || b.x - b.r * 0.6 > hi) continue;
+      if (Math.abs(b.y + b.T.bottom - a.y) > b.r * 0.95 + 4) continue; // a la altura de sus pies (la flecha vuela a su altura)
+      a.hits++;
+      for (let k = 0; k < 4; k++) part(b.x, b.y, a.dir * rand(60, 180), rand(-90, 30), rand(1.2, 2), 0.3, k % 2 ? "#FFFFFF" : "#E8D2A8", "dot", 5, 160);
+      hit(b, 999, b.x - a.dir * 20, b.y, a.hits > 1, false);
+    }
+    if ((a.dir > 0 && a.x - a.L > W + 20) || (a.dir < 0 && a.x + a.L < -20)) arrows.splice(i, 1);
+  }
+}
+// Una flecha: sombra en el piso, astil de madera, punta de piedra y plumas de colores; con rayitas de velocidad
+function drawArrows() {
+  if (!arrows.length) return;
+  for (const a of arrows) {
+    if (a.t < 0) continue;
+    const u = clamp((a.dir > 0 ? a.x : W - a.x) / (W + a.L), 0, 1), lift = a.alt + Math.sin(u * Math.PI) * a.arc, y = a.y - lift, d = a.dir, L = a.L;
+    ctx.globalAlpha = PAL.dark ? 0.35 : 0.18; ctx.fillStyle = "#000000";
+    ctx.beginPath(); ctx.ellipse(a.x, a.y + 2, L * 0.45, 2.2, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(a.x, y); ctx.scale(d, 1); ctx.rotate(Math.cos(u * Math.PI) * -0.05);
+    ctx.globalAlpha = PAL.dark ? 0.25 : 0.45; ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 1.2; ctx.lineCap = "round";
+    for (const o of [-3, 0, 3]) { ctx.beginPath(); ctx.moveTo(-L * 0.6, o); ctx.lineTo(-L * 1.25, o); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    // Astil
+    ctx.strokeStyle = PAL.dark ? "#8C6A4C" : "#9A6B42"; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(-L * 0.5, 0); ctx.lineTo(L * 0.38, 0); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-L * 0.45, -0.7); ctx.lineTo(L * 0.34, -0.7); ctx.stroke();
+    // Amarre y punta de piedra
+    ctx.fillStyle = PAL.dark ? "#C9B07A" : "#E8D2A8"; ctx.fillRect(L * 0.3, -1.8, 3, 3.6);
+    ctx.fillStyle = PAL.dark ? "#7E8790" : "#8E98A3"; ctx.beginPath(); ctx.moveTo(L * 0.34, -5.5); ctx.lineTo(L * 0.58, 0); ctx.lineTo(L * 0.34, 5.5); ctx.lineTo(L * 0.39, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.45)"; ctx.beginPath(); ctx.moveTo(L * 0.37, -3.2); ctx.lineTo(L * 0.52, -0.4); ctx.lineTo(L * 0.4, -0.4); ctx.closePath(); ctx.fill();
+    // Plumas (dos, una de cada lado), que vibran un poquito
+    const wb = Math.sin(time * 40 + a.wob) * 0.6;
+    for (const sd of [-1, 1]) {
+      ctx.fillStyle = sd < 0 ? a.col : mix(a.col, "#FFFFFF", 0.35);
+      ctx.beginPath(); ctx.moveTo(-L * 0.5, 0); ctx.quadraticCurveTo(-L * 0.42, sd * (8 + wb), -L * 0.24, sd * 1.4); ctx.lineTo(-L * 0.3, 0); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
 // Las esquinas (edificios) y los postes no se atraviesan: si un marcianito choca, se acomoda afuera y se da la vuelta
 function cityBlocked(x, y, T) {
   if (!city) return false;
@@ -6207,7 +6299,7 @@ function renderToolbar() {
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
 const cdShown = {};
 function updateCooldownUI() {
-  for (const id of ["meteor", "wave", "aval", "car"]) {
+  for (const id of ["meteor", "wave", "aval", "car", "arrows"]) {
     const el = toolEls[id]; if (!el) continue;
     const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
     if (cdShown[id] === p) continue;
@@ -6272,7 +6364,8 @@ function renderShop(animate) {
     html = sect("secVoid") + ["finger", "bolt", "saw"].map(toolCard).join("")
       + sect("secBeach") + ["bomb", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("")
       + sect("secSnow") + ["meteor", "aval"].filter((id) => !toolGone(id)).map(toolCard).join("")
-      + sect("secCity") + ["car"].map(toolCard).join("");
+      + sect("secCity") + ["car"].filter((id) => !toolGone(id)).map(toolCard).join("")
+      + sect("secJungle") + ["arrows"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "cloud"].map(upCard).join("")
       + (helperKind() === "bolt" ? sect("secClouds") + ["carea", "cchain"].map(upCard).join("") : sect("secFingers") + ["fspeed", "farea", "fmove"].map(upCard).join(""))
@@ -6620,6 +6713,8 @@ function render(dt) {
     while (pi < props.length) prop(props[pi++]);
   } else for (const b of balls) drawAlien(b);
   if (goos.length) drawGooAir();
+  // Flechas volando (encima de los marcianitos)
+  drawArrows();
   // Anillos (pisotón, aplastado, toque al aire)
   for (const g of rings) {
     const u = g.t / g.dur, k = easeOut(u), r = g.r0 + (g.r1 - g.r0) * k;
@@ -6754,6 +6849,7 @@ function loop(now) {
   updateBombs(dt);
   updateWaves(dt);
   if (cars.length || roadkills.length || skids.length) updateCars(dt);
+  if (arrows.length) updateArrows(dt);
   updateSky(dt);
   updateHelpers(dt);
   updateMult(dt);
