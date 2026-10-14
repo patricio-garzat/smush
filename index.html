@@ -985,7 +985,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.37.1";
+const VERSION = "0.37.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1011,8 +1011,26 @@ const SKIN_COLOR = { purpleYeti: { color: "#7EC4F0", light: "#C2E7FF" } };
 const skinCol = (b) => (b.skin && SKIN_COLOR[b.skin]) || b.T;
 const SKIN_SPR = {}, SKIN_SPR_F = {};
 // Al voltear de un lado al otro, a la mitad del giro (|flip| chico, un instante) se ve de frente: así se siente en 3D
-const TURN = 0.6;
 const frontSpr = (skin, T) => (skin ? SKIN_SPR_F[skin] : T.sprF);
+// El giro dura lo mismo siempre (arranca y frena suave): flip va de 1 a -1 (o al revés) siguiendo una curva coseno
+const TURN_DUR = 0.32;
+function turnStep(o, dt) {
+  if (o.face == null) return;
+  if (o.tFace !== o.face) { o.tFace = o.face; o.tFrom = o.flip == null ? o.face : o.flip; o.tT = o.flip == null ? 1 : 0; }
+  if (o.tT < 1) { o.tT = Math.min(1, o.tT + dt / TURN_DUR); const e = 0.5 - 0.5 * Math.cos(o.tT * Math.PI); o.flip = o.tFrom + (o.face - o.tFrom) * e; }
+  else o.flip = o.face;
+}
+// Se dibuja girando: la vista de lado se angosta mientras la de frente aparece encima (y luego al revés), sin cortes.
+// Nunca hay dos vistas semitransparentes a la vez (no se transparenta el fondo). Regresa la vista que domina (para el destello)
+const smooth01 = (a, b, x) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+function drawTurning(g, S, Fr, flip, ax, ay, k, walk, t, ph) {
+  const af = Math.min(1, Math.abs(flip == null ? 1 : flip)), dir = Math.sign(flip || 1);
+  if (!Fr || !Fr.img) { g.save(); g.scale(dir * Math.max(0.45, af) * ax, ay); if (k) g.scale(k, k); drawRig(g, S, walk, t, ph); g.restore(); return S; }
+  const f = 1 - smooth01(0.34, 0.58, af), sa = Math.min(1, 2 * (1 - f)), fa = Math.min(1, 2 * f), a0 = g.globalAlpha;
+  if (sa > 0.01) { g.save(); g.globalAlpha = a0 * sa; g.scale(dir * (0.55 + 0.45 * af) * ax, ay); if (k) g.scale(k, k); drawRig(g, S, walk, t, ph); g.restore(); }
+  if (fa > 0.01) { g.save(); g.globalAlpha = a0 * fa; g.scale((0.86 + 0.14 * f) * ax, ay * (1 - 0.03 * Math.sin(f * Math.PI))); if (k) g.scale(k, k); drawRig(g, Fr, walk, t, ph); g.restore(); }
+  return f > 0.5 ? Fr : S;
+}
 const skinFor = (type) => { const l = SKINS[lvl().id], opts = l && l[type]; return opts ? opts[Math.floor(Math.random() * opts.length)] : null; };
 for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia en el celular (PHONE_SCALE)
 
@@ -2248,7 +2266,7 @@ function updateBalls(dt) {
     }
     // Voltean solo a la izquierda o a la derecha (con un margen para no temblar si van casi vertical)
     if (b.vx > 6) b.face = 1; else if (b.vx < -6) b.face = -1;
-    b.flip += (b.face - b.flip) * Math.min(1, dt * 14);
+    turnStep(b, dt);
     // Pasitos: el paso va más rápido si caminan más rápido
     b.walk += dt * (5 + Math.hypot(b.vx, b.vy) * 0.09);
     if (b.ride) rideStep(b, dt);
@@ -7261,13 +7279,10 @@ function drawAlien(b) {
   else if (b.pull) { ctx.translate(0, -T.bottom); ctx.rotate(b.walk * 0.4); ctx.scale(b.suck, b.suck); ctx.translate(0, T.bottom); }
   ctx.rotate(tilt);
   // Se voltea a la izquierda o a la derecha: a la mitad del giro, un instante de frente (como si girara en 3D)
-  const af = Math.abs(b.flip), Fr = frontSpr(b.skin, T), front = Fr && Fr.img && af < TURN && b.state !== "die";
-  const D = front ? Fr : S;
-  if (front) ctx.scale((0.9 + 0.1 * (1 - af / TURN)) * sx * hpScale, sy * hpScale);
-  else ctx.scale(Math.sign(b.flip || 1) * Math.max(Fr ? TURN : 0.45, af) * sx * hpScale, sy * hpScale);
-  drawRig(ctx, D, b.walk || 0, time, b.p1 || 0);
+  const Fr = b.state === "die" ? null : frontSpr(b.skin, T);
+  const D = drawTurning(ctx, S, Fr, b.flip, sx * hpScale, sy * hpScale, 0, b.walk || 0, time, b.p1 || 0);
   const fl = b.state === "die" ? Math.max(0, 1 - b.t / 0.09) : b.flash;
-  if (fl > 0) { ctx.globalAlpha = alpha * fl * (b.state === "die" ? 0.8 : 0.55); ctx.drawImage(D.flash, -D.cx, -D.ground, D.w, D.h); }
+  if (fl > 0) { const fd = D === S ? Math.sign(b.flip || 1) * Math.max(0.55, Math.abs(b.flip)) : 0.92; ctx.scale(fd * sx * hpScale, sy * hpScale); ctx.globalAlpha = alpha * fl * (b.state === "die" ? 0.8 : 0.55); ctx.drawImage(D.flash, -D.cx, -D.ground, D.w, D.h); }
   ctx.restore();
 }
 function render(dt) {
@@ -7783,7 +7798,7 @@ const Hero = (() => {
       const vx = Math.cos(a.h) * a.sp, vy = Math.sin(a.h) * a.sp * 0.55;
       a.x += vx * dt; a.y += vy * dt;
       if (vx > 3) a.face = 1; else if (vx < -3) a.face = -1;
-      a.flip += (a.face - a.flip) * Math.min(1, dt * 12);
+      turnStep(a, dt);
       a.walk += dt * (5 + a.sp * 0.08);
     }
     // Que no se enciman: se empujan suave entre ellos y le sacan la vuelta a los pinos
@@ -8139,14 +8154,11 @@ const Hero = (() => {
       g.beginPath(); g.ellipse(a.x, a.y + 1, (T.baseR * HK) * 0.95 * sx, (T.baseR * HK) * 0.26, 0, 0, TAU); g.fill();
       g.globalAlpha = al;
       g.save(); g.translate(a.x, a.y - bob - lift); g.rotate(tilt);
-      const af = Math.abs(a.flip || 1), Fr = frontSpr(a.skin, T), front = Fr && Fr.img && af < TURN && !a.die, D = front ? Fr : S;
-      if (front) g.scale((0.9 + 0.1 * (1 - af / TURN)) * sx * (0.5 + 0.5 * a.born), sy * (0.5 + 0.5 * a.born));
-      else g.scale(Math.sign(a.flip || 1) * Math.max(Fr ? TURN : 0.45, af) * sx * (0.5 + 0.5 * a.born), sy * (0.5 + 0.5 * a.born));
-      g.scale(kk, kk);
-      drawRig(g, D, a.walk || 0, t, a.ph || 0);
+      const bn = 0.5 + 0.5 * a.born;
+      const D = drawTurning(g, S, a.die ? null : frontSpr(a.skin, T), a.flip, sx * bn, sy * bn, kk, a.walk || 0, t, a.ph || 0);
       // El destello blanco del golpe
       const fl = a.die ? Math.max(0, 1 - a.die / 0.09) : 0;
-      if (fl > 0 && D.flash) { g.globalAlpha = al * fl * 0.8; g.drawImage(D.flash, -D.cx, -D.ground, D.w, D.h); }
+      if (fl > 0 && D.flash) { g.scale(Math.sign(a.flip || 1) * sx * bn * kk, sy * bn * kk); g.globalAlpha = al * fl * 0.8; g.drawImage(D.flash, -D.cx, -D.ground, D.w, D.h); }
       g.restore();
     }
     g.globalAlpha = 1;
