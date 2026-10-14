@@ -550,6 +550,15 @@ a.row { text-decoration: none; }
 #welcome .hands svg { width: 40px; height: 40px; color: var(--text); }
 #welcome .big { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 4px 0 18px; font-size: 34px; font-weight: 850; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 #welcome .big .coin { font-size: 24px; }
+/* Siguiente nivel listo: la ilustración del nivel arriba, de orilla a orilla */
+#ready .card { padding-top: 0; overflow: hidden; }
+#ready-art { margin: 0 -20px 16px; }
+#ready-art .lvl-art { height: 122px; }
+#ready .kicker { color: #2FA3C4; display: block; margin-bottom: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+#ready h3 { font-size: 21px; letter-spacing: -0.01em; }
+#ready .btns .go { background: linear-gradient(135deg, #2FA3C4, #57C1DA); color: #FFFFFF; box-shadow: 0 6px 16px rgba(47, 163, 196, 0.28); }
+#ready.to-snow .kicker { color: #4A86D8; }
+#ready.to-snow .btns .go { background: linear-gradient(135deg, #4A86D8, #7FB0EC); box-shadow: 0 6px 16px rgba(74, 134, 216, 0.28); }
 
 /* ============================================================
    Intro del juego (después de la de BluBer)
@@ -752,6 +761,18 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   </div>
 </div>
 
+<!-- Ya puedes pasar al siguiente nivel: quedarte un rato más o viajar ya -->
+<div id="ready" class="dialog" hidden>
+  <div class="scrim"></div>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="ready-title">
+    <div id="ready-art"></div>
+    <span class="kicker" id="ready-kicker"></span>
+    <h3 id="ready-title"></h3>
+    <p id="ready-msg"></p>
+    <div class="btns"><button type="button" id="btn-stay" data-i18n="stay">Stay a bit</button><button type="button" class="go" id="btn-go"></button></div>
+  </div>
+</div>
+
 <!-- Intro del juego -->
 <div id="splash" aria-hidden="true">
   <div class="mark"><div class="drops"></div><div class="word">SMUSH!</div></div>
@@ -813,7 +834,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.15.5";
+const VERSION = "0.15.6";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -983,6 +1004,7 @@ const freshSave = () => ({
   v: 2, // versión del guardado
   level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
+  readyAsked: -1, // nivel en el que ya avisamos que podías viajar (solo se avisa una vez por nivel)
   off: {}, // ayudantes apagados con su interruptor (siguen contratados, solo no trabajan)
 });
 function loadSave() {
@@ -1025,6 +1047,7 @@ function loadSave() {
     d.lvlSmushed = Number.isFinite(s.lvlSmushed) ? Math.floor(num(s.lvlSmushed)) : d.smushed;
     if (TOOLS[s.tool] && d.tools[s.tool] > 0) d.tool = s.tool;
     d.hinted = !!s.hinted;
+    if (Number.isInteger(s.readyAsked)) d.readyAsked = s.readyAsked;
     if (s.off && typeof s.off === "object") for (const k of HELPER_KEYS) if (s.off[k] === true) d.off[k] = true;
     if (Number.isFinite(s.lastSeen)) d.lastSeen = s.lastSeen;
     if (s.pending && Number.isFinite(s.pending.coins) && s.pending.coins > 0) d.pending = { coins: Math.floor(s.pending.coins), aliens: Math.floor(num(s.pending.aliens)), away: num(s.pending.away), secs: num(s.pending.secs) };
@@ -1117,7 +1140,9 @@ const STR = {
   travelTo: ["Travel to", "Viajar a"],
   freshStart: ["Fresh start: tools, helpers and boosts reset. Only your coins come with you.", "Empiezas de cero: herramientas, ayudantes y mejoras se reinician. Solo viajan tus monedas."], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
   soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianitos, nuevas herramientas."],
-  ready: ["Ready!", "¡Listo!"], welcomeTo: ["Welcome to", "Bienvenido a"],
+  ready: ["Ready!", "¡Listo!"],
+  stay: ["Stay a bit", "Un rato más"], travelNow: ["Travel now", "Viajar ya"], unlocked: ["unlocked", "desbloqueado"],
+  readyTitle: ["is waiting for you", "te espera"], welcomeTo: ["Welcome to", "Bienvenido a"],
   currentLevel: ["Level", "Nivel"],
   boltH: ["Shock cloud", "Nube eléctrica"], boltHD: ["Floats over the aliens and zaps them in a chain.", "Flota sobre los marcianitos y los electrocuta en cadena."],
   needFinger: ["Needs a finger", "Falta un dedo"], needBoot: ["Needs a boot", "Falta una bota"],
@@ -1386,6 +1411,7 @@ const Sound = (() => {
     },
     boostEnd() { pluck(523.25, { vol: 0.05, dur: 0.9 }); pluck(392, { t: 0.12, vol: 0.045, dur: 1 }); },
     // Viaje a un nivel nuevo: arpegio largo sobre un acorde que respira
+    ready() { [392, 523.25, 659.25, 783.99].forEach((f, i) => pluck(f, { t: i * 0.09, vol: 0.07, dur: 1.4 })); tone(196, { dur: 1.6, vol: 0.03, attack: 0.3 }); },
     levelUp() {
       [261.63, 329.63, 392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i) => pluck(f, { t: 0.2 + i * 0.12, vol: 0.085, dur: 2 }));
       [130.81, 196, 261.63].forEach((f) => tone(f, { t: 0.1, dur: 3, vol: 0.035, attack: 0.6 }));
@@ -2390,6 +2416,31 @@ function renderLevels(animate) {
   $("#levels-coins").textContent = fmt(save.coins);
 }
 $("#lvl-chip").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-levels")); });
+
+// Aviso: en cuanto juntas los marcianitos y las monedas del viaje, una ventanita te deja elegir
+const readyEl = $("#ready");
+function checkReady() {
+  const n = nextLvl();
+  if (!n || !playing || !inGame || save.readyAsked === save.level) return;
+  if (save.lvlSmushed < n.smush || save.coins < n.cost) return;
+  if (document.querySelector(".sheet.open, .dialog.open") || !$("#travel").hidden || waves.length) return;
+  save.readyAsked = save.level; markSave();
+  const es = LANG === "es";
+  $("#ready-art").innerHTML = levelArt(n.id, save.level + 2);
+  $("#ready-kicker").textContent = `${tx("level")} ${save.level + 2} ${tx("unlocked")}`;
+  $("#ready-title").textContent = `${n.name} ${tx("readyTitle")}`;
+  $("#ready-msg").textContent = es
+    ? `Ya aplastaste ${fmt(n.smush)} marcianitos y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero: solo viajan tus monedas.`
+    : `You've smushed ${fmt(n.smush)} aliens and you have the ${fmt(n.cost)} coins for the trip. You start fresh there: only your coins come with you.`;
+  $("#btn-go").textContent = tx("travelNow");
+  readyEl.classList.toggle("to-snow", n.id === "snow");
+  readyEl.hidden = false; void readyEl.offsetWidth; readyEl.classList.add("open");
+  Sound.ready(); buzz([10, 60, 14]);
+}
+const closeReady = () => { readyEl.classList.remove("open"); setTimeout(() => { if (!readyEl.classList.contains("open")) readyEl.hidden = true; }, 250); };
+// Quedarse: el chip del nivel sigue brillando como recordatorio
+$("#btn-stay").addEventListener("click", () => { Sound.tick(); buzz(8); closeReady(); });
+$("#btn-go").addEventListener("click", () => { closeReady(); setTimeout(travel, 260); });
 $("#levels-list").addEventListener("click", (e) => { if (e.target.closest("[data-travel]")) travel(); });
 
 // Pagar y viajar: una cinemática de "viaje a otra isla" y, cuando la cámara cae sobre la arena, el juego ya está ahí
@@ -3536,6 +3587,7 @@ function updateUI() {
   renderGoal();
   if (!$("#sheet-records").hidden) renderRecords();
   if (!homeEl.hidden) renderHome();
+  checkReady();
 }
 const pips = (n, max = 3) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
 
@@ -3773,6 +3825,7 @@ document.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === "Escape") {
     if (!confirmEl.hidden) closeConfirm();
+    else if (!readyEl.hidden) closeReady();
     else if (document.querySelector(".sheet.open")) document.querySelectorAll(".sheet.open").forEach(closeSheet);
     else if (inGame) showHome(false);
     return;
