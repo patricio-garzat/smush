@@ -929,7 +929,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.24.0";
+const VERSION = "0.25.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -996,9 +996,11 @@ const TOOLS = {
   wave:   { price: 30000, world: 1, only: 1, max: 20, upgrades: ups(40000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.5, v) * 10) / 10), dur: L20((v) => curve(1.8, 1.2, v)) }, // tsunami: baja desde el mar y arrastra a todos
   // The Slopes
   meteor: { price: 40000, world: 2, max: 20, upgrades: ups(60000, 1.34), count: L20((v) => 5 + Math.floor((v - 1) * 0.6)), radius: 52, damage: 3, spread: L20((v) => Math.round(curve(120, 175, v))), cooldown: L20((v) => Math.round(geo(3, 1, v) * 10) / 10) },
+  // The City
+  car:    { price: 120000, world: 3, only: 3, max: 20, upgrades: ups(150000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.2, v) * 10) / 10) }, // carro: pasa por un carril y atropella a todos
   aval:   { price: 60000, world: 2, only: 2, max: 20, upgrades: ups(80000, 1.34), cooldown: L20((v) => Math.round(geo(9, 3.5, v) * 10) / 10), dur: L20((v) => curve(2.3, 1.6, v)) }, // avalancha: baja de los picos y arrastra a todos
 };
-const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval"];
+const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
 const toolWorld = (id) => TOOLS[id].world || 0;
@@ -1079,13 +1081,14 @@ const ICONS = {
   crowd:  svgI(`<circle ${SOFT} cx="6.8" cy="15" r="3.4"/><circle ${SOFT} cx="17.2" cy="15" r="3.4"/><circle ${SOFT} cx="12" cy="11" r="4"/><path d="M10.6 7.1 9.6 4.4M13.4 7.1l1-2.7"/>`),
   luck:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M12 3.2l2.7 5.4 6 .9-4.3 4.2 1 5.9L12 16.8l-5.4 2.8 1-5.9-4.3-4.2 6-.9z"/>`),
   night:  svgI(`<path ${SOFT} d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z"/><path d="M17 3.5v3M15.5 5h3M20.5 9v2M19.5 10h2" stroke-width="1.6"/>`),
+  car:    svgI(`<path ${SOFT} d="M3 15.6V13l2.1-4.2A2 2 0 0 1 6.9 7.7h9a2 2 0 0 1 1.7 1l2.4 3.9 1 .7v2.3z"/><path d="M4 12.6h16.2M11.6 7.9v4.6"/><circle cx="7.4" cy="16.4" r="2" fill="currentColor"/><circle cx="16.6" cy="16.4" r="2" fill="currentColor"/>`),
   levels: svgI(`<path ${SOFT} d="M4 20 9 9l4 6 3-4 4 9z"/><circle cx="16.5" cy="6" r="2"/>`),
   aval:   svgI(`<path ${SOFT} d="M2.5 20 10 7l4 6 2.5-3.5L21.5 20z"/><path d="M10 7l-1.8 3.2 1.6-.6 1.4 1.3"/><circle cx="7" cy="17.5" r="2.4"/><circle cx="11.6" cy="18.3" r="1.7"/>`),
 };
 // El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
 const HUE = {
   finger: "#7D8AA3", boot: "#4F86E8", saw: "#E5653A", bolt: "#F0A12E", bomb: "#4A5068", meteor: "#EE7537", wave: "#2C9FC2",
-  jet: "#5C7CFA", aval: "#5E9BE0",
+  jet: "#5C7CFA", aval: "#5E9BE0", car: "#E2604F",
   hire: "#8E99AE", cloud: "#6C7FA8", fspeed: "#22B07D", farea: "#E5534B", fmove: "#F0A12E", carea: "#4F86E8", cchain: "#7C5CE0",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
 };
@@ -1113,7 +1116,7 @@ const TAU = Math.PI * 2;
 const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
-  tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
+  tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0, car: 0 }, // 0 = sin comprar; 1+ = nivel
   up: { hire: 0, cloud: 0, fspeed: 0, farea: 0, fmove: 0, carea: 0, cchain: 0, jet: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 4, // versión del guardado
@@ -1270,6 +1273,8 @@ const STR = {
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies across the middle of the field and scatters 6 huge bombs all over it.", "Cruza por en medio del campo y reparte 6 bombas enormes por todos lados."],
+  car: ["Car", "Carro"], carD: ["Tap to send it: a car speeds down its lane and runs over every alien in the way, leaving them flattened on the pavement with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: un carro pasa a toda velocidad por su carril y atropella a todos los marcianitos en su camino; quedan embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
+  secCity: ["The City", "The City"],
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
@@ -1336,6 +1341,7 @@ function statText(id, lvl) {
   if (id === "saw") { const r = Math.max(16, px(TOOLS.saw.radius[i])) * 2; return es ? `Sierra de ${r} px` : `${r} px blade`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]); return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
+  if (id === "car") { const c = TOOLS.car.cooldown[i]; return es ? `Atropella un carril · cada ${c} s` : `Runs over a lane · every ${c}s`; }
   if (id === "bomb") { const n = TOOLS.bomb.count[i], r = px(TOOLS.bomb.radius[i]); return es ? `${n} ${n === 1 ? "bomba" : "bombas"} · ${r} px` : `${n} ${n === 1 ? "bomb" : "bombs"} · ${r} px`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
@@ -1346,7 +1352,7 @@ function statShort(id, lvl) {
   if (id === "saw") return `${Math.max(16, px(TOOLS.saw.radius[i])) * 2} px`;
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${px(TOOLS.bolt.range[i])} px`;
   const s = LANG === "es" ? " s" : "s";
-  if (id === "wave" || id === "aval") return `${TOOLS[id].cooldown[i]}${s}`;
+  if (id === "wave" || id === "aval" || id === "car") return `${TOOLS[id].cooldown[i]}${s}`;
   if (id === "bomb") return `${TOOLS.bomb.count[i]} · ${px(TOOLS.bomb.radius[i])} px`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
@@ -1498,7 +1504,7 @@ const Sound = (() => {
     const { t = 0, dur = 0.26, vol = 0.04, from = 700, to = 1500 } = o;
     noise({ t, dur, vol, freq: vary(from, 0.08), sweep: to / from, q: 0.6, attack: dur * 0.45 });
   }
-  let lastPop = 0, popsInRow = 0;
+  let lastPop = 0, popsInRow = 0, lastSplat = 0;
   return {
     get on() { return settings.sound; },
     set(v) { settings.sound = v; saveSettings(); if (v) this.unlock(); },
@@ -1570,6 +1576,21 @@ const Sound = (() => {
     // Láser: un zumbido suave mientras se arrastra
     // Agujero negro: un soplo que baja y un tono grave que respira
     whoosh() { breath({ dur: 0.35, vol: 0.035, from: 1800, to: 500 }); },
+    // El carro: un claxon suavecito y el motor que pasa de lejos a cerca y se va
+    car() {
+      for (const t of [0, 0.15]) { tone(392, { t, dur: 0.1, vol: 0.03, type: "triangle", attack: 0.004 }); tone(494, { t, dur: 0.1, vol: 0.025, type: "triangle", attack: 0.004 }); }
+      breath({ t: 0.2, dur: 0.5, vol: 0.06, from: 260, to: 1200 }); breath({ t: 0.7, dur: 0.55, vol: 0.05, from: 1200, to: 260 });
+      noise({ t: 0.2, dur: 1.0, vol: 0.05, freq: 150, q: 0.6, attack: 0.35, kind: "lowpass" });
+    },
+    // Atropellado: un "splat" húmedo y sordo (cada uno un poquito más agudo si caen varios seguidos)
+    splat(n = 0) {
+      const c = ensure(); if (!c || c.currentTime - lastSplat < 0.03) return;
+      lastSplat = c.currentTime;
+      const f = 1 + Math.min(n, 10) * 0.04;
+      noise({ dur: 0.13, vol: 0.12, freq: vary(850 * f, 0.1), q: 0.8, sweep: 0.35, attack: 0.003, kind: "lowpass" });
+      tone(vary(150 * f, 0.06), { dur: 0.09, vol: 0.12, slide: 0.5, attack: 0.002 });
+      noise({ t: 0.015, dur: 0.07, vol: 0.05, freq: vary(1700 * f, 0.1), q: 2, sweep: 0.5, attack: 0.002 });
+    },
     meteor() { tone(95, { dur: 0.3, vol: 0.2, slide: 0.5, attack: 0.003 }); noise({ dur: 0.3, vol: 0.12, freq: 420, q: 0.4, attack: 0.004, kind: "lowpass" }); },
     miss() { noise({ dur: 0.03, vol: 0.03, freq: 700, q: 0.7, attack: 0.002, kind: "lowpass" }); },
     tick() { noise({ dur: 0.035, vol: 0.09, freq: 1000, q: 0.7, attack: 0.002, kind: "lowpass" }); },
@@ -1974,7 +1995,7 @@ function updateBalls(dt) {
   for (let i = balls.length - 1; i >= 0; i--) {
     const b = balls[i];
     b.t += dt;
-    if (b.state === "die") { if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : DIE)) balls.splice(i, 1); continue; }
+    if (b.state === "die") { if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : b.flat ? 0.1 : DIE)) balls.splice(i, 1); continue; }
     b.squash = Math.max(0, b.squash - dt / 0.24);
     b.flash = Math.max(0, b.flash - dt / 0.18);
     if (b.pull) continue; // lo está jalando un agujero negro (updateVortices lo mueve)
@@ -2039,6 +2060,7 @@ function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, si
 
 // Explosión al aplastar: anillo, gotitas del mismo color y una manchita en el piso que se desvanece
 function burst(b) {
+  if (b.flat) { roadkill(b); return; } // lo atropelló el carro: queda embarrado en el pavimento
   const T = b.T;
   gooBurst(b);
   if (b.type === "yellow") {
@@ -2202,8 +2224,8 @@ function smush(b, auto) {
   addCoins(coins, b.x, b.y - b.T.top * 0.55, b.T);
   save.smushed++; save.byType[b.type]++;
   burst(b);
-  Sound.pop(b.type, auto);
-  if (!auto) buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
+  if (!b.flat) Sound.pop(b.type, auto);
+  if (!auto && !b.flat) buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
   if (!save.hinted && !auto) { save.hinted = true; $("#hint").classList.remove("on"); }
 }
 
@@ -2271,6 +2293,9 @@ function useTool(x, y, pid) {
     startCd(id, TOOLS.wave.cooldown[L]);
     waves.push({ t: 0, dur: TOOLS.wave.dur[L], id: ++waveId, front: -60, caught: [] });
     Sound.wave(); buzz([12, 60, 18, 60, 24]);
+  } else if (id === "car") {
+    if (cdLeft(id) > 0) { notReady(x, y); return; }
+    if (launchCar()) startCd(id, TOOLS.car.cooldown[L]);
   } else if (id === "aval") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
     startCd(id, TOOLS.aval.cooldown[L]);
@@ -3108,6 +3133,7 @@ function travel() {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
     meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+    cars.length = 0; roadkills.length = 0; skids.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
     if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
@@ -4517,6 +4543,7 @@ function buildCity() {
 }
 function drawCityBg() {
   if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+  drawRoadkill();
   // Vapor que sale despacito de una alcantarilla
   const s = city && city.steam;
   if (s && !reduceMotion) {
@@ -4558,6 +4585,207 @@ function drawCityBg() {
     }
   }
   ctx.globalAlpha = 1;
+}
+/* ---------- El Carro (The City): pasa a toda velocidad por un carril y atropella a todos los que estén en su camino.
+   Cada vez llega por un sentido diferente (bajando, a la derecha, subiendo, a la izquierda), siempre por su carril.
+   Los atropellados quedan embarrados en el pavimento y la llanta deja su huella del color del marcianito. ---------- */
+const cars = [], roadkills = [], skids = [];
+const CAR_COLORS = ["#E2604F", "#F1C84D", "#2FA3C4", "#A584E8", "#F4F2EC", "#6BCB9B"];
+const CAR_ORDER = [1, 0, 3, 2]; // 0 = a la derecha, 1 = bajando, 2 = a la izquierda, 3 = subiendo
+const DECAL_LIFE = 18; // s que se quedan las manchas y las huellas antes de desvanecerse
+let carTurn = 0, carColorI = 0;
+const rgbaOf = (hex, a) => { const [r, g, b] = hexRgb(hex); return `rgba(${r},${g},${b},${a})`; };
+// Un carrito visto desde arriba (en 3/4): sombra, llantas, costado o frente, cofre, cabina de vidrio y luces.
+// (ox, oy) = el centro del carro en el piso. d = hacia dónde va
+function paintCar(g, ox, oy, d, L, Wc, col, dark, taxi) {
+  const hb = Wc * 0.3, cl = hb * 0.25, top = hb + cl, hc = Wc * 0.24, rw = hb * 0.62;
+  const body = dark ? mix(col, "#1A2030", 0.3) : col, side = dark ? mix(col, "#0E121C", 0.55) : mix(col, "#2A2420", 0.28), roof = dark ? mix(col, "#FFFFFF", 0.06) : mix(col, "#FFFFFF", 0.18);
+  const glass = dark ? "#2C3A58" : "#A9CCE3", glassD = dark ? "#1B2438" : "#6B93B3", tire = "#1C1E24", hub = dark ? "#7A808A" : "#C3C8CF";
+  g.save(); g.translate(ox, oy); if (d === 2) g.scale(-1, 1);
+  if (d === 0 || d === 2) {
+    const x0 = -L / 2;
+    g.fillStyle = "rgba(0,0,0,0.3)"; g.beginPath(); g.roundRect(x0 + 3, -Wc / 2 + 5, L, Wc, Wc * 0.3); g.fill();
+    // Costado: la cara que se ve, con los arcos de las llantas
+    g.fillStyle = side; g.beginPath(); g.roundRect(x0, Wc / 2 - top - 2, L, hb + 2, [0, 0, Wc * 0.2, Wc * 0.2]); g.fill();
+    if (taxi) { for (let i = 0; i < 12; i++) { g.fillStyle = i % 2 ? "#1E2026" : "#FFFFFF"; g.fillRect(x0 + L * 0.16 + i * L * 0.055, Wc / 2 - top + hb * 0.38, L * 0.055, hb * 0.22); } }
+    for (const wx of [-L * 0.3, L * 0.3]) {
+      g.fillStyle = "rgba(0,0,0,0.45)"; g.beginPath(); g.arc(wx, Wc / 2 - rw, rw * 1.18, Math.PI, TAU); g.fill();
+      g.fillStyle = tire; g.beginPath(); g.arc(wx, Wc / 2 - rw, rw, 0, TAU); g.fill();
+      g.fillStyle = hub; g.beginPath(); g.arc(wx, Wc / 2 - rw, rw * 0.45, 0, TAU); g.fill();
+    }
+    // Faros y calaveras en las puntas del costado
+    g.fillStyle = dark ? "#FFF3C8" : "#FFF8E0"; g.beginPath(); g.roundRect(L / 2 - 5, Wc / 2 - top + 1, 4.5, hb * 0.38, 1.5); g.fill();
+    g.fillStyle = "#E0453A"; g.beginPath(); g.roundRect(x0 + 0.5, Wc / 2 - top + 1, 4, hb * 0.38, 1.5); g.fill();
+    // Carrocería de arriba: cofre, cabina y cajuela
+    const ty0 = -Wc / 2 - top;
+    const tg = g.createLinearGradient(0, ty0, 0, ty0 + Wc);
+    tg.addColorStop(0, mix(col, "#FFFFFF", dark ? 0.05 : 0.22)); tg.addColorStop(1, body);
+    g.fillStyle = tg; g.beginPath(); g.roundRect(x0, ty0, L, Wc, Wc * 0.26); g.fill();
+    g.strokeStyle = "rgba(0,0,0,0.12)"; g.lineWidth = 1;
+    for (const lx of [L * 0.29, -L * 0.31]) { g.beginPath(); g.moveTo(lx, ty0 + Wc * 0.12); g.lineTo(lx, ty0 + Wc * 0.88); g.stroke(); }
+    const rf = [-L * 0.2, L * 0.15], ry = Wc * 0.38, lift = hc;
+    // Vidrios: parabrisas, medallón y ventanas del costado; luego el techo
+    g.fillStyle = glass; poly(g, [[rf[1], -ry - lift - top + 0], [L * 0.29, -Wc * 0.43 - top], [L * 0.29, Wc * 0.43 - top], [rf[1], ry - lift - top]]); g.fill();
+    g.fillStyle = glassD; poly(g, [[rf[0], -ry - lift - top], [-L * 0.31, -Wc * 0.43 - top], [-L * 0.31, Wc * 0.43 - top], [rf[0], ry - lift - top]]); g.fill();
+    g.fillStyle = glassD; poly(g, [[-L * 0.31, Wc * 0.43 - top], [L * 0.29, Wc * 0.43 - top], [rf[1], ry - lift - top], [rf[0], ry - lift - top]]); g.fill();
+    g.fillStyle = "rgba(255,255,255,0.35)"; poly(g, [[rf[1] + L * 0.03, -ry * 0.6 - lift - top], [L * 0.24, -Wc * 0.3 - top], [L * 0.27, -Wc * 0.1 - top], [rf[1] + L * 0.04, -ry * 0.2 - lift - top]]); g.fill();
+    g.fillStyle = roof; g.beginPath(); g.roundRect(rf[0], -ry - lift - top, rf[1] - rf[0], ry * 2, Wc * 0.12); g.fill();
+    g.fillStyle = "rgba(255,255,255,0.25)"; g.beginPath(); g.roundRect(rf[0] + 3, -ry - lift - top + 2, rf[1] - rf[0] - 6, ry * 0.5, Wc * 0.08); g.fill();
+    if (taxi) { const sx = (rf[0] + rf[1]) / 2; g.fillStyle = "#FFF6D6"; g.beginPath(); g.roundRect(sx - Wc * 0.2, -lift - top - Wc * 0.16, Wc * 0.4, Wc * 0.2, 2); g.fill(); g.fillStyle = "#2E3448"; g.font = `800 ${Math.round(Wc * 0.14)}px Outfit, system-ui, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("TAXI", sx, -lift - top - Wc * 0.06); }
+    // Espejos y luces de arriba
+    g.fillStyle = side; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(L * 0.17, s * Wc * 0.5 - top, 3, 2, 0, 0, TAU); g.fill(); }
+    g.fillStyle = dark ? "#FFF3C8" : "#FFFDF2"; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(L / 2 - 4, s * Wc * 0.32 - top, 3, 4.5, 0, 0, TAU); g.fill(); }
+    g.fillStyle = "#E0453A"; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x0 + 3.5, s * Wc * 0.32 - top, 2.4, 4.5, 0, 0, TAU); g.fill(); }
+  } else {
+    // Bajando (d = 1) se le ve el frente; subiendo (d = 3), la parte de atrás
+    const fs = d === 1 ? 1 : -1, y0 = -L / 2;
+    g.fillStyle = "rgba(0,0,0,0.3)"; g.beginPath(); g.roundRect(-Wc / 2 + 3, y0 + 5, Wc, L, Wc * 0.3); g.fill();
+    for (const s of [-1, 1]) { g.fillStyle = tire; g.beginPath(); g.roundRect(s * (Wc / 2 - Wc * 0.09) - Wc * 0.08, L / 2 - rw * 2, Wc * 0.16, rw * 2, 3); g.fill(); }
+    g.fillStyle = side; g.beginPath(); g.roundRect(-Wc / 2, L / 2 - top - 2, Wc, hb + 2, [0, 0, Wc * 0.2, Wc * 0.2]); g.fill();
+    if (fs > 0) {
+      g.fillStyle = "rgba(0,0,0,0.45)"; g.beginPath(); g.roundRect(-Wc * 0.22, L / 2 - top + hb * 0.3, Wc * 0.44, hb * 0.42, 3); g.fill();
+      g.fillStyle = dark ? "#FFF3C8" : "#FFFDF2"; for (const s of [-1, 1]) { g.beginPath(); g.roundRect(s * Wc * 0.34 - Wc * 0.09, L / 2 - top + hb * 0.25, Wc * 0.18, hb * 0.32, 2.5); g.fill(); }
+    } else {
+      g.fillStyle = "#E0453A"; for (const s of [-1, 1]) { g.beginPath(); g.roundRect(s * Wc * 0.34 - Wc * 0.1, L / 2 - top + hb * 0.22, Wc * 0.2, hb * 0.34, 2.5); g.fill(); }
+    }
+    g.fillStyle = dark ? "#C9CDD3" : "#F2F4F7"; g.beginPath(); g.roundRect(-Wc * 0.13, L / 2 - top + hb * 0.62, Wc * 0.26, hb * 0.26, 1.5); g.fill();
+    g.fillStyle = "rgba(255,255,255,0.35)"; g.fillRect(-Wc / 2 + 3, L / 2 - cl - 3, Wc - 6, 1.6);
+    const ty0 = y0 - top, tg = g.createLinearGradient(-Wc / 2, 0, Wc / 2, 0);
+    tg.addColorStop(0, mix(col, "#FFFFFF", dark ? 0.05 : 0.22)); tg.addColorStop(1, body);
+    g.fillStyle = tg; g.beginPath(); g.roundRect(-Wc / 2, ty0, Wc, L, Wc * 0.26); g.fill();
+    g.strokeStyle = "rgba(0,0,0,0.12)"; g.lineWidth = 1;
+    for (const ly of [L * 0.29 * fs, -L * 0.31 * fs]) { g.beginPath(); g.moveTo(-Wc * 0.38, ly - top); g.lineTo(Wc * 0.38, ly - top); g.stroke(); }
+    const rx = Wc * 0.38, fr = [L * 0.15 * fs, -L * 0.2 * fs], lift = hc;
+    // El vidrio que da hacia acá (abajo) se ve grande; el de allá, angostito
+    const south = Math.max(fr[0], fr[1]), north = Math.min(fr[0], fr[1]);
+    g.fillStyle = fs > 0 ? glass : glassD; poly(g, [[-rx, south - lift - top], [rx, south - lift - top], [Wc * 0.43, (fs > 0 ? L * 0.29 : L * 0.31) - top], [-Wc * 0.43, (fs > 0 ? L * 0.29 : L * 0.31) - top]]); g.fill();
+    g.fillStyle = fs > 0 ? glassD : glass; poly(g, [[-rx, north - lift - top], [rx, north - lift - top], [Wc * 0.43, -(fs > 0 ? L * 0.31 : L * 0.29) - top], [-Wc * 0.43, -(fs > 0 ? L * 0.31 : L * 0.29) - top]]); g.fill();
+    for (const s of [-1, 1]) { g.fillStyle = glassD; poly(g, [[s * rx, north - lift - top], [s * Wc * 0.44, north - top], [s * Wc * 0.44, south - top], [s * rx, south - lift - top]]); g.fill(); }
+    if (fs > 0) { g.fillStyle = "rgba(255,255,255,0.35)"; poly(g, [[-rx * 0.7, south - lift - top + 2], [-rx * 0.2, south - lift - top + 2], [-Wc * 0.25, L * 0.27 - top], [-Wc * 0.38, L * 0.27 - top]]); g.fill(); }
+    g.fillStyle = roof; g.beginPath(); g.roundRect(-rx, north - lift - top, rx * 2, south - north, Wc * 0.12); g.fill();
+    g.fillStyle = "rgba(255,255,255,0.25)"; g.beginPath(); g.roundRect(-rx + 2, north - lift - top + 3, rx * 0.6, south - north - 6, Wc * 0.08); g.fill();
+    if (taxi) { const sy = (north + south) / 2 - lift - top; g.fillStyle = "#FFF6D6"; g.beginPath(); g.roundRect(-Wc * 0.2, sy - Wc * 0.1, Wc * 0.4, Wc * 0.2, 2); g.fill(); g.fillStyle = "#2E3448"; g.font = `800 ${Math.round(Wc * 0.13)}px Outfit, system-ui, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("TAXI", 0, sy + 0.5); }
+    g.fillStyle = side; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * Wc * 0.52, L * 0.17 * fs - top, 2.2, 3, 0, 0, TAU); g.fill(); }
+    g.fillStyle = dark ? "#FFF3C8" : "#FFFDF2"; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * Wc * 0.3, (L / 2 - 4) * fs - top, 4.5, 2.6, 0, 0, TAU); g.fill(); }
+    g.fillStyle = "#E0453A"; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * Wc * 0.3, -(L / 2 - 3) * fs - top, 4.5, 2.2, 0, 0, TAU); g.fill(); }
+  }
+  g.restore();
+}
+// Toca y sale un carro por el siguiente sentido
+function launchCar() {
+  if (!city) return false;
+  const d = CAR_ORDER[carTurn++ % 4], hor = d === 0 || d === 2, rv = city.xR - city.xL, rh = city.yB - city.yT, ccx = (city.xL + city.xR) / 2, ccy = (city.yT + city.yB) / 2;
+  const lane = (hor ? rh : rv) / 2, Wc = clamp(lane * 0.62, 46, 96), L = Wc * 2.05;
+  // Carril de la derecha: bajando va por la izquierda de la pantalla, subiendo por la derecha, etc.
+  const lx = d === 1 ? ccx - rv / 4 : d === 3 ? ccx + rv / 4 : 0, ly = d === 0 ? ccy + rh / 4 : d === 2 ? ccy - rh / 4 : 0;
+  const dx = d === 0 ? 1 : d === 2 ? -1 : 0, dy = d === 1 ? 1 : d === 3 ? -1 : 0;
+  const x = hor ? (dx > 0 ? -L : W + L) : lx, y = hor ? ly : dy > 0 ? -L - 20 : H + L;
+  const dist = (hor ? W : H) + L * 2 + 20, dur = hor ? 1.15 : 1.0;
+  const col = CAR_COLORS[carColorI++ % CAR_COLORS.length], taxi = col === "#F1C84D", dark = PAL.dark;
+  const ext = hor ? [L + 30, Wc * 1.9 + 30] : [Wc + 30, L + Wc + 30];
+  const spr = makePropSprite((g) => paintCar(g, ext[0] / 2, ext[1] - (hor ? Wc / 2 + 12 : L / 2 + 12), d, L, Wc, col, dark, taxi), ext[0], ext[1], ext[0] / 2, ext[1] - (hor ? Wc / 2 + 12 : L / 2 + 12));
+  cars.push({ d, hor, x, y, dx, dy, lx: hor ? 0 : lx, ly: hor ? ly : 0, L, Wc, v: dist / dur, spr, col, hits: 0, bob: 0, t: 0, honk: false });
+  Sound.car(); buzz([10, 40, 14]);
+  return true;
+}
+function updateCars(dt) {
+  for (let i = cars.length - 1; i >= 0; i--) {
+    const c = cars[i];
+    c.t += dt; c.x += c.dx * c.v * dt; c.y += c.dy * c.v * dt; c.bob = Math.max(0, c.bob - dt * 6);
+    // Atropella a todo lo que alcanza la defensa
+    const px = -c.dy, py = c.dx;
+    for (const b of balls) {
+      if (b.state === "die" || b.pull) continue;
+      const bx = b.x, by = b.y + b.T.bottom * 0.6, ax = bx - c.x, ay = by - c.y;
+      const along = ax * c.dx + ay * c.dy, across = (bx - (c.hor ? c.x : c.lx)) * px + (by - (c.hor ? c.ly : c.y)) * py;
+      if (Math.abs(across) < c.Wc / 2 + b.r * 0.55 && along < c.L / 2 + b.r * 0.35 && along > -c.L / 2) {
+        b.flat = { car: c, across };
+        hit(b, 999, b.x, b.y, true, false);
+        c.hits++; c.bob = 1;
+      }
+    }
+    // Chispitas de velocidad detrás
+    if (Math.random() < dt * 30) part(c.x - c.dx * c.L * 0.55 + px * rand(-c.Wc / 2, c.Wc / 2), c.y - c.dy * c.L * 0.55 + py * rand(-c.Wc / 2, c.Wc / 2), -c.dx * 40, -c.dy * 40, rand(4, 8), 0.45, PAL.mist, "mist", 3, 0, 0.18);
+    const out = c.hor ? (c.dx > 0 ? c.x > W + c.L : c.x < -c.L) : c.dy > 0 ? c.y > H + c.L : c.y < -c.L - 20;
+    if (out) {
+      cars.splice(i, 1);
+    }
+  }
+  for (let i = roadkills.length - 1; i >= 0; i--) if ((roadkills[i].t += dt) > DECAL_LIFE) roadkills.splice(i, 1);
+  for (let i = skids.length - 1; i >= 0; i--) if ((skids[i].t += dt) > DECAL_LIFE) skids.splice(i, 1);
+}
+// Atropellado: queda embarrado en el pavimento (aplastado, con su mancha alargada hacia donde iba el carro)
+// y la llanta que le pasó encima se lleva su color y deja la huella un buen tramo
+function roadkill(b) {
+  const { car: c, across } = b.flat, T = b.T, S = (b.skin && SKIN_SPR[b.skin]) || T.spr, gy = b.y + T.bottom;
+  const px = -c.dy, py = c.dx, x = b.x, y = gy - T.bottom * 0.45, sc = b.r / 19;
+  const tire = (across >= 0 ? 1 : -1) * c.Wc * 0.36, off = tire - across; // de su centro a la línea de la llanta
+  const blobs = [];
+  for (let i = 0; i < 6; i++) { const f = rand(0.7, 2.6) * b.r, l = rand(-0.7, 0.7) * b.r; blobs.push([c.dx * f + px * l, c.dy * f + py * l, rand(2.5, 6) * sc, rand(1.4, 3) * sc]); }
+  if (roadkills.length > 50) roadkills.shift();
+  roadkills.push({ x, y, S, flip: Math.sign(b.flip || 1), col: T.color, dx: c.dx, dy: c.dy, off, tw: c.Wc * 0.17, r: b.r, blobs, t: 0 });
+  if (skids.length > 50) skids.shift();
+  skids.push({ x: x + px * off, y: y + py * off, dx: c.dx, dy: c.dy, len: rand(240, 380), w: c.Wc * 0.17, col: T.color, t: 0, car: c });
+  // Gotitas que salen disparadas hacia adelante y a los lados
+  for (let i = 0; i < (lowFx ? 5 : 10); i++) part(x, y, c.dx * rand(160, 360) + px * rand(-140, 140), c.dy * rand(160, 360) + py * rand(-140, 140) - rand(20, 80), rand(1.6, 3.2), rand(0.35, 0.55), i % 3 ? T.color : T.light, "dot", 4, 220);
+  Sound.splat(c.hits); buzz(c.hits ? 9 : 16);
+}
+// Las manchas y las huellas, en el piso (debajo de todo). Se desvanecen al final
+function drawRoadkill() {
+  if (!skids.length && !roadkills.length) return;
+  const fade = (t) => Math.min(1, t / 0.08) * (t > DECAL_LIFE - 4 ? Math.max(0, (DECAL_LIFE - t) / 4) : 1);
+  ctx.lineCap = "butt";
+  for (const s of skids) {
+    const a = fade(s.t); if (a <= 0) continue;
+    // La huella crece conforme avanza la llanta (nunca va delante del carro)
+    if (s.car && !cars.includes(s.car)) s.car = null;
+    const cur = s.car ? clamp((s.car.x - s.x) * s.dx + (s.car.y - s.y) * s.dy + s.car.L * 0.3, 0, s.len) : s.len;
+    if (cur < 1) continue;
+    const x1 = s.x + s.dx * s.len, y1 = s.y + s.dy * s.len, x2 = s.x + s.dx * cur, y2 = s.y + s.dy * cur, gr = ctx.createLinearGradient(s.x, s.y, x1, y1);
+    gr.addColorStop(0, rgbaOf(s.col, 0.7 * a)); gr.addColorStop(0.5, rgbaOf(s.col, 0.3 * a)); gr.addColorStop(1, rgbaOf(s.col, 0));
+    ctx.globalAlpha = 1; ctx.strokeStyle = gr;
+    ctx.lineWidth = s.w * 0.45; ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.lineWidth = s.w; ctx.setLineDash([3.2, 3.6]); ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(x2, y2); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  for (const k of roadkills) {
+    const a = fade(k.t); if (a <= 0) continue;
+    const S = k.S, ang = Math.atan2(k.dy, k.dx);
+    // La mancha: un charco aplastado y gotas alargadas hacia adelante
+    ctx.globalAlpha = 0.85 * a; ctx.fillStyle = k.col;
+    ctx.beginPath(); ctx.ellipse(k.x, k.y, k.r * 1.45, k.r * 0.75, 0, 0, TAU); ctx.fill();
+    for (const [bx, by, rx, ry] of k.blobs) { ctx.beginPath(); ctx.ellipse(k.x + bx, k.y + by, rx, ry, ang, 0, TAU); ctx.fill(); }
+    // El marcianito, aplastadito
+    if (S && S.img) {
+      ctx.globalAlpha = 0.95 * a; ctx.save(); ctx.translate(k.x, k.y); ctx.scale(k.flip * 1.42, 0.4);
+      ctx.drawImage(S.img, -S.cx, -S.cy, S.w, S.h); ctx.restore();
+    }
+    // La huella de la llanta encima
+    ctx.globalAlpha = 0.42 * a; ctx.strokeStyle = "#1C1E24"; ctx.lineWidth = k.tw; ctx.setLineDash([3.2, 3.6]);
+    const px = -k.dy, py = k.dx, cx0 = k.x + px * k.off, cy0 = k.y + py * k.off, ext = k.r * 1.7;
+    ctx.beginPath(); ctx.moveTo(cx0 - k.dx * ext, cy0 - k.dy * ext); ctx.lineTo(cx0 + k.dx * ext, cy0 + k.dy * ext); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.globalAlpha = 1;
+}
+// El carro dentro del dibujo (se acomoda en profundidad con los marcianitos)
+function drawCar(c) {
+  const S = c.spr, bob = Math.sin(c.bob * Math.PI) * 2.5;
+  // De noche: los faros iluminan el pavimento enfrente
+  if (PAL.dark) {
+    const fx = c.x + c.dx * c.L * 0.5, fy = c.y + c.dy * c.L * 0.5, px = -c.dy, py = c.dx, len = c.L * 1.6, gr = ctx.createLinearGradient(fx, fy, fx + c.dx * len, fy + c.dy * len);
+    gr.addColorStop(0, "rgba(255,236,190,0.35)"); gr.addColorStop(1, "rgba(255,236,190,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = gr;
+    poly(ctx, [[fx + px * c.Wc * 0.4, fy + py * c.Wc * 0.4], [fx - px * c.Wc * 0.4, fy - py * c.Wc * 0.4], [fx + c.dx * len - px * c.Wc * 0.95, fy + c.dy * len - py * c.Wc * 0.95], [fx + c.dx * len + px * c.Wc * 0.95, fy + c.dy * len + py * c.Wc * 0.95]]); ctx.fill();
+  }
+  // Rayitas de velocidad
+  ctx.strokeStyle = PAL.dark ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.55)"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  for (const o of [-0.3, 0.05, 0.35]) {
+    const px = -c.dy, py = c.dx, bx = c.x - c.dx * c.L * 0.6 + px * c.Wc * o, by = c.y - c.dy * c.L * 0.6 + py * c.Wc * o - 6;
+    ctx.globalAlpha = 1; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - c.dx * c.L * 0.45, by - c.dy * c.L * 0.45); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.drawImage(S.c, c.x - S.ax, c.y - S.ay - bob, S.w, S.h);
 }
 // Las esquinas (edificios) y los postes no se atraviesan: si un marcianito choca, se acomoda afuera y se da la vuelta
 function cityBlocked(x, y, T) {
@@ -5178,7 +5406,7 @@ function renderToolbar() {
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
 const cdShown = {};
 function updateCooldownUI() {
-  for (const id of ["meteor", "wave", "aval"]) {
+  for (const id of ["meteor", "wave", "aval", "car"]) {
     const el = toolEls[id]; if (!el) continue;
     const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
     if (cdShown[id] === p) continue;
@@ -5242,7 +5470,8 @@ function renderShop(animate) {
   if (shopTab === "tools") {
     html = sect("secVoid") + ["finger", "bolt", "saw"].map(toolCard).join("")
       + sect("secBeach") + ["bomb", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("")
-      + sect("secSnow") + ["meteor", "aval"].filter((id) => !toolGone(id)).map(toolCard).join("");
+      + sect("secSnow") + ["meteor", "aval"].filter((id) => !toolGone(id)).map(toolCard).join("")
+      + sect("secCity") + ["car"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "cloud"].map(upCard).join("")
       + (helperKind() === "bolt" ? sect("secClouds") + ["carea", "cchain"].map(upCard).join("") : sect("secFingers") + ["fspeed", "farea", "fmove"].map(upCard).join(""))
@@ -5480,6 +5709,7 @@ function drawAlien(b) {
   if (b.state === "die" && b.cutAng != null) { drawCutAlien(b); return; } // la sierra lo partió a la mitad
   let sx = 1, sy = 1, alpha = 1, lift = 0, tilt = 0;
   if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.45)); sx = sy = 0.35 + 0.65 * k; alpha = k; }
+  else if (b.state === "die" && b.flat) { const k = easeOut(Math.min(1, b.t / 0.1)); sx = 1 + 0.42 * k; sy = 1 - 0.7 * k; }
   else if (b.state === "die") {
     // 1) se aplasta contra el piso de golpe  2) se extiende y se funde con el charco que queda abajo
     const u = b.t / DIE;
@@ -5579,11 +5809,13 @@ function render(dt) {
   for (const w of waves) drawWave(w);
   // Marcianitos, del fondo hacia el frente
   balls.sort((a, b) => a.y - b.y);
-  if (pines.length) {
-    // Los pinos se acomodan entre los marcianitos según su profundidad (se puede pasar por detrás)
+  const props = cars.length ? pines.concat(cars.map((c) => ({ y: c.y + (c.hor ? c.Wc / 2 : c.L / 2), car: c }))).sort((a, b) => a.y - b.y) : pines;
+  if (props.length) {
+    // Los pinos (y el carro) se acomodan entre los marcianitos según su profundidad (se puede pasar por detrás)
     let pi = 0;
-    for (const b of balls) { const gy = b.y + b.T.bottom; while (pi < pines.length && pines[pi].y <= gy) drawPine(pines[pi++]); drawAlien(b); }
-    while (pi < pines.length) drawPine(pines[pi++]);
+    const prop = (p) => (p.car ? drawCar(p.car) : drawPine(p));
+    for (const b of balls) { const gy = b.y + b.T.bottom; while (pi < props.length && props[pi].y <= gy) prop(props[pi++]); drawAlien(b); }
+    while (pi < props.length) prop(props[pi++]);
   } else for (const b of balls) drawAlien(b);
   if (goos.length) drawGooAir();
   // Anillos (pisotón, aplastado, toque al aire)
@@ -5718,6 +5950,7 @@ function loop(now) {
   updateMeteors(dt);
   updateBombs(dt);
   updateWaves(dt);
+  if (cars.length || roadkills.length || skids.length) updateCars(dt);
   updateSky(dt);
   updateHelpers(dt);
   updateMult(dt);
