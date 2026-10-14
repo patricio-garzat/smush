@@ -899,7 +899,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.18.6";
+const VERSION = "0.19.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -943,7 +943,7 @@ const TOOLS = {
   // The Void
   finger: { price: 0,     upgrades: [150, 600],    radius: [0, 45, 70], slop: 10 }, // nivel 1: uno a la vez; luego aplasta un área
   bolt:   { price: 1200,  upgrades: [2500, 6000],  chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
-  spray:  { price: 10000, upgrades: [15000, 30000], radius: [72, 86, 100], interval: [0.45, 0.36, 0.28] }, // lanzallamas: largo de la llama y cada cuánto quema
+  saw:    { price: 10000, max: 4, upgrades: [15000, 30000, 60000], radius: [22, 30, 40, 52] }, // sierra: mantén y arrastra; crece en 4 tamaños
   // The Beach
   bomb:   { price: 8000,  world: 1, max: 10, upgrades: (l) => Math.round(2500 * 1.35 ** (l - 1)) }, // nivel = cuántas bombas puedes poner
   meteor: { price: 40000, world: 2, upgrades: [80000, 160000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
@@ -951,7 +951,7 @@ const TOOLS = {
   // The Slopes
   aval:   { price: 60000, world: 2, upgrades: [120000, 240000], cooldown: [9, 7, 5.5], dur: [2.3, 2.05, 1.8] }, // avalancha: baja de los picos y arrastra a todos
 };
-const TOOL_ORDER = ["finger", "bolt", "spray", "bomb", "wave", "meteor", "aval"];
+const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
 const toolWorld = (id) => TOOLS[id].world || 0;
@@ -1012,7 +1012,7 @@ const svgI = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 const SOFT = 'fill="currentColor" fill-opacity=".28"', SOLID = 'fill="currentColor" stroke="none"';
 const ICONS = {
   finger: svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/><path d="M5.2 6.6a5 5 0 0 1 1.4-2.3M17.4 4.3a5 5 0 0 1 1.4 2.3" opacity=".65"/>`),
-  spray:  svgI(`<path ${SOFT} d="M12 21.5c-3.7 0-6.2-2.5-6.2-5.8 0-3.5 2.7-5.2 3.5-8.7 2 1.3 3.1 3.1 3.3 5 1.1-.8 1.9-2.1 2.1-3.7 2.1 2 3.5 4.5 3.5 7.4 0 3.3-2.5 5.8-6.2 5.8z"/><path d="M12 21.5c-1.7 0-2.8-1.1-2.8-2.7 0-1.7 1.2-2.6 1.7-4.1 1 .8 1.7 1.8 1.8 2.9.6-.4 1-1 1.1-1.8 1 .9 1.7 2.1 1.7 3.2 0 1.5-1.5 2.5-3.5 2.5z"/>`),
+  saw:    svgI(`<path ${SOFT} d="M19.60 12.00L21.32 15.03L18.97 14.50L18.85 15.30L19.08 18.77L17.19 17.27L16.74 17.94L15.44 21.18L14.39 19.00L13.69 19.41L11.12 21.76L11.12 19.35L10.31 19.41L6.97 20.41L8.02 18.24L7.26 17.94L3.82 17.40L5.70 15.89L5.15 15.30L2.29 13.32L4.64 12.77L4.40 12.00L2.68 8.97L5.03 9.50L5.15 8.70L4.92 5.23L6.81 6.73L7.26 6.06L8.56 2.82L9.61 5.00L10.31 4.59L12.88 2.24L12.88 4.65L13.69 4.59L17.03 3.59L15.98 5.76L16.74 6.06L20.18 6.60L18.30 8.11L18.85 8.70L21.71 10.68L19.36 11.23Z"/><circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/>`),
   bolt:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M13.6 2.5 5 13.6h6.1L10 21.5l9-11.7h-6.3z"/>`),
   bomb:   svgI(`<circle ${SOFT} cx="11" cy="14.5" r="6.5"/><path d="M14.8 9.6 16.6 7.8"/><path d="M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6" stroke-width="1.7"/><circle ${SOLID} cx="20.6" cy="5.4" r="1.2"/>`),
   wave:   svgI(`<path ${SOFT} d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9L3 17z"/><path d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9"/><path d="M2.5 20.5c2.2 0 2.2-1.5 4.4-1.5s2.2 1.5 4.4 1.5 2.2-1.5 4.4-1.5 2.2 1.5 4.4 1.5"/>`),
@@ -1034,7 +1034,7 @@ const ICONS = {
 };
 // El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
 const HUE = {
-  finger: "#7D8AA3", boot: "#4F86E8", spray: "#F0642E", bolt: "#F0A12E", bomb: "#4A5068", meteor: "#EE7537", wave: "#2C9FC2",
+  finger: "#7D8AA3", boot: "#4F86E8", saw: "#E5653A", bolt: "#F0A12E", bomb: "#4A5068", meteor: "#EE7537", wave: "#2C9FC2",
   jet: "#5C7CFA", aval: "#5E9BE0",
   hire: "#8E99AE", cloud: "#6C7FA8", fspeed: "#22B07D", farea: "#E5534B", fmove: "#F0A12E", carea: "#4F86E8", cchain: "#7C5CE0",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
@@ -1062,7 +1062,7 @@ const TAU = Math.PI * 2;
 const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
-  tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
+  tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
   up: { hire: 0, cloud: 0, fspeed: 0, farea: 0, fmove: 0, carea: 0, cchain: 0, jet: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 4, // versión del guardado
@@ -1083,6 +1083,8 @@ function loadSave() {
     d.spent = Number.isFinite(s.spent) ? num(s.spent) : Math.max(0, d.earned - d.coins);
     TYPE_ORDER.forEach((k) => { d.byType[k] = Math.floor(num(s.byType && s.byType[k])); });
     TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(Math.floor(num(s.tools && s.tools[k])), k === "finger" ? 1 : 0, toolMax(k)); });
+    // El Lanzallamas ahora es la Sierra: se queda con el mismo nivel
+    if (!d.tools.saw && s.tools && s.tools.spray) d.tools.saw = clamp(Math.floor(num(s.tools.spray)), 0, toolMax("saw"));
     // La Bota (herramienta) ya no existe: se devuelve lo que costó
     const boot = clamp(Math.floor(num(s.tools && s.tools.boot)), 0, 3);
     if (boot) { const c = [100, 200, 600].slice(0, boot).reduce((a, b) => a + b, 0); d.coins += c; d.spent = Math.max(0, d.spent - c); }
@@ -1134,7 +1136,8 @@ function loadSave() {
     refund(clamp(Math.floor(num(s.up && s.up.acidH)), 0, 6), [15000, 8000, 13000, 20000, 30000, 45000]); // Tormenta ácida (ya no existe)
     if (d.level < 2 && d.tools.meteor) { refund(d.tools.meteor, [15000, 30000, 60000]); d.tools.meteor = 0; }
     // Partidas de antes de los niveles: lo que llevas aplastado cuenta para la meta de The Beach
-    if (TOOLS[s.tool] && d.tools[s.tool] > 0 && (TOOLS[s.tool].world || 0) <= d.level) d.tool = s.tool;
+    const st = s.tool === "spray" ? "saw" : s.tool;
+    if (TOOLS[st] && d.tools[st] > 0 && (TOOLS[st].world || 0) <= d.level) d.tool = st;
     d.hinted = !!s.hinted;
     if (Number.isInteger(s.readyAsked)) d.readyAsked = s.readyAsked;
     if (s.off && typeof s.off === "object") for (const k of HELPER_KEYS) if (s.off[k] === true) d.off[k] = true;
@@ -1183,7 +1186,7 @@ const STR = {
   howTo: ["How to play", "Cómo jugar"],
   how1: ["Tap the aliens to smush them and earn coins.", "Toca los marcianitos para aplastarlos y ganar monedas."],
   how2: ["Spend coins in the Shop on tools, helpers and boosts.", "Usa tus monedas en la Tienda: herramientas, ayudantes y mejoras."],
-  how3: ["Switch tools anytime from the bar below. Hold and drag to use the Flamethrower.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar el Lanzallamas."],
+  how3: ["Switch tools anytime from the bar below. Hold and drag to use the Saw.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar la Sierra."],
   how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 60.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 60."],
   how5: ["Hire up to 5 helpers and place them anywhere: they tap their spot on their own, even while you're away. Make them fingers or shock clouds.", "Contrata hasta 5 ayudantes y acomódalos donde quieras: tocan su lugar solos, incluso cuando no estás. Pueden ser dedos o nubes eléctricas."],
   how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there: your coins and your smush count come with you.", "Cada marcianito que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marcianito vale más. Ahí empiezas de cero: viajan tus monedas y tu cuenta de aplastados."],
@@ -1204,7 +1207,7 @@ const STR = {
   menu: ["Menu", "Menú"], howSub: ["The basics", "Lo básico"], setSub: ["Sound & theme", "Sonido y tema"],
   collect: ["Collect", "Recoger"],
   buy: ["Buy", "Comprar"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
-  finger: ["Click", "Click"], spray: ["Flamethrower", "Lanzallamas"], bolt: ["Shock", "Descarga"],
+  finger: ["Click", "Click"], saw: ["Saw", "Sierra"], bolt: ["Shock", "Descarga"],
   bomb: ["Bomb", "Bomba"], bombD: ["Place bombs anywhere, then press Detonate. Buy more to place up to 10 at once.", "Pon bombas donde quieras y luego presiona Detonar. Compra más para poner hasta 10 a la vez."],
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
@@ -1212,7 +1215,7 @@ const STR = {
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
-  sprayD: ["Hold and drag: a jet of fire that burns everything in front of it.", "Mantén y arrastra: un chorro de fuego que quema todo lo que tiene enfrente."],
+  sawD: ["Hold and drag: a spinning saw that slices every alien it touches in half. Upgrades make it bigger.", "Mantén y arrastra: una sierra que gira y parte a la mitad a cada marcianito que toca. Las mejoras la hacen más grande."],
   boltD: ["Zaps an alien and arcs to its neighbors.", "Electrocuta a un marcianito y salta a los cercanos."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
@@ -1268,7 +1271,7 @@ function statText(id, lvl) {
   const i = lvl - 1, es = LANG === "es";
   if (id === "finger") { const r = TOOLS.finger.radius[i]; return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
 
-  if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Llama de ${r} px · quema cada ${v} s` : `${r} px flame · burns every ${v}s`; }
+  if (id === "saw") { const r = TOOLS.saw.radius[i] * 2; return es ? `Sierra de ${r} px` : `${r} px blade`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   if (id === "bomb") { const n = lvl; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} a la vez` : `${n} ${n === 1 ? "bomb" : "bombs"} at once`; }
@@ -1278,7 +1281,7 @@ function statShort(id, lvl) {
   const i = lvl - 1;
   if (id === "finger") return `${TOOLS.finger.radius[i]} px`;
 
-  if (id === "spray") return `${TOOLS.spray.radius[i]} px · ${TOOLS.spray.interval[i]}${LANG === "es" ? " s" : "s"}`;
+  if (id === "saw") return `${TOOLS.saw.radius[i] * 2} px`;
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]}`;
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval") return `${TOOLS[id].cooldown[i]}${s}`;
@@ -1311,6 +1314,7 @@ function upText(k, l, short) {
 
 /* ---------- 4. Sonido (Web Audio, sin archivos): cálido, suave, tipo ASMR ---------- */
 const Sound = (() => {
+  let lastSaw = 0; // el "shing" de la sierra no se amontona
   let ctx = null, master = null, noiseBuf = null, unlocked = false;
   // Cadena de salida cálida: filtro que quita lo agudo, compresor suave y una reverberación corta
   function build(c) {
@@ -1473,7 +1477,8 @@ const Sound = (() => {
     },
     hit(soft) { thump({ vol: soft ? 0.05 : 0.11 }); },
     stomp(k = 1) { tone(120, { dur: 0.16, vol: 0.2 * k, slide: 0.6, attack: 0.003 }); noise({ dur: 0.14, vol: 0.1 * k, freq: 320, q: 0.5, attack: 0.003, kind: "lowpass" }); },
-    flame() { noise({ dur: 0.2, vol: 0.05, freq: vary(480, 0.1), q: 0.5, attack: 0.04, kind: "lowpass" }); noise({ dur: 0.16, vol: 0.012, freq: vary(1500, 0.1), q: 0.8, attack: 0.03 }); },
+    saw() { const c = ensure(); if (!c || c.currentTime - lastSaw < 0.05) return; lastSaw = c.currentTime; tone(vary(1150, 0.06), { dur: 0.14, vol: 0.03, slide: 0.75, type: "triangle", attack: 0.002 }); noise({ dur: 0.07, vol: 0.03, freq: 2400, q: 1.6, attack: 0.002 }); thump({ vol: 0.06 }); },
+    whir(k = 0) { noise({ dur: 0.2, vol: 0.01 + 0.012 * k, freq: 520 + 380 * k, q: 1.1, attack: 0.05, kind: "lowpass" }); },
     hiss() { noise({ dur: 0.2, vol: 0.022, freq: vary(2300, 0.08), q: 0.8, attack: 0.06 }); },
     zap(soft) {
       const k = soft ? 0.5 : 1;
@@ -1790,7 +1795,7 @@ function updateBalls(dt) {
   for (let i = balls.length - 1; i >= 0; i--) {
     const b = balls[i];
     b.t += dt;
-    if (b.state === "die") { if (b.t >= DIE) balls.splice(i, 1); continue; }
+    if (b.state === "die") { if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : DIE)) balls.splice(i, 1); continue; }
     b.squash = Math.max(0, b.squash - dt / 0.24);
     b.flash = Math.max(0, b.flash - dt / 0.18);
     if (b.pull) continue; // lo está jalando un agujero negro (updateVortices lo mueve)
@@ -1964,7 +1969,7 @@ function forks(pts) {
 }
 function updateFx(dt) {
   if (goos.length) updateGoos(dt);
-  if (streams.length || fireBlobs.length) updateFlames(dt);
+  if (saws.length || slashes.length) updateSaws(dt);
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
     p.t += dt;
@@ -2078,8 +2083,8 @@ function useTool(x, y, pid) {
       if (!hits.length) Sound.miss();
       hits.forEach((b, i) => hit(b, 1, x, y, i > 0));
     }
-  } else if (id === "spray") {
-    // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick)
+  } else if (id === "saw") {
+    // La sierra corta en el bucle mientras el dedo siga presionado (sawTick)
   } else if (id === "wave") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
     startCd(id, TOOLS.wave.cooldown[L]);
@@ -2110,144 +2115,131 @@ function useTool(x, y, pid) {
 function sparks(x, y, n) {
   for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(60, 170); part(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(1.2, 2.1), 0.28, i % 2 ? "#FFFFFF" : PAL.onDark ? "#9FE3FF" : "#3AB0F5", "dot", 7, 0); }
 }
-// Lanzallamas: mientras se mantiene presionado, un chorro de fuego sale hacia donde se mueve el dedo
-// (si está quieto, hacia arriba) y quema a intervalos a todo lo que tiene enfrente.
-function sprayTick(p, dt) {
-  const L = lvlOf("spray") - 1, R = TOOLS.spray.radius[L], iv = TOOLS.spray.interval[L];
-  const mx = p.x - (p.fx == null ? p.x : p.fx), my = p.y - (p.fy == null ? p.y : p.fy), mv = Math.hypot(mx, my);
-  p.fx = p.x; p.fy = p.y;
-  if (p.ang == null) p.ang = -Math.PI / 2;
-  // La llama queda como cola: apunta al lado contrario de hacia donde arrastras
-  if (mv > 1.2) p.ang += angDiff(Math.atan2(-my, -mx), p.ang) * Math.min(1, dt * 9 + 0.04);
-  const ca = Math.cos(p.ang), sa = Math.sin(p.ang);
-  p.ox = p.x + ca * 10; p.oy = p.y + sa * 10; // la boquilla, justo delante del dedo
-  emitFire(p, dt, R, mx / Math.max(dt, 1e-3), my / Math.max(dt, 1e-3));
-  // Daño: la zona de la llama, delante de la boquilla
-  const zx = p.ox + ca * R * 0.42, zy = p.oy + sa * R * 0.42, zr = R * 0.42;
+// Sierra: mientras mantienes el dedo, una sierra circular gira y te sigue; lo que toca, lo parte a la mitad.
+// Gira más rápido entre más rápido la mueves, echa chispas al cortar y, al soltar, se frena y se desvanece.
+const saws = [], slashes = [];
+const SAW_CUT_DIE = 0.6; // s que tardan en caer las dos mitades
+let sawSpr = {};
+// La hoja (dientes, ranuras y centro) se pinta una vez por tamaño; luego solo se gira
+function sawSprite(R) {
+  const key = R + (PAL.onDark ? "d" : "l");
+  if (sawSpr[key]) return sawSpr[key];
+  const pad = 4, size = (R + pad) * 2, c = document.createElement("canvas");
+  c.width = c.height = Math.ceil(size * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR); g.translate(size / 2, size / 2);
+  const teeth = Math.round(12 + R * 0.35), inner = R * 0.82;
+  // Dientes: cada uno sube en rampa y cae de golpe (como sierra de verdad)
+  g.beginPath();
+  for (let i = 0; i < teeth; i++) {
+    const a0 = (i / teeth) * TAU, a1 = ((i + 0.72) / teeth) * TAU, a2 = ((i + 1) / teeth) * TAU;
+    const p = (a, r) => [Math.cos(a) * r, Math.sin(a) * r];
+    const [x0, y0] = p(a0, inner), [x1, y1] = p(a1, R), [x2, y2] = p(a1 + 0.02, inner * 0.98), [x3, y3] = p(a2, inner);
+    i ? g.lineTo(x0, y0) : g.moveTo(x0, y0); g.lineTo(x1, y1); g.lineTo(x2, y2); g.lineTo(x3, y3);
+  }
+  g.closePath();
+  const mg = g.createLinearGradient(-R, -R, R, R);
+  mg.addColorStop(0, "#F4F7FB"); mg.addColorStop(0.45, "#C7D0DC"); mg.addColorStop(1, "#7F8A9C");
+  g.fillStyle = mg; g.fill();
+  g.strokeStyle = "rgba(40,48,62,0.35)"; g.lineWidth = 1; g.stroke();
+  // Disco con un brillo metálico en abanico
+  const dg = g.createRadialGradient(-R * 0.25, -R * 0.3, R * 0.1, 0, 0, inner);
+  dg.addColorStop(0, "#FFFFFF"); dg.addColorStop(0.5, "#D5DCE6"); dg.addColorStop(1, "#9AA5B6");
+  g.fillStyle = dg; g.beginPath(); g.arc(0, 0, inner * 0.94, 0, TAU); g.fill();
+  // Ranuras curvas (se ven girar)
+  g.strokeStyle = "rgba(60,70,88,0.35)"; g.lineWidth = Math.max(1.2, R * 0.05); g.lineCap = "round";
+  for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU; g.beginPath(); g.arc(0, 0, inner * 0.62, a, a + 0.9); g.stroke(); }
+  // Centro: buje oscuro con tornillos
+  g.fillStyle = "#4A5366"; g.beginPath(); g.arc(0, 0, R * 0.26, 0, TAU); g.fill();
+  g.fillStyle = "#2E3545"; g.beginPath(); g.arc(0, 0, R * 0.1, 0, TAU); g.fill();
+  g.fillStyle = "#B8C1CF";
+  for (let i = 0; i < 4; i++) { const a = (i / 4) * TAU + 0.4; g.beginPath(); g.arc(Math.cos(a) * R * 0.18, Math.sin(a) * R * 0.18, Math.max(1, R * 0.035), 0, TAU); g.fill(); }
+  return (sawSpr[key] = { c, size });
+}
+// La sierra va un poco arriba del dedo en pantallas táctiles (para que se vea)
+const sawLift = (p, R) => (p.touch ? R * 0.55 + 16 : 0);
+function sawTick(p, dt) {
+  const R = TOOLS.saw.radius[lvlOf("saw") - 1];
+  let s = p.saw;
+  if (!s || !saws.includes(s)) { s = p.saw = { p, x: p.x, y: p.y - sawLift(p, R), rot: rand(0, TAU), spin: 14, vx: 0, vy: 0, R, held: true, fade: 1, cutT: 0 }; saws.push(s); }
+  s.R = R;
+  // Te sigue con un pelín de retraso (se siente con peso)
+  const tx = p.x, ty = p.y - sawLift(p, R), k = Math.min(1, dt * 24), ox = s.x, oy = s.y;
+  s.x += (tx - s.x) * k; s.y += (ty - s.y) * k;
+  if (dt > 0) { s.vx = (s.x - ox) / dt; s.vy = (s.y - oy) / dt; }
+  const sp = Math.hypot(s.vx, s.vy);
+  s.spin += (16 + Math.min(30, sp * 0.04) - s.spin) * Math.min(1, dt * 6);
+  // Corta a todo lo que toca
   for (const b of balls) {
-    if (b.state === "die" || b.pull || time - b.lastSpray < iv) continue;
-    if (Math.hypot(b.x - zx, b.y - zy) < zr + b.r * 0.5) {
-      b.lastSpray = time;
-      // Se prende un poquito: bolitas de fuego que suben de su cabeza
-      for (let k = 0; k < 4; k++) fireBlob(b.x + rand(-b.r * 0.6, b.r * 0.6), b.y - rand(0, b.r), rand(-15, 15), -rand(30, 70), rand(3.5, 6), rand(0.3, 0.45));
-      hit(b, 1, p.ox, p.oy, true);
+    if (b.state === "die" || b.pull || b.t < 0.15) continue;
+    const cy = b.y; // centro del cuerpo
+    if (Math.hypot(b.x - s.x, cy - s.y) < R + b.r * 0.75) {
+      const ang = sp > 40 ? Math.atan2(s.vy, s.vx) : -Math.PI / 2 + rand(-0.35, 0.35);
+      b.cutAng = ang;
+      slashes.push({ x: b.x, y: cy, a: ang, r: b.r * 1.8, t: 0 });
+      for (let j = 0; j < 7; j++) { const a = rand(0, TAU), v = rand(120, 280); part(s.x + Math.cos(a) * R * 0.9, s.y + Math.sin(a) * R * 0.9, Math.cos(a) * v, Math.sin(a) * v - 40, rand(1, 1.8), rand(0.2, 0.4), j % 2 ? "#FFE6A0" : "#FFFFFF", "dot", 4, 300); }
+      hit(b, 999, s.x, s.y, false, false);
+      s.cutT = 0.12; s.spin += 6;
+      Sound.saw(); buzz(8);
     }
   }
+  s.cutT = Math.max(0, s.cutT - dt);
   p.hiss = (p.hiss || 0) - dt;
-  if (p.hiss <= 0) { Sound.flame(); p.hiss = 0.13; buzz(4); }
+  if (p.hiss <= 0) { Sound.whir(Math.min(1, sp / 600)); p.hiss = 0.16; }
 }
-// Fuego (lanzallamas), estilizado y fluido: un chorro continuo que sale de la boquilla como una manguera.
-// Cada cuadro sale un "nodo" que vuela hacia adelante; la llama es una cinta suave que pasa por todos los nodos,
-// así se curva y te sigue al mover el dedo. Capas de color limpias (rojo, naranja, amarillo, crema), orillas que
-// ondulan como lenguas, bolitas de fuego redondas que se desprenden en la punta y chispas que suben.
-const streams = [], fireBlobs = [];
-const FIRE_COLS = ["#FF5A36", "#FF8A3D", "#FFC24D", "#FFF3C8"], FIRE_W = [1, 0.76, 0.52, 0.28];
-const NODE_LIFE = 0.22; // s que tarda un tramo de llama en ir de la boquilla a la punta
-const FLAME_LEN = 0.78;  // largo de la llama, en veces el radio del lanzallamas
-// Dónde va un tramo: siempre medido desde la boquilla (así la llama no se estira al arrastrar), con su propio ángulo
-const nodePos = (s, n, R) => { const u = n.t / NODE_LIFE, d = R * FLAME_LEN * (1 - Math.pow(1 - u, 1.6)); return [s.ox + Math.cos(n.a) * d, s.oy + Math.sin(n.a) * d - 8 * u * u]; };
-function fireBlob(x, y, vx, vy, r, life, ember) { if (fireBlobs.length < 140) fireBlobs.push({ x, y, vx, vy, r, life, t: 0, ember: !!ember }); }
-// Echa fuego desde la boquilla del dedo p (vx, vy = cómo se mueve el dedo, para que la llama herede el movimiento)
-function emitFire(p, dt, R, vx, vy) {
-  let s = p.stream;
-  if (!s || !streams.includes(s)) { s = p.stream = { nodes: [], p, blob: 0, R }; streams.push(s); }
-  s.ox = p.ox; s.oy = p.oy; s.R = R;
-  // Un vaivén muy suave en la dirección: la llama nunca se ve congelada
-  const k = Math.max(1, Math.round(dt * 60)), wa = p.ang + (reduceMotion ? 0 : Math.sin(time * 6.5) * 0.05 + Math.sin(time * 11) * 0.025), ca = Math.cos(wa), sa = Math.sin(wa);
-  for (let j = 0; j < k; j++) s.nodes.push({ a: wa, t: (j / k) * dt });
-  // Bolitas que se desprenden de la punta, y chispas
-  s.blob -= dt;
-  if (s.blob <= 0 && s.nodes.length > 3) {
-    s.blob = lowFx ? 0.09 : 0.05;
-    const [tx, ty] = nodePos(s, s.nodes[0], R);
-    fireBlob(tx + rand(-5, 5), ty + rand(-5, 5), Math.cos(s.nodes[0].a) * 40 + rand(-20, 20), Math.sin(s.nodes[0].a) * 40 - rand(20, 50), rand(4, 7) * (R / 86), rand(0.28, 0.42));
+function updateSaws(dt) {
+  for (let i = saws.length - 1; i >= 0; i--) {
+    const s = saws[i];
+    if (pointers.get(s.p.id) !== s.p || save.tool !== "saw") { s.held = false; s.p.saw = null; }
+    s.rot += s.spin * dt;
+    if (!s.held) { s.spin *= Math.exp(-4 * dt); s.fade -= dt / 0.25; if (s.fade <= 0) saws.splice(i, 1); }
   }
-  if (Math.random() < dt * (lowFx ? 6 : 14)) { const a = p.ang + rand(-0.5, 0.5), v = rand(R * 1.4, R * 2.6); fireBlob(p.ox + ca * R * 0.35, p.oy + sa * R * 0.35, Math.cos(a) * v, Math.sin(a) * v, rand(1.4, 2.4), rand(0.45, 0.8), true); }
+  for (let i = slashes.length - 1; i >= 0; i--) if ((slashes[i].t += dt) > 0.22) slashes.splice(i, 1);
 }
-function updateFlames(dt) {
-  for (let i = streams.length - 1; i >= 0; i--) {
-    const s = streams[i];
-    if (pointers.get(s.p.id) !== s.p) s.p.stream = null; // se soltó: la llama termina sola
-    for (let j = s.nodes.length - 1; j >= 0; j--) {
-      const n = s.nodes[j];
-      n.t += dt;
-      if (n.t >= NODE_LIFE) s.nodes.splice(j, 1);
+function drawSaws() {
+  // El corte: una raya blanca afilada que se desvanece
+  ctx.lineCap = "round";
+  for (const sl of slashes) {
+    const u = sl.t / 0.22, L = sl.r * (0.8 + 0.6 * easeOut(u)), dx = Math.cos(sl.a) * L, dy = Math.sin(sl.a) * L;
+    ctx.globalAlpha = 1 - u; ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 3.5 * (1 - u) + 0.5;
+    ctx.beginPath(); ctx.moveTo(sl.x - dx, sl.y - dy); ctx.lineTo(sl.x + dx, sl.y + dy); ctx.stroke();
+  }
+  for (const s of saws) {
+    const S = sawSprite(s.R), a = s.fade * (s.held ? 1 : 0.9), sc = 0.85 + 0.15 * s.fade + (s.cutT > 0 ? 0.05 : 0);
+    // Sombra en el piso
+    ctx.globalAlpha = 0.25 * a; ctx.fillStyle = PAL.shadow;
+    ctx.beginPath(); ctx.ellipse(s.x + 4, s.y + s.R * 0.9 + 6, s.R * 0.85, s.R * 0.25, 0, 0, TAU); ctx.fill();
+    // Desenfoque de giro: dos copias un poco atrás, transparentes
+    const blur = Math.min(0.4, s.spin * 0.012);
+    for (const [off, al] of [[-blur, 0.22], [-blur * 0.5, 0.35], [0, 1]]) {
+      ctx.globalAlpha = a * al;
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot + off); ctx.scale(sc, sc);
+      ctx.drawImage(S.c, -S.size / 2, -S.size / 2, S.size, S.size);
+      ctx.restore();
     }
-    if (!s.nodes.length && s.p.stream !== s) streams.splice(i, 1);
+    // Brillo fijo (no gira): así el ojo lee el giro
+    ctx.globalAlpha = 0.55 * a; ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = Math.max(1.5, s.R * 0.07);
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.R * 0.6 * sc, Math.PI * 1.05, Math.PI * 1.45); ctx.stroke();
   }
-  for (let i = fireBlobs.length - 1; i >= 0; i--) {
-    const b = fireBlobs[i];
-    b.t += dt;
-    if (b.t >= b.life) { fireBlobs[i] = fireBlobs[fireBlobs.length - 1]; fireBlobs.pop(); continue; }
-    const dr = Math.exp(-(b.ember ? 2 : 3.5) * dt);
-    b.vx *= dr; b.vy = b.vy * dr - (b.ember ? 60 : 110) * dt;
-    b.x += b.vx * dt; b.y += b.vy * dt;
-  }
-}
-// Medio ancho de la llama según qué tan lejos va el tramo (u: 0 = boquilla, 1 = punta), con ondas que viajan
-const fireHalf = (u, Wm, layer) => Wm * (0.16 + 0.84 * Math.sin(Math.PI * Math.min(1, Math.pow(u, 0.62)))) * (1 + 0.1 * Math.sin(time * 15 - u * 10 + layer * 1.4)) * (layer === 3 ? clamp((0.78 - u) / 0.3, 0, 1) : 1);
-function drawRibbon(pts, nx, ny, us, Wm, layer) {
-  const n = pts.length, m = FIRE_W[layer], L = [], Rt = [];
-  for (let i = 0; i < n; i++) { const w = fireHalf(us[i], Wm, layer) * m; L.push([pts[i][0] + nx[i] * w, pts[i][1] + ny[i] * w]); Rt.push([pts[i][0] - nx[i] * w, pts[i][1] - ny[i] * w]); }
-  const smooth = (arr, first) => { for (let i = 1; i < arr.length - 1; i++) { const mx = (arr[i][0] + arr[i + 1][0]) / 2, my = (arr[i][1] + arr[i + 1][1]) / 2; ctx.quadraticCurveTo(arr[i][0], arr[i][1], mx, my); } if (!first) ctx.lineTo(arr[arr.length - 1][0], arr[arr.length - 1][1]); };
-  const tip = pts[n - 1], tw = fireHalf(us[n - 1], Wm, layer) * m, tdx = tip[0] - pts[n - 2][0], tdy = tip[1] - pts[n - 2][1], tl = Math.hypot(tdx, tdy) || 1;
-  const base = pts[0], bw = fireHalf(us[0], Wm, layer) * m, bdx = pts[1][0] - base[0], bdy = pts[1][1] - base[1], bl = Math.hypot(bdx, bdy) || 1;
-  ctx.fillStyle = FIRE_COLS[layer];
-  ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
-  smooth(L);
-  // Punta redonda
-  ctx.quadraticCurveTo(tip[0] + (tdx / tl) * (tw * 2.2 + 4), tip[1] + (tdy / tl) * (tw * 2.2 + 4), Rt[n - 1][0], Rt[n - 1][1]);
-  const RR = Rt.slice().reverse(); smooth(RR);
-  // Base redondita detrás de la boquilla
-  ctx.quadraticCurveTo(base[0] - (bdx / bl) * (bw * 1.6 + 2), base[1] - (bdy / bl) * (bw * 1.6 + 2), L[0][0], L[0][1]);
-  ctx.fill();
-}
-function drawFlames() {
-  if (!streams.length && !fireBlobs.length) return;
-  // 1) Luz cálida sobre el piso, debajo del chorro
-  for (const s of streams) {
-    if (s.nodes.length < 3) continue;
-    const [mx, my] = nodePos(s, s.nodes[Math.floor(s.nodes.length * 0.45)], s.R), mid = { x: mx, y: my }, rr = 70;
-    const g = ctx.createRadialGradient(mid.x, mid.y + 10, 0, mid.x, mid.y + 10, rr);
-    g.addColorStop(0, `rgba(255,150,60,${PAL.onDark ? 0.3 : 0.18})`); g.addColorStop(1, "rgba(255,150,60,0)");
-    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.save(); ctx.translate(mid.x, mid.y + 10); ctx.scale(1, 0.6); ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill(); ctx.restore();
-  }
-  // 2) Bolitas de fuego (detrás de la llama): amarillas al nacer, luego naranja y rojo, y se encogen suave
-  for (const b of fireBlobs) {
-    if (b.ember) continue;
-    const u = b.t / b.life, r = b.r * (1 - u * 0.75);
-    ctx.globalAlpha = 1 - u * u;
-    ctx.fillStyle = u < 0.3 ? FIRE_COLS[2] : u < 0.6 ? FIRE_COLS[1] : FIRE_COLS[0];
-    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, TAU); ctx.fill();
-    ctx.fillStyle = FIRE_COLS[3]; ctx.globalAlpha *= 0.7; ctx.beginPath(); ctx.arc(b.x - r * 0.25, b.y - r * 0.25, r * 0.4, 0, TAU); ctx.fill();
-  }
-  // 3) La llama: cuatro capas de la orilla al centro
   ctx.globalAlpha = 1;
-  for (const s of streams) {
-    const ns = s.nodes, n = ns.length;
-    if (n < 3) continue;
-    const Wm = s.R * 0.28;
-    // Del más nuevo (boquilla) al más viejo (punta)
-    const pts = [], us = [], nx = [], ny = [];
-    for (let i = n - 1; i >= 0; i--) { pts.push(nodePos(s, ns[i], s.R)); us.push(ns[i].t / NODE_LIFE); }
-    for (let i = 0; i < n; i++) {
-      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
-      nx.push(-dy / l); ny.push(dx / l);
-    }
-    for (let layer = 0; layer < 4; layer++) drawRibbon(pts, nx, ny, us, Wm, layer);
-    // Boquilla encendida
-    if (s.p.stream === s) {
-      const g = ctx.createRadialGradient(pts[0][0], pts[0][1], 0, pts[0][0], pts[0][1], 12);
-      g.addColorStop(0, "rgba(255,255,240,1)"); g.addColorStop(1, "rgba(255,240,200,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], 12, 0, TAU); ctx.fill();
-    }
-  }
-  // 4) Chispas que suben (encima)
-  ctx.fillStyle = "#FFD45A";
-  for (const b of fireBlobs) {
-    if (!b.ember) continue;
-    const u = b.t / b.life;
-    ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.arc(b.x, b.y, b.r * (1 - u * 0.5), 0, TAU); ctx.fill();
+}
+// Un marcianito partido a la mitad: cada mitad sale hacia su lado, gira y cae; se ve el corte por dentro
+function drawCutAlien(b) {
+  const T = b.T, S = T.spr, u = Math.min(1, b.t / SAW_CUT_DIE), a = b.cutAng, nx = -Math.sin(a), ny = Math.cos(a);
+  const cy = b.y, sep = b.r * 0.9 * easeOut(u), fall = 70 * u * u, fx = Math.sign(b.flip || 1);
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.globalAlpha = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4;
+    ctx.translate(b.x + nx * side * sep, cy + ny * side * sep + fall);
+    ctx.rotate(side * 0.7 * easeOut(u));
+    // Solo la mitad de este lado de la línea de corte
+    ctx.rotate(a); ctx.beginPath(); ctx.rect(-200, side > 0 ? 0 : -200, 400, 200); ctx.rotate(-a); ctx.clip();
+    ctx.save(); ctx.scale(fx, 1);
+    ctx.drawImage(S.img, -S.cx, -S.ground + T.bottom, S.w, S.h);
+    ctx.restore();
+    // El corte por dentro: una franja de su color más claro
+    ctx.rotate(a); ctx.strokeStyle = T.light; ctx.lineWidth = 3.5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-b.r * 1.1, 0); ctx.lineTo(b.r * 1.1, 0); ctx.stroke();
+    ctx.restore();
   }
   ctx.globalAlpha = 1;
 }
@@ -3751,7 +3743,7 @@ function renderToolbar() {
   bar.innerHTML = vis.map((id) => {
     const l = save.tools[id], locked = l === 0;
     return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}" style="--tc:${HUE[id]}" type="button" data-id="${id}" aria-pressed="${save.tool === id}" aria-label="${tx(id)}">
-      ${ICONS[id]}<span class="name">${tx(id)}</span>${toolMax(id) > 3 ? `<span class="count">×${l}</span>` : `<span class="pips">${pips(l)}</span>`}
+      ${ICONS[id]}<span class="name">${tx(id)}</span>${id === "bomb" ? `<span class="count">×${l}</span>` : `<span class="pips">${pips(l, toolMax(id))}</span>`}
       <span class="price"><span class="coin"></span>${fmtShort(TOOLS[id].price)}</span><i class="cd"></i></button>`;
   }).join("");
   for (const k in toolEls) delete toolEls[k];
@@ -3825,7 +3817,7 @@ function renderShop(animate) {
   $("#shop-note").textContent = tx({ tools: "noteTools", helpers: "noteHelpers", boosts: "noteBoosts" }[shopTab]);
   let html = "";
   if (shopTab === "tools") {
-    html = sect("secVoid") + ["finger", "bolt", "spray"].map(toolCard).join("")
+    html = sect("secVoid") + ["finger", "bolt", "saw"].map(toolCard).join("")
       + sect("secBeach") + ["bomb", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("")
       + sect("secSnow") + ["meteor", "aval"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
@@ -4009,9 +4001,9 @@ cv.addEventListener("pointerdown", (e) => {
   // Sobre un ayudante: si arrastras, lo mueves; si solo tocas, se usa la herramienta al soltar
   const hh = helperAt(p.x, p.y);
   if (hh) { pointers.set(e.pointerId, { id: e.pointerId, x: p.x, y: p.y, sx: p.x, sy: p.y, grab: hh }); return; }
-  pointers.set(e.pointerId, { id: e.pointerId, x: p.x, y: p.y, lx: null, ly: null, emit: 0, hiss: 0 });
+  pointers.set(e.pointerId, { id: e.pointerId, x: p.x, y: p.y, lx: null, ly: null, emit: 0, hiss: 0, touch: e.pointerType === "touch" });
   useTool(p.x, p.y, e.pointerId);
-  if (save.tool === "spray") sprayTick(pointers.get(e.pointerId), 0);
+  if (save.tool === "saw") sawTick(pointers.get(e.pointerId), 0);
   if (save.tool === "bomb") pointers.delete(e.pointerId);
 });
 cv.addEventListener("pointermove", (e) => {
@@ -4051,6 +4043,7 @@ const easeIn = (x) => x * x;
 function drawAlien(b) {
   const T = b.T, S = T.spr;
   if (!S || !S.img) return;
+  if (b.state === "die" && b.cutAng != null) { drawCutAlien(b); return; } // la sierra lo partió a la mitad
   let sx = 1, sy = 1, alpha = 1, lift = 0, tilt = 0;
   if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.45)); sx = sy = 0.35 + 0.65 * k; alpha = k; }
   else if (b.state === "die") {
@@ -4131,7 +4124,7 @@ function render(dt) {
     const T = b.T;
     let a = 1, w = 1;
     if (b.state === "in") a = Math.min(1, b.t / 0.45);
-    else if (b.state === "die") { const u = b.t / DIE; w = 1 + 0.4 * Math.min(1, u * 3); a = 1 - u; }
+    else if (b.state === "die") { const u = Math.min(1, b.t / DIE); w = 1 + 0.4 * Math.min(1, u * 3); a = 1 - u; }
     ctx.globalAlpha = a;
     ctx.beginPath(); ctx.ellipse(b.x, b.y + T.bottom - 1, T.r * 0.95 * w, T.r * 0.26 * w, 0, 0, TAU); ctx.fill();
   }
@@ -4168,7 +4161,7 @@ function render(dt) {
     ctx.beginPath(); ctx.arc(g.x, g.y, r, 0, TAU); ctx.stroke();
   }
   // Lanzallamas: luz en el piso, humo y fuego (encima de los marcianitos)
-  drawFlames();
+  drawSaws();
   // Partículas
   for (const p of parts) {
     if (p.kind === "mist") continue;
@@ -4253,8 +4246,8 @@ function drawCursor(x, y) {
   if (id === "finger" && !TOOLS.finger.radius[L]) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
-  } else if (id === "spray" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = id === "finger" ? TOOLS.finger.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "bomb" ? BOMB_R : TOOLS.meteor.spread;
+  } else if (id === "saw" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
+    const R = id === "finger" ? TOOLS.finger.radius[L] : id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? BOMB_R : TOOLS.meteor.spread;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
@@ -4293,7 +4286,7 @@ function loop(now) {
   updateSky(dt);
   updateHelpers(dt);
   updateMult(dt);
-  if (playing && save.tool === "spray") for (const p of pointers.values()) sprayTick(p, dt);
+  if (playing && save.tool === "saw") for (const p of pointers.values()) if (!p.grab) sawTick(p, dt);
   updateFx(dt);
   render(dt);
   updateCooldownUI();
@@ -4524,7 +4517,7 @@ function renderHow() {
   const steps = [
     { c: "#6BCB9B", v: img("green"), k: "how1" },
     { c: "#E3A21A", v: '<span class="coin" style="font-size:26px"></span>', k: "how2" },
-    { c: "#F0642E", v: ICONS.spray, k: "how3" },
+    { c: "#E5653A", v: ICONS.saw, k: "how3" },
     { c: "#A584E8", v: img("purple"), k: "how4" },
     { c: "#8E99AE", v: spr("finger") || ICONS.hire, k: "how5" },
     { c: "#C9962A", v: '<b class="x2">×2</b>', k: "how6" },
