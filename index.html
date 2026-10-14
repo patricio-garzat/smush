@@ -899,7 +899,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.18.1";
+const VERSION = "0.18.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -963,8 +963,12 @@ const UP = {
   // Ayudantes: hasta 5, los acomodas tú. Son dedos o nubes (uno u otro); la velocidad y el área valen para todos
   hire:   { tab: "helpers", max: 5, cost: [100, 350, 1000, 2500, 6000] },       // cuántos ayudantes
   cloud:  { tab: "helpers", max: 1, cost: [3000] },                              // desbloquea las nubes eléctricas
-  hspeed: { tab: "helpers", max: 5, cost: [200, 500, 1100, 2200, 4000] },        // toques por segundo (2 → 5)
-  harea:  { tab: "helpers", max: 2, cost: [600, 2400] },                         // área de cada toque (3 tamaños)
+  // Mejoras de los dedos
+  fspeed: { tab: "helpers", max: 8, cost: [200, 450, 900, 1600, 2600, 4000, 6000, 9000] }, // toques por segundo (2 → 10)
+  farea:  { tab: "helpers", max: 3, cost: [500, 1500, 4000] },                   // área de cada toque (4 tamaños)
+  // Mejoras de las nubes
+  carea:  { tab: "helpers", max: 3, cost: [800, 2200, 5000] },                   // qué tan lejos alcanzan (4 tamaños)
+  cchain: { tab: "helpers", max: 8, cost: [600, 1200, 2200, 3500, 5500, 8000, 11000, 15000] }, // marcianitos por descarga (2 → 10)
   // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
   jet:   { tab: "helpers", world: 1, max: 6, cost: [10000, 6000, 10000, 16000, 25000, 40000] }, // jet bombardero
   // Mejoras
@@ -976,12 +980,13 @@ const UP = {
 const HELPER_KEYS = ["hire", "jet"]; // los que se pueden apagar
 // Cuántos trabajan de verdad: los contratados, salvo que estén apagados
 const active = (k) => (save.off[k] ? 0 : save.up[k]);
-const UP_ORDER = ["hire", "cloud", "hspeed", "harea", "jet", "value", "crowd", "luck", "night"];
+const UP_ORDER = ["hire", "cloud", "fspeed", "farea", "carea", "cchain", "jet", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
-  helperRate: (l) => [2, 2.5, 3, 3.5, 4, 5][l], // toques por segundo de cada ayudante (máximo 5)
-  fingerArea: (l) => [26, 40, 56][l],        // radio del área de cada dedo (px)
-  cloudArea: (l) => [64, 86, 110][l],        // qué tan lejos alcanza cada nube (px)
+  fingerRate: (l) => [2, 3, 4, 5, 6, 7, 8, 9, 10][l], // toques por segundo de cada dedo (máximo 10)
+  fingerArea: (l) => [26, 36, 46, 58][l],     // radio del área de cada dedo (px)
+  cloudArea: (l) => [64, 80, 96, 115][l],     // qué tan lejos alcanza cada nube (px)
+  cloudHits: (l) => [2, 3, 4, 5, 6, 7, 8, 9, 10][l], // a cuántos marcianitos llega cada descarga (máximo 10)
   valueMult: (l) => 1 + 0.2 * l,            // multiplicador de monedas
   crowdExtra: (l) => 2 * l,                 // marcianitos extra en pantalla
   crowdSpawn: (l) => 0.85 ** l,             // pausa entre apariciones
@@ -1014,8 +1019,10 @@ const ICONS = {
   meteor: svgI(`<circle ${SOFT} cx="15" cy="15" r="5.6"/><path d="M11 11 3.5 3.5M14.2 9.4 10 3M9.4 14.2 3 10"/><circle ${SOLID} cx="16.6" cy="13.4" r="1.1"/>`),
   hire:   svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/>`),
   cloud:  svgI(`<path ${SOFT} d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>`),
-  hspeed: svgI(`<circle ${SOFT} cx="12" cy="13.5" r="7.5"/><path d="M12 13.5 15 10.5M10 2.5h4M18.6 6.4l1.3-1.3"/>`),
-  harea:  svgI(`<circle ${SOFT} cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 1.8v2.4M12 19.8v2.4M1.8 12h2.4M19.8 12h2.4"/>`),
+  fspeed: svgI(`<circle ${SOFT} cx="12" cy="13.5" r="7.5"/><path d="M12 13.5 15 10.5M10 2.5h4M18.6 6.4l1.3-1.3"/>`),
+  cchain: svgI(`<circle ${SOFT} cx="5" cy="17" r="2.6"/><circle ${SOFT} cx="12" cy="7" r="2.6"/><circle ${SOFT} cx="19" cy="16" r="2.6"/><path d="M6.6 14.6 9.8 9.6M14.2 9.2 17 13.4" stroke-width="1.8"/>`),
+  farea:  svgI(`<circle ${SOFT} cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 1.8v2.4M12 19.8v2.4M1.8 12h2.4M19.8 12h2.4"/>`),
+  carea:  svgI(`<circle ${SOFT} cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 1.8v2.4M12 19.8v2.4M1.8 12h2.4M19.8 12h2.4"/>`),
   value:  svgI(`<ellipse ${SOFT} cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>`),
   crowd:  svgI(`<circle ${SOFT} cx="6.8" cy="15" r="3.4"/><circle ${SOFT} cx="17.2" cy="15" r="3.4"/><circle ${SOFT} cx="12" cy="11" r="4"/><path d="M10.6 7.1 9.6 4.4M13.4 7.1l1-2.7"/>`),
   luck:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M12 3.2l2.7 5.4 6 .9-4.3 4.2 1 5.9L12 16.8l-5.4 2.8 1-5.9-4.3-4.2 6-.9z"/>`),
@@ -1027,7 +1034,7 @@ const ICONS = {
 const HUE = {
   finger: "#7D8AA3", boot: "#4F86E8", spray: "#F0642E", bolt: "#F0A12E", bomb: "#4A5068", meteor: "#EE7537", wave: "#2C9FC2",
   jet: "#5C7CFA", aval: "#5E9BE0",
-  hire: "#8E99AE", cloud: "#6C7FA8", hspeed: "#22B07D", harea: "#E5534B",
+  hire: "#8E99AE", cloud: "#6C7FA8", fspeed: "#22B07D", farea: "#E5534B", carea: "#4F86E8", cchain: "#7C5CE0",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
 };
 
@@ -1054,9 +1061,9 @@ const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
-  up: { hire: 0, cloud: 0, hspeed: 0, harea: 0, jet: 0, value: 0, crowd: 0, luck: 0, night: 0 },
+  up: { hire: 0, cloud: 0, fspeed: 0, farea: 0, carea: 0, cchain: 0, jet: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
-  v: 3, // versión del guardado
+  v: 4, // versión del guardado
   level: 0, // nivel actual (la meta del siguiente usa el total de aplastados, que nunca se reinicia)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
   readyAsked: -1, // nivel en el que ya avisamos que podías viajar (solo se avisa una vez por nivel)
@@ -1110,7 +1117,14 @@ function loadSave() {
       if (s.hmode === "cloud" && d.up.cloud) d.hmode = "cloud";
     }
     delete d.up.boltH;
-    d.v = 3;
+    // Velocidad y Área de antes (compartidas): ahora dedos y nubes tienen sus propias mejoras; se devuelve lo que costaron
+    if (s.v === 3) {
+      for (const [k, prices] of [["hspeed", [200, 500, 1100, 2200, 4000]], ["harea", [600, 2400]]]) {
+        const l = clamp(Math.floor(num(s.up && s.up[k])), 0, prices.length);
+        for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); }
+      }
+    }
+    d.v = 4;
     d.level = clamp(Math.floor(num(s.level)), 0, LEVELS.length - 1);
     // La Lluvia ácida ya no existe, y los Meteoritos ahora son de The Slopes: se devuelve lo que costaron
     const refund = (l, prices) => { for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); } };
@@ -1222,8 +1236,12 @@ const STR = {
   convert: ["Convert", "Convertir"],
   escaped: ["Got away", "Se escaparon"],
   hire: ["Helpers", "Ayudantes"], hireD: ["Place them anywhere on the field: each one taps its spot on its own, even while you're away. Up to 5.", "Acomódalos donde quieras: cada uno toca su lugar solo, incluso cuando no estás. Hasta 5."],
-  hspeed: ["Tap speed", "Velocidad"], hspeedD: ["How many times per second each helper taps (up to 5).", "Cuántas veces por segundo toca cada ayudante (hasta 5)."],
-  harea: ["Tap area", "Área"], hareaD: ["A bigger area for every tap (fingers) or a longer reach (clouds).", "Un área más grande en cada toque (dedos) o más alcance (nubes)."],
+  fspeed: ["Finger speed", "Velocidad"], fspeedD: ["How many times per second each finger taps (up to 10).", "Cuántas veces por segundo toca cada dedo (hasta 10)."],
+  farea: ["Finger area", "Área"], fareaD: ["A bigger area for every tap.", "Un área más grande en cada toque."],
+  carea: ["Cloud reach", "Alcance"], careaD: ["How far around its spot each cloud can zap.", "Qué tan lejos de su lugar alcanza a electrocutar cada nube."],
+  cchain: ["Chain shock", "Descarga en cadena"], cchainD: ["How many aliens each shock jumps through (up to 10).", "A cuántos marcianitos salta cada descarga (hasta 10)."],
+  secFingers: ["Finger upgrades", "Mejoras de los dedos"], secClouds: ["Cloud upgrades", "Mejoras de las nubes"],
+  toPlace: ["to place when you close the Shop", "por acomodar al cerrar la Tienda"], placeLeft: ["more", "más"],
   modeFingers: ["Fingers", "Dedos"], modeClouds: ["Clouds", "Nubes"], unlock: ["Unlock", "Desbloquear"],
   placeHint: ["Tap where your helper should go", "Toca donde quieres poner a tu ayudante"], dragHint: ["Drag them on the field to move them.", "Arrástralos en el campo para moverlos."],
   value: ["Golden touch", "Toque de oro"], valueD: ["Every alien is worth more coins.", "Cada marcianito vale más monedas."],
@@ -1270,8 +1288,10 @@ function upText(k, l, short) {
   switch (k) {
     case "hire": return short ? String(l) : es ? `${l} de ${HELPER_MAX} ${l === 1 ? "ayudante" : "ayudantes"}` : `${l} of ${HELPER_MAX} ${l === 1 ? "helper" : "helpers"}`;
     case "cloud": return !l ? (es ? "Bloqueadas" : "Locked") : save.hmode === "cloud" ? (es ? "Usando nubes" : "Using clouds") : es ? "Usando dedos" : "Using fingers";
-    case "hspeed": { const r = n(FX.helperRate(l)); return short ? `${r}/s` : es ? `${r} toques por segundo` : `${r} taps per second`; }
-    case "harea": { const r = (helperKind() === "bolt" ? FX.cloudArea : FX.fingerArea)(l); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
+    case "fspeed": { const r = FX.fingerRate(l); return short ? `${r}/s` : es ? `${r} toques por segundo` : `${r} taps per second`; }
+    case "carea": { const r = FX.cloudArea(l); return short ? `${r} px` : es ? `Alcance de ${r} px` : `${r} px reach`; }
+    case "cchain": { const r = FX.cloudHits(l); return short ? String(r) : es ? `${r} marcianitos por descarga` : `${r} aliens per shock`; }
+    case "farea": { const r = FX.fingerArea(l); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
     case "jet": {
       if (!l) return tx("notHired");
       const s = n(FX.jetEvery(l));
@@ -2255,7 +2275,9 @@ const HELPER_MAX = 5;
 // Lugares de inicio (en fracciones del área de juego) antes de que los muevas
 const SPOT0 = [[0.3, 0.45], [0.7, 0.45], [0.5, 0.66], [0.24, 0.8], [0.76, 0.8]];
 const helperKind = () => (save.hmode === "cloud" && save.up.cloud ? "bolt" : "finger");
-const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea : FX.fingerArea)(save.up.harea);
+const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) : FX.fingerArea(save.up.farea));
+const CLOUD_RATE = 2; // descargas por segundo de cada nube
+const helperRateNow = () => (helperKind() === "bolt" ? CLOUD_RATE : FX.fingerRate(save.up.fspeed));
 // Dónde va cada ayudante en px (dentro del área y nunca en el mar ni en los picos)
 function spotPos(i) {
   const s = save.spots[i] || { x: SPOT0[i][0], y: SPOT0[i][1] }, top = (seaTop() || 0) + 30;
@@ -2279,7 +2301,7 @@ const HOVER = { finger: 7, bolt: 46 };
 const HELPER_ALPHA = 0.88;
 function updateHelpers(dt) {
   if (!helpers.length) return;
-  const iv = 1 / FX.helperRate(save.up.hspeed), R = helperArea(), pressDur = Math.min(0.16, iv * 0.7);
+  const iv = 1 / helperRateNow(), R = helperArea(), pressDur = Math.min(0.16, iv * 0.7);
   for (const h of helpers) {
     h.born = Math.min(1, h.born + dt * 2.5);
     h.bob += dt * 2.2;
@@ -2297,14 +2319,14 @@ function updateHelpers(dt) {
       if (hits.length) ring(h.x, h.y, 3, R, 0.3, PAL.text, 1.2, 0.14, 0.03);
       hits.forEach((b, j) => hit(b, 1, h.x, h.y - 10, j > 0, true));
     } else {
-      // La nube electrocuta al más cercano dentro de su área y la descarga salta a uno más
+      // La nube electrocuta al más cercano dentro de su área y la descarga salta en cadena a los de alrededor
       let best = null, bd = Infinity;
       for (const b of balls) {
         if (b.state === "die" || b.pull || !b.entered) continue;
         const d = Math.hypot(b.x - h.x, b.y - h.y);
         if (d < R + b.r * 0.5 && d < bd) { bd = d; best = b; }
       }
-      if (best) { h.press = 1; zapChain(h.x, h.y - HOVER.bolt + 4, best, 1, 100, 1, true); }
+      if (best) { h.press = 1; zapChain(h.x, h.y - HOVER.bolt + 4, best, FX.cloudHits(save.up.cchain) - 1, 100, 1, true); }
     }
   }
 }
@@ -2346,9 +2368,10 @@ function drawHelper(h) {
 }
 // Acomodar: al contratar uno nuevo, el siguiente toque en el campo dice dónde va
 let placing = -1;
+const toPlace = []; // ayudantes recién contratados que falta acomodar
 function startPlacing(i) {
   placing = i;
-  $("#place-hint").textContent = tx("placeHint");
+  $("#place-hint").textContent = tx("placeHint") + (toPlace.length ? ` (+${toPlace.length} ${tx("placeLeft")})` : "");
   $("#place-hint").classList.add("on");
 }
 function placeAt(x, y) {
@@ -2360,6 +2383,7 @@ function placeAt(x, y) {
   const p = spotPos(i);
   ring(p.x, p.y, 4, helperArea(), 0.45, PAL.text, 2, 0.3, 0.05);
   Sound.tick(); buzz(10);
+  if (toPlace.length) setTimeout(() => startPlacing(toPlace.shift()), 180); // el siguiente
 }
 // Tocar cerca de un ayudante y arrastrar lo mueve (un toque normal sigue aplastando)
 function helperAt(x, y) {
@@ -2382,8 +2406,8 @@ function helperRate() {
   if (n) {
     // Qué tan seguido hay alguien en su área cuando toca: depende de cuántos marcianitos hay y del tamaño del área
     const R = helperArea(), area = Math.max(60000, (W || 360) * (H || 600)), crowd = Math.min(baseTarget, perfCap) + FX.crowdExtra(save.up.crowd);
-    const p = Math.min(1, (crowd * Math.PI * R * R * 0.62) / area), perClick = helperKind() === "bolt" ? p * 1.7 : p * 1.15;
-    rate += Math.min(n * FX.helperRate(save.up.hspeed) * perClick, 6) * coinsPerTap(1); // los marcianitos solo aparecen tan rápido
+    const p = Math.min(1, (crowd * Math.PI * R * R * 0.62) / area), perClick = helperKind() === "bolt" ? p * (1 + (FX.cloudHits(save.up.cchain) - 1) * 0.5) : p * 1.15;
+    rate += Math.min(n * helperRateNow() * perClick, 7) * coinsPerTap(1); // los marcianitos solo aparecen tan rápido
   }
   // Jets (de The Beach en adelante): ~3 marcianitos por bomba
   if (save.level >= 1 && active("jet")) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
@@ -2622,7 +2646,7 @@ function travel() {
   save.level++;
   // Nivel nuevo, desde cero: herramientas, ayudantes y mejoras se reinician. Solo viajan tus monedas.
   const fresh = freshSave();
-  save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.spots = []; save.hmode = "finger"; save.tool = "finger"; placing = -1; $("#place-hint").classList.remove("on");
+  save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.spots = []; save.hmode = "finger"; save.tool = "finger"; placing = -1; toPlace.length = 0; $("#place-hint").classList.remove("on");
   helpers.length = 0; syncHelpers();
   jetClock = 3;
   for (const k in cdEnd) delete cdEnd[k];
@@ -3621,8 +3645,8 @@ function buyUp(k) {
   save.coins -= price; save.spent += price; save.up[k] = was + 1;
   if (k === "cloud") save.hmode = "cloud";
   if (k === "hire" || k === "cloud") syncHelpers();
-  // Ayudante nuevo: se cierra la Tienda y el siguiente toque en el campo dice dónde va
-  if (k === "hire") setTimeout(() => { closeSheet($("#sheet-shop")); startPlacing(save.up.hire - 1); }, 350);
+  // Ayudante nuevo: se acomoda al cerrar la Tienda (puedes comprar varios y luego acomodarlos uno por uno)
+  if (k === "hire") toPlace.push(save.up.hire - 1);
   if (k === "jet") jetClock = Math.min(jetClock, 1.5);
   if (k === "crowd") updateTarget();
   afterBuy(Math.min(was, 2), k);
@@ -3758,7 +3782,7 @@ function upCard(k) {
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
   const on = !save.off[k], canOff = HELPER_KEYS.includes(k) && l > 0 && ready;
   let extra = canOff ? `<div class="hsw"><button class="switch sm" type="button" role="switch" aria-checked="${on}" data-off="${k}" aria-label="${tx(k)}"></button><span>${tx(on ? "working" : "turnedOff")}</span></div>` : "";
-  if (k === "hire" && l > 0) extra += `<p class="tip">${tx("dragHint")}</p>`;
+  if (k === "hire" && l > 0) extra += `<p class="tip">${toPlace.length ? `${toPlace.length} ${tx("toPlace")}` : tx("dragHint")}</p>`;
   // Dedos o nubes: un selector (las nubes primero se desbloquean)
   if (k === "cloud" && l > 0) extra += `<div class="seg mode" role="radiogroup"><button type="button" data-hmode="finger" aria-pressed="${save.hmode !== "cloud"}">${tx("modeFingers")}</button><button type="button" data-hmode="cloud" aria-pressed="${save.hmode === "cloud"}">${tx("modeClouds")}</button></div>`;
   return shopCard({
@@ -3776,7 +3800,8 @@ function renderShop(animate) {
       + sect("secBeach") + ["bomb", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("")
       + sect("secSnow") + ["meteor", "aval"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
-    html = sect("secTeam") + ["hire", "cloud", "hspeed", "harea"].map(upCard).join("")
+    html = sect("secTeam") + ["hire", "cloud"].map(upCard).join("")
+      + (helperKind() === "bolt" ? sect("secClouds") + ["carea", "cchain"].map(upCard).join("") : sect("secFingers") + ["fspeed", "farea"].map(upCard).join(""))
       + sect("secBeach") + ["jet"].map(upCard).join("")
 
   } else {
@@ -3832,6 +3857,8 @@ function openSheet(el) {
 }
 function closeSheet(el) {
   el.classList.remove("open");
+  // Al cerrar la Tienda: a acomodar a los ayudantes nuevos
+  if (el.id === "sheet-shop" && toPlace.length && placing < 0) setTimeout(() => { if (toPlace.length && placing < 0) startPlacing(toPlace.shift()); }, 380);
   setTimeout(() => { if (!el.classList.contains("open")) el.hidden = true; }, 400);
 }
 function syncSettingsUI() {
