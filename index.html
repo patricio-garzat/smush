@@ -417,6 +417,9 @@ body::before {
 .tabs button { position: relative; flex: 1; height: 36px; border: 0; border-radius: 10px; background: transparent; font-size: 14px; font-weight: 750; color: var(--muted); transition: background-color 0.2s, color 0.2s, transform 0.14s; }
 .tabs button.on { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
 .tabs .badge { top: 7px; right: 9px; box-shadow: none; }
+.qty-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -2px 16px 10px; flex: none; }
+.qty-row > span { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.qty-row .seg button { min-width: 44px; padding: 6px 10px; font-variant-numeric: tabular-nums; }
 
 /* Tarjetas de la Tienda */
 .item {
@@ -799,6 +802,9 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
       <button type="button" data-tab="helpers" role="tab"><span data-i18n="tabHelpers">Helpers</span><i class="badge"></i></button>
       <button type="button" data-tab="boosts" role="tab"><span data-i18n="tabBoosts">Boosts</span><i class="badge"></i></button>
     </div>
+    <div class="qty-row"><span data-i18n="buyQty">Levels per tap</span>
+      <div class="seg" id="shop-qty" role="radiogroup"><button type="button" role="radio" data-q="1">×1</button><button type="button" role="radio" data-q="5">×5</button><button type="button" role="radio" data-q="10">×10</button><button type="button" role="radio" data-q="max" data-i18n="maxShort">Max</button></div>
+    </div>
     <div class="panel-body" id="shop-body">
       <p class="note" id="shop-note"></p>
       <div id="shop-list"></div>
@@ -960,7 +966,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.31.1";
+const VERSION = "0.32.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1273,7 +1279,7 @@ function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
 setInterval(() => { if (!document.hidden) writeSave(); }, 15000);
 window.addEventListener("pagehide", () => writeSave()); // "sigo aquí" para calcular el tiempo fuera
 
-const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 0.6 };
+const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 0.6, buyQty: "1" };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); } catch (e) {}
 const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} };
 
@@ -1343,7 +1349,7 @@ const STR = {
   premium: ["Pro", "Pro"],
   secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"], secSnow: ["The Slopes", "The Slopes"],
   secTeam: ["Your team", "Tu equipo"], secTraining: ["Training", "Entrenamiento"],
-  lvShort: ["Lv", "Nv"], maxShort: ["Max", "Máx."], needMore: ["Need", "Faltan"],
+  lvShort: ["Lv", "Nv"], buyQty: ["Levels per tap", "Niveles por toque"], maxShort: ["Max", "Máx."], needMore: ["Need", "Faltan"],
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
@@ -6330,6 +6336,32 @@ function upPrice(k) {
   if (l >= upMax(k)) return null;
   return scaled(typeof u.cost === "function" ? u.cost(l) : u.cost[l]);
 }
+// El precio de un nivel cualquiera (l = el nivel que tienes antes de comprar); null si ya no hay más
+function priceAt(kind, key, l) {
+  if (kind === "tool") {
+    const T = TOOLS[key];
+    if (l === 0) return scaled(T.price);
+    if (l >= toolMax(key)) return null;
+    return scaled(typeof T.upgrades === "function" ? T.upgrades(l) : T.upgrades[l - 1]);
+  }
+  const u = UP[key];
+  if (l >= upMax(key)) return null;
+  return scaled(typeof u.cost === "function" ? u.cost(l) : u.cost[l]);
+}
+// Comprar varios niveles de un toque (×1, ×5, ×10 o Máx.): cuántos niveles y cuánto cuestan en total.
+// ×5 y ×10 compran los que quedan si son menos; Máx. compra todos los que alcanzan (y si no alcanza ni uno, enseña el siguiente)
+const buyQty = () => (settings.buyQty === "max" ? "max" : +settings.buyQty || 1);
+function bulk(kind, key) {
+  const q = buyQty();
+  let l = kind === "tool" ? save.tools[key] : save.up[key], n = 0, cost = 0;
+  while (n < 500) {
+    const p = priceAt(kind, key, l);
+    if (p == null) break;
+    if (q === "max" ? n > 0 && cost + p > save.coins : n >= q) break;
+    cost += p; n++; l++;
+  }
+  return { n, cost };
+}
 // Las conversiones necesitan algo que convertir: un dedo para hacer una bota, una bota para hacer una nube
 // Los ayudantes de The Beach se desbloquean al llegar ahí
 function upReady(k) { return (UP[k].world || 0) <= save.level; }
@@ -6340,27 +6372,32 @@ function afterBuy(was, card) {
   const el = document.querySelector(`.item[data-key="${card}"]`);
   if (el) { el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 600); }
 }
-function buyTool(id) {
-  const price = priceOf(id);
-  if (price == null || !toolHere(id)) return;
-  if (save.coins < price) { Sound.nope(); return; }
+// n = cuántos niveles (todos o ninguno: si no alcanza para los n, no compra)
+function buyTool(id, n = 1) {
+  if (priceOf(id) == null || !toolHere(id)) return;
+  let total = 0, l = save.tools[id], k = 0;
+  for (; k < n; k++) { const p = priceAt("tool", id, l + k); if (p == null) break; total += p; }
+  if (!k) return;
+  if (save.coins < total) { Sound.nope(); return; }
   const was = save.tools[id];
-  save.coins -= price; save.spent += price; save.tools[id] = was + 1;
+  save.coins -= total; save.spent += total; save.tools[id] = was + k;
   if (was === 0) save.tool = id; // la herramienta nueva queda seleccionada
   afterBuy(was, id);
 }
-function buyUp(k) {
-  const price = upPrice(k);
-  if (price == null) return;
-  if (save.coins < price || !upReady(k)) { Sound.nope(); return; }
-  const was = save.up[k];
-  save.coins -= price; save.spent += price; save.up[k] = was + 1;
+function buyUp(k, n = 1) {
+  if (upPrice(k) == null) return;
+  let total = 0, c = 0;
+  const l0 = save.up[k];
+  for (; c < n; c++) { const p = priceAt("up", k, l0 + c); if (p == null) break; total += p; }
+  if (!c) return;
+  if (save.coins < total || !upReady(k)) { Sound.nope(); return; }
+  save.coins -= total; save.spent += total; save.up[k] = l0 + c;
   if (k === "cloud") save.hmode = "cloud";
   if (k === "hire" || k === "cloud") syncHelpers();
-  // Ayudante nuevo: se acomoda al cerrar la Tienda (puedes comprar varios y luego acomodarlos uno por uno)
-  if (k === "hire") toPlace.push(save.up.hire - 1);
+  // Ayudantes nuevos: se acomodan al cerrar la Tienda (puedes comprar varios y luego acomodarlos uno por uno)
+  if (k === "hire") for (let i = l0; i < l0 + c; i++) toPlace.push(i);
   if (k === "crowd") updateTarget();
-  afterBuy(Math.min(was, 2), k);
+  afterBuy(Math.min(l0, 2), k);
 }
 
 /* ---------- 12. Interfaz: encabezado, barra, tienda, ajustes ---------- */
@@ -6402,8 +6439,15 @@ function updateUI() {
   renderLevelChip();
   if (!$("#sheet-levels").hidden) renderLevels(false);
   document.querySelectorAll(".buy[data-key]").forEach((el) => {
-    const k = el.dataset.key, p = el.dataset.kind === "tool" ? priceOf(k) : upPrice(k);
-    if (p == null) return;
+    const k = el.dataset.key, p0 = el.dataset.kind === "tool" ? priceOf(k) : upPrice(k);
+    if (p0 == null) return;
+    // Cuántos niveles y cuánto (en Máx. cambia conforme juntas monedas)
+    const b = bulk(el.dataset.kind, k), p = b.cost;
+    if (+el.dataset.n !== b.n || el.dataset.cost !== String(p)) {
+      el.dataset.n = b.n; el.dataset.cost = p;
+      el.querySelector(".what").textContent = qtyWhat(el.dataset.label, b.n);
+      el.querySelector(".cost").innerHTML = p ? '<span class="coin"></span>' + fmtShort(p) : "";
+    }
     const ready = el.dataset.kind === "tool" || upReady(k);
     el.disabled = save.coins < p || !ready;
     const need = el.parentNode.querySelector(".need");
@@ -6451,10 +6495,12 @@ function updateCooldownUI() {
     el.style.setProperty("--p", p);
   }
 }
+const qtyWhat = (label, n) => (n > 1 ? `${label} ×${n}` : label);
 function buyButton(kind, key, price, label, blocked) {
   if (price == null) return `<span class="maxed"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>${tx("maxShort")}</span>`;
-  return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}" data-price="${price}"${save.coins < price || blocked ? " disabled" : ""}>
-    <span class="what">${label}</span><span class="cost">${price ? '<span class="coin"></span>' + fmtShort(price) : ""}</span></button>`;
+  const b = bulk(kind, key);
+  return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}" data-label="${label}" data-n="${b.n}"${save.coins < b.cost || blocked ? " disabled" : ""}>
+    <span class="what">${qtyWhat(label, b.n)}</span><span class="cost">${b.cost ? '<span class="coin"></span>' + fmtShort(b.cost) : ""}</span></button>`;
 }
 // Barra de niveles de cada tarjeta (un segmento por nivel)
 const segs = (n, max) => max > 6 ? `<div class="segs long"><b style="width:${(n / max) * 100}%"></b></div>` : `<div class="segs">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</div>`;
@@ -6638,8 +6684,16 @@ $("#shop-list").addEventListener("click", (e) => {
     return;
   }
   const b = e.target.closest(".buy[data-key]"); if (!b || b.disabled) return;
-  if (b.dataset.kind === "tool") buyTool(b.dataset.key); else buyUp(b.dataset.key);
+  const n = +b.dataset.n || 1;
+  if (b.dataset.kind === "tool") buyTool(b.dataset.key, n); else buyUp(b.dataset.key, n);
 });
+// ×1 · ×5 · ×10 · Máx.: se queda guardado
+function syncQty() { document.querySelectorAll("#shop-qty button").forEach((b) => { const on = b.dataset.q === String(settings.buyQty); b.classList.toggle("on", on); b.setAttribute("aria-checked", on); }); }
+$("#shop-qty").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || b.dataset.q === String(settings.buyQty)) return;
+  settings.buyQty = b.dataset.q; saveSettings(); syncQty(); renderShop(); Sound.tick(); buzz(6);
+});
+syncQty();
 $("#sw-sound").addEventListener("click", () => { Sound.set(!settings.sound); syncSettingsUI(); Sound.toggle(true); });
 $("#sw-music").addEventListener("click", () => { Sound.unlock(); settings.music = !settings.music; saveSettings(); syncSettingsUI(); Sound.toggle(settings.music); Music.tick(); });
 $("#music-vol").addEventListener("input", (e) => {
