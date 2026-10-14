@@ -177,6 +177,21 @@ a { color: inherit; }
   font-size: 14px; font-weight: 650; color: var(--muted); opacity: 0; transition: opacity 0.8s ease;
 }
 #hint.on { opacity: 1; }
+/* Botón Detonar (bombas): flota abajo del campo; late suave cuando hay bombas listas */
+#detonate {
+  position: absolute; left: 50%; bottom: 14px; z-index: 3; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 16px 0 14px; border: 0; border-radius: 23px;
+  background: linear-gradient(150deg, #FF7A59, #E5484D); color: #FFFFFF; font-size: 15px; font-weight: 850;
+  box-shadow: 0 8px 22px rgba(229, 72, 77, 0.35); transition: filter 0.2s ease, opacity 0.2s ease;
+}
+#detonate[hidden] { display: none; }
+#detonate svg { width: 20px; height: 20px; }
+#detonate b { padding: 2px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.22); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+#detonate:disabled { filter: grayscale(0.55); opacity: 0.8; cursor: default; }
+#detonate:active:not(:disabled) { transform: translateX(-50%) scale(0.96); }
+#detonate.ready { animation: detPulse 1.6s ease-in-out infinite; }
+@keyframes detPulse { 0%, 100% { box-shadow: 0 8px 22px rgba(229, 72, 77, 0.35), 0 0 0 0 rgba(229, 72, 77, 0.35); } 50% { box-shadow: 0 8px 22px rgba(229, 72, 77, 0.35), 0 0 0 9px rgba(229, 72, 77, 0); } }
+.tool .count { font-size: 11px; font-weight: 800; opacity: 0.75; font-variant-numeric: tabular-nums; }
 /* Multiplicador activo: una pastilla arriba del campo con el tiempo que le queda, y un borde dorado (o violeta en ×4) */
 #mult-hud {
   position: absolute; top: 12px; left: 50%; display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 13px;
@@ -485,6 +500,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   <main id="field">
     <canvas id="cv" aria-label="Game area"></canvas>
     <div id="hint" data-i18n="hint">Tap the aliens to smush them</div>
+    <button id="detonate" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="14.5" r="6.5" fill="currentColor" fill-opacity=".3"/><path d="M14.8 9.6 16.6 7.8M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6"/><circle cx="20.6" cy="5.4" r="1.3" fill="currentColor" stroke="none"/></svg><span data-i18n="detonate">Detonate</span><b id="bomb-count">0/1</b></button>
     <div id="mult-hud" aria-live="polite"><span id="mult-x">×2</span><i><b id="mult-bar"></b></i></div>
   </main>
   <nav id="tools" aria-label="Tools"></nav>
@@ -662,7 +678,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.7.0";
+const VERSION = "0.8.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -698,38 +714,43 @@ const SPAWN = {
   insideChance: 0.7,      // probabilidad de aparecer en medio (el resto entra por una orilla)
 };
 
-// Herramientas. price = compra; upgrades = precio de nivel 2 y nivel 3; los arreglos son [nivel 1, 2, 3]
+// Herramientas. price = compra; upgrades = precio de cada nivel siguiente (arreglo) o función del nivel actual.
+// max = nivel máximo (3 si no se dice). world = nivel donde se desbloquea (0 = The Void, 1 = The Beach).
 const TOOLS = {
-  finger: { price: 0,    upgrades: [50, 200],     damage: [1, 2, 3], slop: 10 },
-  boot:   { price: 100,  upgrades: [200, 600],    radius: [45, 65, 85] },
-  spray:  { price: 400,  upgrades: [800, 2000],   radius: [50, 60, 72], interval: [0.45, 0.36, 0.28] },
-  bolt:   { price: 1200, upgrades: [2500, 6000],  chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
-  // Herramientas premium: mucho más caras, mucho más poderosas
-  laser:  { price: 4000,  upgrades: [8000, 16000],  width: [18, 24, 32], damage: [2, 2, 3], tick: 0.2 },        // arrastra el dedo
-  vortex: { price: 8000,  upgrades: [15000, 30000], radius: [110, 140, 170], cooldown: [2.4, 1.9, 1.4], life: 1.5 }, // se los traga
-  // Herramientas de The Beach (nivel 2): world = nivel en el que se desbloquean (0 = The Void)
-  sun:    { price: 15000, upgrades: [30000, 60000], world: 1, radius: [70, 85, 100], interval: [0.2, 0.16, 0.12], damage: 2 }, // mantén y mueve
-  wave:   { price: 30000, upgrades: [60000, 120000], world: 1, cooldown: [8, 6.5, 5], dur: [1.8, 1.55, 1.3] },          // baja desde el mar y arrastra a todos
-  meteor: { price: 15000, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
+  // The Void
+  finger: { price: 0,     upgrades: [50, 200],     damage: [1, 2, 3], slop: 10 },
+  boot:   { price: 100,   upgrades: [200, 600],    radius: [45, 65, 85] },
+  bolt:   { price: 1200,  upgrades: [2500, 6000],  chains: [2, 3, 5], range: [130, 150, 175], hop: 0.05 },
+  spray:  { price: 10000, upgrades: [15000, 30000], radius: [50, 60, 72], interval: [0.45, 0.36, 0.28] },
+  // The Beach
+  bomb:   { price: 8000,  world: 1, max: 10, upgrades: (l) => Math.round(2500 * 1.35 ** (l - 1)) }, // nivel = cuántas bombas puedes poner
+  acid:   { price: 20000, world: 1, upgrades: [35000, 60000], radius: [85, 105, 125], rate: [8, 11, 14], life: 10, cooldown: [16, 13, 10] },
+  meteor: { price: 15000, world: 1, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
 };
-const TOOL_ORDER = ["finger", "boot", "spray", "bolt", "laser", "vortex", "meteor", "sun", "wave"];
-const PREMIUM = new Set(["laser", "vortex", "meteor"]);
+const TOOL_ORDER = ["finger", "boot", "bolt", "spray", "bomb", "acid", "meteor"];
+const PREMIUM = new Set();
+const toolMax = (id) => TOOLS[id].max || 3;
 const toolWorld = (id) => TOOLS[id].world || 0;
 
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
 const UP = {
-  hire:  { tab: "helpers", max: 12, cost: (l) => Math.round(60 * 1.35 ** l) },   // un dedo ayudante más
-  bootH: { tab: "helpers", max: 12, cost: (l) => Math.round(400 * 1.3 ** l) },  // convierte un dedo en bota
-  boltH: { tab: "helpers", max: 12, cost: (l) => Math.round(1500 * 1.35 ** l) },  // convierte una bota en nube de rayos
-  speed: { tab: "helpers", max: 5,  cost: [150, 350, 700, 1300, 2200] },     // tocan más seguido
-  power: { tab: "helpers", max: 2,  cost: [1200, 4000] },                     // pegan más fuerte
+  // Ayudantes: cada tipo se compra aparte, hasta 10 de cada uno
+  hire:  { tab: "helpers", max: 10, cost: (l) => Math.round(60 * 1.35 ** l) },    // dedo
+  bootH: { tab: "helpers", max: 10, cost: (l) => Math.round(400 * 1.35 ** l) },   // bota
+  boltH: { tab: "helpers", max: 10, cost: (l) => Math.round(1500 * 1.35 ** l) },  // nube eléctrica
+  // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
+  jet:   { tab: "helpers", world: 1, max: 6, cost: [10000, 6000, 10000, 16000, 25000, 40000] }, // jet bombardero
+  acidH: { tab: "helpers", world: 1, max: 6, cost: [15000, 8000, 13000, 20000, 30000, 45000] }, // tormenta ácida
+  // Mejoras
+  speed: { tab: "boosts",  max: 5,  cost: [150, 350, 700, 1300, 2200] },     // los ayudantes tocan más seguido
+  power: { tab: "boosts",  max: 2,  cost: [1200, 4000] },                     // los ayudantes pegan más fuerte
   value: { tab: "boosts",  max: 8,  cost: [80, 140, 230, 360, 550, 820, 1200, 1750] }, // más monedas
   crowd: { tab: "boosts",  max: 4,  cost: [150, 350, 700, 1300] },            // más marcianitos y más rápido
   luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
   calm:  { tab: "boosts",  max: 3,  cost: [150, 400, 900] },                 // caminan más lento
   night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
 };
-const UP_ORDER = ["hire", "bootH", "boltH", "speed", "power", "value", "crowd", "luck", "calm", "night"];
+const UP_ORDER = ["hire", "bootH", "boltH", "jet", "acidH", "speed", "power", "value", "crowd", "luck", "calm", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   helperInterval: (l) => 2.5 * 0.82 ** l,   // s entre toques de cada ayudante
@@ -741,6 +762,8 @@ const FX = {
   luckGap: (l) => SPAWN.yellowGap - 1.5 * l,
   calmSpeed: (l) => 1 - 0.12 * l,
   nightHours: (l) => [0.5, 1, 2, 4, 8][l],  // horas que trabajan los ayudantes mientras no estás
+  jetEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)],  // s entre que cae una bomba y pasa el siguiente jet
+  acidEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)], // s entre una tormenta y la siguiente
 };
 // Tipos de ayudante: every = multiplica la pausa entre golpes; targets = a cuántos alcanza en promedio
 const HELPER_KIND = {
@@ -767,11 +790,11 @@ const ICONS = {
   boot:   svgI(`<path ${SOFT} d="M7 3.5h6.2v7.2l4.4 2a3.4 3.4 0 0 1 2 3.1V18H5.6V4.9A1.4 1.4 0 0 1 7 3.5z"/><path d="M5 21h15M9.4 7h3.8M9.4 10h3.8"/>`),
   spray:  svgI(`<rect ${SOFT} x="5" y="9.5" width="9" height="11.5" rx="2.5"/><path d="M7.2 9.5V6.6h4.6v2.9M9.5 6.6V4.2h3"/><circle ${SOLID} cx="17.6" cy="5" r="1.1"/><circle ${SOLID} cx="20.2" cy="8.2" r="1.1"/><circle ${SOLID} cx="17.2" cy="9.8" r="1.1"/><circle ${SOLID} cx="20.4" cy="12.6" r="1.1"/>`),
   bolt:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M13.6 2.5 5 13.6h6.1L10 21.5l9-11.7h-6.3z"/>`),
-  laser:  svgI(`<path d="M4 20 18.5 5.5" stroke-width="4.5" opacity=".25"/><path d="M4 20 18.5 5.5"/><circle ${SOFT} cx="18.5" cy="5.5" r="2.8"/><path d="M13.6 3.2l.9 1.7M20.8 10.4 19.1 9.5" opacity=".75"/>`),
-  vortex: svgI(`<path d="M12 12.2a1.4 1.4 0 1 1 1.4-1.4"/><path d="M13.4 10.8a3.6 3.6 0 1 1-3.6-3.6"/><path d="M9.8 7.2a6.4 6.4 0 1 1-5.6 3.2"/><path d="M4.2 10.4A9 9 0 0 1 12.6 3"/><circle ${SOLID} cx="12" cy="12" r="1.3"/>`),
+  bomb:   svgI(`<circle ${SOFT} cx="11" cy="14.5" r="6.5"/><path d="M14.8 9.6 16.6 7.8"/><path d="M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6" stroke-width="1.7"/><circle ${SOLID} cx="20.6" cy="5.4" r="1.2"/>`),
+  acid:   svgI(`<path ${SOFT} d="M7 13a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4A3.3 3.3 0 0 1 17.5 13z"/><path d="M8 16l-.9 2.4M12 16l-.9 2.4M16 16l-.9 2.4M10 20.2l-.6 1.4M14 20.2l-.6 1.4"/>`),
+  jet:    svgI(`<path ${SOFT} d="M21 12c0-.8-.7-1.4-1.6-1.4H14L9.5 3.5H7.6l2.2 7.1H5.6L3.9 8.4H2.6l1 3.6-1 3.6h1.3l1.7-2.2h4.2l-2.2 7.1h1.9L14 13.4h5.4c.9 0 1.6-.6 1.6-1.4z"/>`),
+  acidH:  svgI(`<path ${SOFT} d="M7 13a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4A3.3 3.3 0 0 1 17.5 13z"/><path d="M8 16l-.9 2.4M12 16l-.9 2.4M16 16l-.9 2.4"/>`),
   meteor: svgI(`<circle ${SOFT} cx="15" cy="15" r="5.6"/><path d="M11 11 3.5 3.5M14.2 9.4 10 3M9.4 14.2 3 10"/><circle ${SOLID} cx="16.6" cy="13.4" r="1.1"/>`),
-  sun:    svgI(`<circle ${SOFT} cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>`),
-  wave:   svgI(`<path ${SOFT} d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9L3 17z"/><path d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9"/><path d="M2.5 20.5c2.2 0 2.2-1.5 4.4-1.5s2.2 1.5 4.4 1.5 2.2-1.5 4.4-1.5 2.2 1.5 4.4 1.5"/>`),
   hire:   svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/>`),
   bootH:  svgI(`<path ${SOFT} d="M7 3.5h6.2v7.2l4.4 2a3.4 3.4 0 0 1 2 3.1V18H5.6V4.9A1.4 1.4 0 0 1 7 3.5z"/><path d="M5 21h15"/>`),
   boltH:  svgI(`<path ${SOFT} d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>`),
@@ -786,7 +809,8 @@ const ICONS = {
 };
 // El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
 const HUE = {
-  finger: "#7D8AA3", boot: "#4F86E8", spray: "#22AE9C", bolt: "#F0A12E", laser: "#F2557A", vortex: "#7C5CE0", meteor: "#EE7537", sun: "#EBA90E", wave: "#2C9FC2",
+  finger: "#7D8AA3", boot: "#4F86E8", spray: "#22AE9C", bolt: "#F0A12E", bomb: "#4A5068", acid: "#6FB23A", meteor: "#EE7537",
+  jet: "#5C7CFA", acidH: "#6FB23A",
   hire: "#8E99AE", bootH: "#4F86E8", boltH: "#6C7FA8", speed: "#22B07D", power: "#E5534B",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", calm: "#8E7CE8", night: "#4B5BD6",
 };
@@ -795,6 +819,9 @@ const HUE = {
 const HELPER_ART = {
   finger: { svg: "<svg width=\"100\" height=\"140\" viewBox=\"0 0 100 140\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"gw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#E4E0D8\"/></linearGradient> <linearGradient id=\"gc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F7F4EE\"/><stop offset=\"1\" stop-color=\"#DCD7CD\"/></linearGradient> </defs> <g stroke=\"#4A4540\" stroke-opacity=\".5\" stroke-width=\"2.6\" stroke-linejoin=\"round\" stroke-linecap=\"round\"> <rect x=\"25\" y=\"5\" width=\"54\" height=\"22\" rx=\"9\" fill=\"url(#gc)\"/> <rect x=\"31\" y=\"50\" width=\"21\" height=\"84\" rx=\"10.5\" fill=\"url(#gw)\"/> <rect x=\"9\" y=\"42\" width=\"17\" height=\"38\" rx=\"8.5\" fill=\"url(#gw)\" transform=\"rotate(26 17.5 61)\"/> <rect x=\"21\" y=\"21\" width=\"63\" height=\"58\" rx=\"24\" fill=\"url(#gw)\"/> <circle cx=\"81\" cy=\"64\" r=\"9\" fill=\"url(#gw)\"/> <circle cx=\"71\" cy=\"74\" r=\"10.5\" fill=\"url(#gw)\"/> <circle cx=\"58\" cy=\"79\" r=\"11\" fill=\"url(#gw)\"/> </g> <path d=\"M35 12h34M35 19h34\" stroke=\"#4A4540\" stroke-opacity=\".22\" stroke-width=\"2\" stroke-linecap=\"round\"/> <path d=\"M37 90v34\" stroke=\"#FFFFFF\" stroke-width=\"4\" stroke-linecap=\"round\"/> <path d=\"M30 42c4-9 12-13 21-13\" stroke=\"#FFFFFF\" stroke-width=\"4.5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>", w: 100, h: 140, ax: 41.5, ay: 135, size: 30 },
   boot:   { svg: "<svg width=\"130\" height=\"120\" viewBox=\"0 0 130 120\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"bb\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#8FB0EA\"/><stop offset=\"1\" stop-color=\"#4E6FB0\"/></linearGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#6E8ED0\"/><stop offset=\"1\" stop-color=\"#4B68A6\"/></linearGradient> </defs> <path d=\"M30 14q0-9 9-9h34q9 0 9 9v52l24 8q18 6 18 22v4H24V14z\" fill=\"url(#bb)\"/> <rect x=\"26\" y=\"4\" width=\"60\" height=\"16\" rx=\"8\" fill=\"url(#bc)\"/> <rect x=\"20\" y=\"96\" width=\"98\" height=\"16\" rx=\"8\" fill=\"#3B3F4C\"/> <path d=\"M28 104h86\" stroke=\"#FFFFFF\" stroke-opacity=\".12\" stroke-width=\"3\" stroke-linecap=\"round\"/> <path d=\"M40 30v52\" stroke=\"#FFFFFF\" stroke-opacity=\".45\" stroke-width=\"6\" stroke-linecap=\"round\"/> <path d=\"M86 78q14 3 22 10\" stroke=\"#FFFFFF\" stroke-opacity=\".35\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\"/> </svg>",  w: 130, h: 120, ax: 69,   ay: 112, size: 30 },
+  jet:    { svg: "<svg width=\"130\" height=\"80\" viewBox=\"0 0 130 80\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"jb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C3CCDA\"/></linearGradient> <linearGradient id=\"jw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#BFC9D8\"/><stop offset=\"1\" stop-color=\"#EEF2F7\"/></linearGradient> <linearGradient id=\"jg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B9DCFA\"/><stop offset=\"1\" stop-color=\"#3E6FB8\"/></linearGradient></defs> <g stroke=\"#4A5468\" stroke-opacity=\".28\" stroke-width=\"1.2\" stroke-linejoin=\"round\"> <path d=\"M58 35 L38 5 Q37 3 40 3 L49 3 Q51 3 52 5 L80 35 Z\" fill=\"url(#jw)\"/> <path d=\"M58 45 L38 75 Q37 77 40 77 L49 77 Q51 77 52 75 L80 45 Z\" fill=\"url(#jw)\"/> <path d=\"M20 36 L9 21 L16 21 L31 36 Z\" fill=\"url(#jw)\"/> <path d=\"M20 44 L9 59 L16 59 L31 44 Z\" fill=\"url(#jw)\"/> <path d=\"M7 40 C7 35 13 33 23 33 L100 33 C114 33 124 37 127 40 C124 43 114 47 100 47 L23 47 C13 47 7 45 7 40 Z\" fill=\"url(#jb)\"/> </g> <path d=\"M30 40 H95\" stroke=\"#4F86E8\" stroke-width=\"2.6\" stroke-linecap=\"round\"/> <path d=\"M44 12 L50 12 M44 68 L50 68\" stroke=\"#4F86E8\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\".7\"/> <ellipse cx=\"105\" cy=\"40\" rx=\"9.5\" ry=\"4.4\" fill=\"url(#jg)\"/> <ellipse cx=\"102\" cy=\"38.6\" rx=\"4\" ry=\"1.4\" fill=\"#FFFFFF\" opacity=\".7\"/> </svg>", w: 130, h: 80, ax: 65, ay: 40, size: 80 },
+  bomb:   { svg: "<svg width=\"60\" height=\"66\" viewBox=\"0 0 60 66\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><radialGradient id=\"bb\" cx=\".36\" cy=\".32\" r=\".78\"><stop offset=\"0\" stop-color=\"#727A92\"/><stop offset=\".5\" stop-color=\"#363B50\"/><stop offset=\"1\" stop-color=\"#1A1C26\"/></radialGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9AFC0\"/><stop offset=\"1\" stop-color=\"#5B6174\"/></linearGradient></defs> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#B88C55\" stroke-width=\"3.4\" stroke-linecap=\"round\"/> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#7C5A32\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-dasharray=\"2 4\" opacity=\".6\"/> <circle cx=\"28\" cy=\"41\" r=\"22\" fill=\"url(#bb)\"/> <rect x=\"21\" y=\"13\" width=\"14\" height=\"9\" rx=\"3\" fill=\"url(#bc)\" transform=\"rotate(14 28 17.5)\"/> <ellipse cx=\"19.5\" cy=\"31.5\" rx=\"7\" ry=\"4.2\" fill=\"#FFFFFF\" opacity=\".33\" transform=\"rotate(-38 19.5 31.5)\"/> </svg>", w: 60, h: 66, ax: 28, ay: 63, size: 66 },
+  acid:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"ac\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#C7D3C0\"/><stop offset=\".6\" stop-color=\"#7C8C74\"/><stop offset=\"1\" stop-color=\"#55654D\"/></linearGradient></defs> <g fill=\"url(#ac)\"><circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/><rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/></g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/> <path d=\"M26 76h80\" stroke=\"#9BE15D\" stroke-opacity=\".75\" stroke-width=\"3.5\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 66, ay: 78, size: 200 },
   bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 28 },
 };
 
@@ -810,9 +837,10 @@ const TAU = Math.PI * 2;
 const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
-  tools: { finger: 1, boot: 0, spray: 0, bolt: 0, laser: 0, vortex: 0, meteor: 0, sun: 0, wave: 0 }, // 0 = sin comprar; 1–3 = nivel
-  up: { hire: 0, bootH: 0, boltH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, calm: 0, night: 0 },
+  tools: { finger: 1, boot: 0, bolt: 0, spray: 0, bomb: 0, acid: 0, meteor: 0 }, // 0 = sin comprar; 1+ = nivel
+  up: { hire: 0, bootH: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, calm: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
+  v: 2, // versión del guardado
   level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
 });
@@ -826,9 +854,17 @@ function loadSave() {
     // Partidas guardadas antes de contar lo gastado: lo gastado es lo ganado menos lo que hay ahora
     d.spent = Number.isFinite(s.spent) ? num(s.spent) : Math.max(0, d.earned - d.coins);
     TYPE_ORDER.forEach((k) => { d.byType[k] = Math.floor(num(s.byType && s.byType[k])); });
-    TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(Math.floor(num(s.tools && s.tools[k])), k === "finger" ? 1 : 0, 3); });
+    TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(Math.floor(num(s.tools && s.tools[k])), k === "finger" ? 1 : 0, toolMax(k)); });
     UP_ORDER.forEach((k) => { d.up[k] = clamp(Math.floor(num(s.up && s.up[k])), 0, UP[k].max); });
-    d.up.bootH = Math.min(d.up.bootH, d.up.hire); d.up.boltH = Math.min(d.up.boltH, d.up.bootH);
+    if (!(s.v >= 2)) {
+      // Guardado de antes: botas y nubes eran dedos convertidos; ahora cada tipo se cuenta aparte
+      const u = s.up || {}, hire = Math.floor(num(u.hire)), bootH = Math.floor(num(u.bootH)), boltH = Math.floor(num(u.boltH));
+      d.up.hire = clamp(hire - bootH, 0, 10); d.up.bootH = clamp(bootH - boltH, 0, 10); d.up.boltH = clamp(boltH, 0, 10);
+      // Herramientas que ya no existen (Láser, Agujero negro, Rayo de sol, Tsunami): se devuelve lo que costaron
+      const OLD = { laser: [4000, 8000, 16000], vortex: [8000, 15000, 30000], sun: [15000, 30000, 60000], wave: [30000, 60000, 120000] };
+      for (const k in OLD) { const l = clamp(Math.floor(num(s.tools && s.tools[k])), 0, 3); for (let i = 0; i < l; i++) { d.coins += OLD[k][i]; d.spent = Math.max(0, d.spent - OLD[k][i]); } }
+    }
+    d.v = 2;
     d.level = clamp(Math.floor(num(s.level)), 0, LEVELS.length - 1);
     // Partidas de antes de los niveles: lo que llevas aplastado cuenta para la meta de The Beach
     d.lvlSmushed = Number.isFinite(s.lvlSmushed) ? Math.floor(num(s.lvlSmushed)) : d.smushed;
@@ -859,7 +895,7 @@ const STR = {
   shop: ["Shop", "Tienda"],
   tabTools: ["Tools", "Herramientas"], tabHelpers: ["Helpers", "Ayudantes"], tabBoosts: ["Boosts", "Mejoras"],
   noteTools: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
-  noteHelpers: ["Helper fingers smush aliens on their own, even while you're away.", "Los dedos ayudantes aplastan marcianitos solos, incluso cuando no estás."],
+  noteHelpers: ["Helpers smush aliens on their own, even while you're away.", "Los ayudantes aplastan marcianitos solos, incluso cuando no estás."],
   noteBoosts: ["Permanent upgrades that make every smush count more.", "Mejoras permanentes para que cada aplastón rinda más."],
   settings: ["Settings", "Ajustes"],
   sound: ["Sound", "Sonido"],
@@ -895,36 +931,38 @@ const STR = {
   welcome: ["Welcome back!", "¡Qué bueno verte!"],
   collect: ["Collect", "Recoger"],
   buy: ["Buy", "Comprar"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
-  finger: ["Finger", "Dedo"], boot: ["Boot", "Bota"], spray: ["Spray", "Spray"], bolt: ["Bolt", "Rayo"],
+  finger: ["Click", "Click"], boot: ["Boot", "Bota"], spray: ["Spray", "Spray"], bolt: ["Shock", "Descarga"],
+  bomb: ["Bomb", "Bomba"], bombD: ["Place bombs anywhere, then press Detonate. Buy more to place up to 10 at once.", "Pon bombas donde quieras y luego presiona Detonar. Compra más para poner hasta 10 a la vez."],
+  acid: ["Acid rain", "Lluvia ácida"], acidD: ["A cloud rains acid for 10 seconds. Every drop smushes.", "Una nube llueve ácido durante 10 segundos. Cada gota aplasta."],
+  detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
+  jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a bomb where the crowd is biggest.", "Pasa volando y suelta una bomba donde hay más marcianitos."],
+  acidH: ["Acid storm", "Tormenta ácida"], acidHD: ["A storm cloud drifts across the beach, raining acid on its own.", "Una nube cruza la playa lloviendo ácido sola."],
+  secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap an alien to smush it.", "Toca un marcianito para aplastarlo."],
   bootD: ["Stomps every alien in a circle.", "Aplasta a todos los marcianitos de un círculo."],
   sprayD: ["Hold to mist an area.", "Mantén presionado para rociar un área."],
   boltD: ["Zaps an alien and arcs to its neighbors.", "Electrocuta a un marcianito y salta a los cercanos."],
-  laser: ["Laser", "Láser"], laserD: ["Hold and drag: everything the beam touches gets smushed.", "Mantén y arrastra: todo lo que toca el rayo se aplasta."],
-  vortex: ["Black hole", "Agujero negro"], vortexD: ["Opens a black hole that swallows every alien nearby.", "Abre un agujero negro que se traga a todos los cercanos."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
   secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"],
   secTeam: ["Your team", "Tu equipo"], secTraining: ["Training", "Entrenamiento"],
   lvShort: ["Lv", "Nv"], maxShort: ["Max", "Máx."], needMore: ["Need", "Faltan"],
-  sun: ["Sunbeam", "Rayo de sol"], sunD: ["Hold and move: a scorching circle of sunlight that melts everything under it.", "Mantén y mueve: un círculo de sol ardiente que derrite todo lo que está debajo."],
-  wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
-  beachD: ["Sun, sand and waves. Every alien is worth ×2, and two new tools await: Sunbeam and Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan dos herramientas nuevas: Rayo de sol y Tsunami."],
+  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, Acid rain and Meteors.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, Lluvia ácida y Meteoritos."],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Smush aliens here", "Aplasta marcianitos aquí"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
   soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianitos, nuevas herramientas."],
   ready: ["Ready!", "¡Listo!"], welcomeTo: ["Welcome to", "Bienvenido a"],
   currentLevel: ["Level", "Nivel"],
-  bootH: ["Boot helper", "Bota ayudante"], bootHD: ["Turns a finger helper into a boot that stomps a whole area.", "Convierte un dedo ayudante en una bota que pisa un área completa."],
-  boltH: ["Storm cloud", "Nube de rayos"], boltHD: ["Turns a boot helper into a cloud that zaps aliens in a chain.", "Convierte una bota ayudante en una nube que electrocuta en cadena."],
+  bootH: ["Boot", "Bota"], bootHD: ["Stomps a whole area at once.", "Pisa un área completa de un golpe."],
+  boltH: ["Shock cloud", "Nube eléctrica"], boltHD: ["Floats over the aliens and zaps them in a chain.", "Flota sobre los marcianitos y los electrocuta en cadena."],
   needFinger: ["Needs a finger", "Falta un dedo"], needBoot: ["Needs a boot", "Falta una bota"],
   convert: ["Convert", "Convertir"],
   escaped: ["Got away", "Se escaparon"],
-  hire: ["Helper finger", "Dedo ayudante"], hireD: ["Smushes aliens on its own, even while you're away.", "Aplasta marcianitos solo, incluso cuando no estás."],
+  hire: ["Finger", "Dedo"], hireD: ["Taps aliens on its own, even while you're away.", "Aplasta marcianitos solo, incluso cuando no estás."],
   speed: ["Quick hands", "Manos rápidas"], speedD: ["Helpers tap more often.", "Los ayudantes tocan más seguido."],
   power: ["Strong hands", "Manos fuertes"], powerD: ["Helpers hit harder. Great for purples.", "Los ayudantes pegan más fuerte. Ideal para los morados."],
   value: ["Golden touch", "Toque de oro"], valueD: ["Every alien is worth more coins.", "Cada marcianito vale más monedas."],
@@ -951,10 +989,8 @@ function statText(id, lvl) {
   if (id === "boot") { const r = TOOLS.boot.radius[i]; return es ? `Radio de ${r} px` : `${r} px radius`; }
   if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · hits every ${v}s`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
-  if (id === "laser") { const w = TOOLS.laser.width[i], d = TOOLS.laser.damage[i]; return es ? `Rayo de ${w} px · ${d} de daño` : `${w} px beam · ${d} damage`; }
-  if (id === "vortex") { const r = TOOLS.vortex.radius[i], c = TOOLS.vortex.cooldown[i]; return es ? `Radio ${r} px · cada ${c} s` : `${r} px pull · every ${c}s`; }
-  if (id === "sun") { const r = TOOLS.sun.radius[i], v = TOOLS.sun.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · burns every ${v}s`; }
-  if (id === "wave") { const c = TOOLS.wave.cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
+  if (id === "bomb") { const n = lvl; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} a la vez` : `${n} ${n === 1 ? "bomb" : "bombs"} at once`; }
+  if (id === "acid") { const r = TOOLS.acid.radius[i], v = TOOLS.acid.rate[i]; return es ? `Radio ${r} px · ${v} gotas/s` : `${r} px · ${v} drops/s`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
 function statShort(id, lvl) {
@@ -964,18 +1000,21 @@ function statShort(id, lvl) {
   if (id === "spray") return `${TOOLS.spray.radius[i]} px · ${TOOLS.spray.interval[i]}${LANG === "es" ? " s" : "s"}`;
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]}`;
   const s = LANG === "es" ? " s" : "s";
-  if (id === "laser") return `${TOOLS.laser.width[i]} px · ${TOOLS.laser.damage[i]}`;
-  if (id === "vortex") return `${TOOLS.vortex.radius[i]} px · ${TOOLS.vortex.cooldown[i]}${s}`;
-  if (id === "sun") return `${TOOLS.sun.radius[i]} px · ${TOOLS.sun.interval[i]}${s}`;
-  if (id === "wave") return `${TOOLS.wave.cooldown[i]}${s}`;
+  if (id === "bomb") return String(lvl);
+  if (id === "acid") return `${TOOLS.acid.radius[i]} px · ${TOOLS.acid.rate[i]}/s`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
 function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
-    case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "ayudante" : "ayudantes"}` : `${l} ${l === 1 ? "helper" : "helpers"}`;
-    case "bootH": { const b = l - save.up.boltH; return short ? String(b) : es ? `${b} ${b === 1 ? "bota" : "botas"}` : `${b} ${b === 1 ? "boot" : "boots"}`; }
+    case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "dedo" : "dedos"}` : `${l} ${l === 1 ? "finger" : "fingers"}`;
+    case "bootH": return short ? String(l) : es ? `${l} ${l === 1 ? "bota" : "botas"}` : `${l} ${l === 1 ? "boot" : "boots"}`;
+    case "jet": case "acidH": {
+      if (!l) return tx("notHired");
+      const s = n(k === "jet" ? FX.jetEvery(l) : FX.acidEvery(l));
+      return short ? `${s} s` : es ? `Pasa cada ${s} s` : `Every ${s}s`;
+    }
     case "boltH": return short ? String(l) : es ? `${l} ${l === 1 ? "nube" : "nubes"}` : `${l} ${l === 1 ? "cloud" : "clouds"}`;
     case "speed": { const s = n(FX.helperInterval(l)); return short ? `${s} s` : es ? `Un toque cada ${s} s` : `1 tap every ${s}s`; }
     case "power": { const d = FX.helperDamage(l); return short ? String(d) : es ? `${d} de daño por toque` : `${d} damage per tap`; }
@@ -1159,9 +1198,7 @@ const Sound = (() => {
       tone(180, { dur: 0.12, vol: 0.05 * k, slide: 0.6, type: "triangle", attack: 0.003 });
     },
     // Láser: un zumbido suave mientras se arrastra
-    laser() { noise({ dur: 0.15, vol: 0.03, freq: vary(1200, 0.05), q: 4, attack: 0.03 }); tone(vary(260, 0.02), { dur: 0.14, vol: 0.02, type: "triangle", attack: 0.03 }); },
     // Agujero negro: un soplo que baja y un tono grave que respira
-    vortex() { breath({ dur: 1.3, vol: 0.05, from: 1100, to: 180 }); tone(82, { dur: 1.5, vol: 0.08, attack: 0.25, slide: 0.7 }); },
     whoosh() { breath({ dur: 0.35, vol: 0.035, from: 1800, to: 500 }); },
     meteor() { tone(95, { dur: 0.3, vol: 0.2, slide: 0.5, attack: 0.003 }); noise({ dur: 0.3, vol: 0.12, freq: 420, q: 0.4, attack: 0.004, kind: "lowpass" }); },
     miss() { noise({ dur: 0.03, vol: 0.03, freq: 700, q: 0.7, attack: 0.002, kind: "lowpass" }); },
@@ -1193,11 +1230,21 @@ const Sound = (() => {
       [130.81, 196, 261.63].forEach((f) => tone(f, { t: 0.1, dur: 3, vol: 0.035, attack: 0.6 }));
       breath({ t: 0.05, dur: 1.6, vol: 0.04, from: 300, to: 1200 });
     },
-    sizzle() { noise({ dur: 0.22, vol: 0.025, freq: vary(3000, 0.1), q: 0.7, attack: 0.05 }); },
-    // Tsunami: el mar se retira (soplo que baja y un retumbo grave)…
-    wave() { breath({ dur: 0.6, vol: 0.05, from: 900, to: 300 }); tone(55, { dur: 1.2, vol: 0.09, attack: 0.35, slide: 1.3 }); },
-    // …y la ola rompe: un rugido de agua que se va apagando
-    waveCrash() { noise({ dur: 1.4, vol: 0.09, freq: 700, q: 0.4, attack: 0.08, kind: "lowpass", sweep: 0.5 }); breath({ dur: 1.2, vol: 0.06, from: 1600, to: 400 }); thump({ vol: 0.14 }); },
+    // Bomba: se pone en la arena (golpecito), la mecha chisporrotea y explota con un retumbo grave
+    place() { thump({ vol: 0.11 }); noise({ dur: 0.06, vol: 0.035, freq: 1500, q: 0.8, attack: 0.002 }); },
+    fuse() { noise({ dur: 0.45, vol: 0.03, freq: 3000, q: 0.8, attack: 0.02 }); },
+    boom(soft) {
+      const k = soft ? 0.55 : 1;
+      tone(68, { dur: 0.55, vol: 0.26 * k, slide: 0.45, attack: 0.004 });
+      noise({ dur: 0.6, vol: 0.16 * k, freq: 900, q: 0.4, sweep: 0.25, attack: 0.004, kind: "lowpass" });
+      thump({ vol: 0.14 * k });
+    },
+    // Lluvia ácida: un trueno lejano al empezar, lluvia suave y un "tic" cuando una gota aplasta
+    thunder() { tone(52, { dur: 1.1, vol: 0.09, attack: 0.15, slide: 0.8 }); noise({ dur: 1, vol: 0.05, freq: 300, q: 0.4, attack: 0.1, kind: "lowpass" }); },
+    rain(soft) { noise({ dur: 0.4, vol: soft ? 0.012 : 0.02, freq: vary(1700, 0.2), q: 0.5, attack: 0.12 }); },
+    drip() { tone(vary(820, 0.1), { dur: 0.05, vol: 0.02, slide: 0.6, attack: 0.002 }); },
+    // Jet: pasa con un soplo que crece y se aleja
+    jet() { breath({ dur: 1.6, vol: 0.05, from: 500, to: 2000 }); noise({ t: 0.5, dur: 1.1, vol: 0.03, freq: 380, q: 0.5, attack: 0.4, kind: "lowpass" }); },
     bubbleMiss() { breath({ dur: 0.35, vol: 0.02, from: 900, to: 500 }); },
     // Intro del estudio: el oso aparece con un soplo y una nota grave, golpecitos suaves por letra
     studio(from = 0) {
@@ -1544,7 +1591,7 @@ function updateFx(dt) {
     p.vx *= dr; p.vy = p.vy * dr + p.g * dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
   }
-  for (const arr of [rings, texts, bolts, splats]) for (let i = arr.length - 1; i >= 0; i--) { arr[i].t += dt; if (arr[i].t >= arr[i].dur) arr.splice(i, 1); }
+  for (const arr of [rings, texts, bolts, splats, booms]) for (let i = arr.length - 1; i >= 0; i--) { arr[i].t += dt; if (arr[i].t >= arr[i].dur) arr.splice(i, 1); }
 }
 
 /* ---------- 9. Herramientas del jugador ---------- */
@@ -1641,23 +1688,21 @@ function useTool(x, y) {
     else { ring(x, y, 3, 16, 0.3, PAL.text, 1.5, 0.2); Sound.miss(); }
   } else if (id === "boot") {
     stompAt(x, y, TOOLS.boot.radius[L], 1, false);
-  } else if (id === "wave") {
+  } else if (id === "spray") {
+    // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick)
+  } else if (id === "bomb") {
+    placeBomb(x, y);
+  } else if (id === "acid") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
-    startCd(id, TOOLS.wave.cooldown[L]);
-    waves.push({ t: 0, dur: TOOLS.wave.dur[L], id: ++waveId, front: -60, caught: [] });
-    Sound.wave(); buzz([12, 60, 18, 60, 24]);
-  } else if (id === "spray" || id === "laser" || id === "sun") {
-    // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick / laserTick)
+    startCd(id, TOOLS.acid.cooldown[L]);
+    const R = TOOLS.acid.radius[L];
+    startRain({ x: clamp(x, R * 0.4, W - R * 0.4), y: clamp(y, Math.max(shoreY(BALL_TYPES.green), 0) + R * 0.3, H - R * 0.3), R, rate: TOOLS.acid.rate[L], life: TOOLS.acid.life, auto: false });
+    Sound.thunder(); buzz([14, 60, 14]);
   } else if (id === "bolt") {
     const b = pick(x, y, 16);
     if (!b) { ring(x, y, 3, 18, 0.3, PAL.text, 1.5, 0.2); sparks(x, y, 3); Sound.miss(); return; }
     buzz([8, 30, 8]);
     zapChain(x, y, b, TOOLS.bolt.chains[L], TOOLS.bolt.range[L], 1, false);
-  } else if (id === "vortex") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    startCd(id, TOOLS.vortex.cooldown[L]);
-    vortices.push({ x, y, R: TOOLS.vortex.radius[L], t: 0, life: TOOLS.vortex.life, eaten: 0 });
-    Sound.vortex(); buzz([10, 50, 14, 50, 20]);
   } else if (id === "meteor") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
     startCd(id, TOOLS.meteor.cooldown[L]);
@@ -1688,51 +1733,7 @@ function sprayTick(p, dt) {
   p.hiss = (p.hiss || 0) - dt;
   if (p.hiss <= 0) { Sound.hiss(); p.hiss = 0.16; buzz(4); }
 }
-// Láser: el rayo sigue al dedo; todo lo que cruza su camino recibe daño
-const beam = []; // puntos recientes del rayo (para dibujar la estela)
-function distToSeg(px, py, x1, y1, x2, y2) {
-  const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
-  const u = l2 ? clamp(((px - x1) * dx + (py - y1) * dy) / l2, 0, 1) : 0;
-  return Math.hypot(px - (x1 + dx * u), py - (y1 + dy * u));
-}
-function laserTick(p) {
-  const L = lvlOf("laser") - 1, T = TOOLS.laser, w = T.width[L];
-  const x1 = p.lx == null ? p.x : p.lx, y1 = p.ly == null ? p.y : p.ly;
-  beam.push({ x: p.x, y: p.y, t: time, id: p.id, w });
-  for (const b of balls) {
-    if (b.state === "die" || b.pull || time - b.lastLaser < T.tick) continue;
-    if (distToSeg(b.x, b.y, x1, y1, p.x, p.y) < w / 2 + b.r * 0.6) { b.lastLaser = time; hit(b, T.damage[L], p.x, p.y, true); }
-  }
-  const moved = Math.hypot(p.x - x1, p.y - y1);
-  p.hum = (p.hum || 0) - (moved > 1 ? 1 / 60 : 0);
-  if (moved > 1 && p.hum <= 0) { Sound.laser(); p.hum = 0.12; buzz(4); }
-  p.lx = p.x; p.ly = p.y;
-}
-// Agujero negro: jala a los cercanos en espiral y se los traga
-const vortices = [], meteors = [];
-function updateVortices(dt) {
-  for (let i = vortices.length - 1; i >= 0; i--) {
-    const v = vortices[i];
-    v.t += dt;
-    const live = v.t < v.life;
-    for (const b of balls) {
-      if (b.state === "die") continue;
-      if (b.pull && b.pull !== v) continue;
-      const dx = v.x - b.x, dy = v.y - b.y, d = Math.hypot(dx, dy) || 0.01;
-      if (!b.pull) { if (!live || d > v.R) continue; b.pull = v; if (b.claimed) { b.claimed.target = null; b.claimed = null; } }
-      if (!live) { b.pull = null; b.suck = 1; continue; }
-      // Entre más cerca, más rápido; un giro de lado hace la espiral
-      const pullSp = 70 + (1 - d / v.R) * 380, swirl = 0.9;
-      b.x += ((dx / d) * pullSp + (-dy / d) * pullSp * swirl * 0.6) * dt;
-      b.y += ((dy / d) * pullSp + (dx / d) * pullSp * swirl * 0.6) * dt;
-      b.suck = clamp(d / (v.R * 0.55), 0.2, 1);
-      b.walk += dt * 18;
-      if (d < 10) { b.suck = 1; v.eaten++; hit(b, 999, v.x, v.y, true); }
-    }
-    if (!live && v.t >= v.life + 0.35) vortices.splice(i, 1);
-    else if (!live && !v.closed) { v.closed = true; ring(v.x, v.y, 6, v.R * 0.6, 0.35, "#7C5CE0", 2.5, 0.45); Sound.hit(); }
-  }
-}
+const meteors = [];
 // Meteoritos: caen en diagonal y al tocar el piso aplastan todo alrededor
 function updateMeteors(dt) {
   const M = TOOLS.meteor;
@@ -1759,8 +1760,8 @@ const helperImg = {};
 function helperKinds() {
   const u = save.up, out = [];
   for (let i = 0; i < u.boltH; i++) out.push("bolt");
-  for (let i = 0; i < u.bootH - u.boltH; i++) out.push("boot");
-  for (let i = 0; i < u.hire - u.bootH; i++) out.push("finger");
+  for (let i = 0; i < u.bootH; i++) out.push("boot");
+  for (let i = 0; i < u.hire; i++) out.push("finger");
   return out;
 }
 function syncHelpers() {
@@ -1854,7 +1855,13 @@ function helperRate() {
   const iv0 = FX.helperInterval(save.up.speed);
   let taps = 0;
   for (const k of helperKinds()) taps += HELPER_KIND[k].targets / (iv0 * HELPER_KIND[k].every);
-  return taps * coinsPerTap(FX.helperDamage(save.up.power));
+  let rate = taps * coinsPerTap(FX.helperDamage(save.up.power));
+  // Jets y tormentas (solo en The Beach): ~3 marcianitos por bomba, ~6 por tormenta
+  if (lvl().id === "beach") {
+    if (save.up.jet) rate += (3 / (FX.jetEvery(save.up.jet) + 1.8)) * avgReward();
+    if (save.up.acidH) rate += (6 / (FX.acidEvery(save.up.acidH) + 7)) * avgReward();
+  }
+  return rate;
 }
 function avgReward() {
   let c = 0, w = 0;
@@ -2057,8 +2064,8 @@ function travel() {
   setTimeout(() => {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; bolts.length = 0;
-    vortices.length = 0; meteors.length = 0; waves.length = 0; beam.length = 0;
-    applyLevel(); renderToolbar(); renderShop(); uiDirty = true;
+    meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0;
+    applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     populate();
   }, quick ? 100 : 700);
   setTimeout(() => {
@@ -2165,121 +2172,267 @@ function drawBackground(dt) {
   ctx.globalAlpha = 1;
 }
 
-// Herramientas de The Beach
-// Rayo de sol: un círculo de luz que sigue al dedo y quema a intervalos
-function sunTick(p, dt) {
-  const L = lvlOf("sun") - 1, T = TOOLS.sun, R = T.radius[L];
-  for (const b of balls) {
-    if (b.state === "die" || b.pull || time - b.lastSpray < T.interval[L]) continue;
-    if (Math.hypot(b.x - p.x, b.y - p.y) < R + b.r * 0.4) {
-      b.lastSpray = time;
-      for (let i = 0; i < 3; i++) part(b.x + rand(-b.r, b.r), b.y + rand(-b.r * 0.5, b.r * 0.5), rand(-20, 20), -rand(40, 90), rand(1.4, 2.4), 0.6, i % 2 ? "#FFB347" : "#FFE08A", "dot", 2, -30);
-      hit(b, T.damage, p.x, p.y, true);
-    }
+/* ---------- Herramientas y ayudantes de The Beach: bombas, lluvia ácida, jets y tormentas ácidas ---------- */
+let seaShift = 0; // cuánto se mueve la orilla del mar (hoy se queda quieta)
+const BOMB_R = 72, JET_R = 66, ACID_HIT = 12;
+const BOMB_SIZE = 28, JET_SIZE = 66; // alto de la bomba y largo del jet, en px
+// --- Explosiones: destello, bola de fuego, onda expansiva, humo, esquirlas y una marca en el piso
+const booms = [];
+function explode(x, y, R, auto) {
+  booms.push({ x, y, R, t: 0, dur: 0.65 });
+  for (let i = 0; i < (lowFx ? 6 : 12); i++) {
+    const a = rand(0, TAU), s = rand(20, 70);
+    part(x + Math.cos(a) * R * 0.3, y + Math.sin(a) * R * 0.2, Math.cos(a) * s, Math.sin(a) * s * 0.5 - rand(10, 40), rand(6, 11), rand(0.9, 1.5), PAL.onDark ? "#77726A" : "#BDB6AA", "smoke", 2.2, -18, 0.5);
   }
-  p.hiss = (p.hiss || 0) - dt;
-  if (p.hiss <= 0) { Sound.sizzle(); p.hiss = 0.2; buzz(4); }
+  for (let i = 0; i < (lowFx ? 10 : 18); i++) {
+    const a = rand(0, TAU), s = rand(140, 340);
+    part(x, y, Math.cos(a) * s, Math.sin(a) * s * 0.7 - 60, rand(1.6, 3.2), rand(0.35, 0.7), i % 3 ? "#FFB347" : "#FFE6A8", "dot", 3.5, 380);
+  }
+  splats.push({ x, y: y + 4, rx: R * 0.5, color: PAL.onDark ? "#000000" : "#5A4A3A", t: 0, dur: 2.6, seed: Math.random() * 10 });
+  Sound.boom(auto); if (!auto) buzz([30, 30, 18]);
+  // La onda llega primero a los cercanos y luego a los lejanos
+  for (const b of balls) {
+    if (b.state === "die" || b.pull) continue;
+    const d = Math.hypot(b.x - x, b.y - y);
+    if (d < R + b.r * 0.5) later(d / 900, () => hit(b, 999, x, y, true, auto));
+  }
 }
-function drawSun(p) {
-  const R = TOOLS.sun.radius[lvlOf("sun") - 1], pulse = 1 + Math.sin(time * 6) * 0.03;
-  const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * pulse);
-  g.addColorStop(0, "rgba(255,250,225,0.9)"); g.addColorStop(0.35, "rgba(255,214,107,0.55)"); g.addColorStop(0.8, "rgba(255,170,70,0.18)"); g.addColorStop(1, "rgba(255,170,70,0)");
-  ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, R * pulse, 0, TAU); ctx.fill();
-  ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(time * 0.8);
-  ctx.fillStyle = "rgba(255,214,107,0.28)";
-  for (let i = 0; i < 12; i++) { ctx.rotate(TAU / 12); ctx.beginPath(); ctx.moveTo(-3, R * 0.45); ctx.lineTo(0, R * 1.08); ctx.lineTo(3, R * 0.45); ctx.closePath(); ctx.fill(); }
+function drawBoom(e) {
+  const u = e.t / e.dur;
+  if (e.t < 0.09) { ctx.globalAlpha = 0.85 * (1 - e.t / 0.09); ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); ctx.arc(e.x, e.y, e.R * 0.7, 0, TAU); ctx.fill(); }
+  const k = easeOut(Math.min(1, u * 2.4)), r = e.R * (0.35 + 0.75 * k);
+  const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r);
+  g.addColorStop(0, "rgba(255,248,220,1)"); g.addColorStop(0.35, "rgba(255,200,90,0.95)"); g.addColorStop(0.7, "rgba(240,110,50,0.6)"); g.addColorStop(1, "rgba(200,70,40,0)");
+  ctx.globalAlpha = Math.pow(1 - u, 1.4); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, TAU); ctx.fill();
+  ctx.globalAlpha = 0.5 * (1 - u); ctx.strokeStyle = "#E8894A"; ctx.lineWidth = 3 * (1 - u) + 0.5;
+  ctx.beginPath(); ctx.ellipse(e.x, e.y, e.R * 1.35 * easeOut(u), e.R * 1.05 * easeOut(u), 0, 0, TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+// Dibuja una bomba con su base en (x, y)
+function drawBombSprite(x, y, s = 1, rot = 0, alpha = 1) {
+  const img = helperSpr.bomb, A = HELPER_ART.bomb;
+  if (!img) return;
+  const k = (BOMB_SIZE / A.h) * s;
+  ctx.globalAlpha = alpha;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.drawImage(img, -A.ax * k, -A.ay * k, A.w * k, A.h * k);
   ctx.restore();
 }
-// Tsunami: el mar se retira, una ola enorme baja desde arriba (donde está el mar), arrastra a todos
-// los marcianitos que alcanza dando vueltas en la cresta, revienta abajo y el agua regresa al mar.
-const waves = [];
-let waveId = 0, seaShift = 0;
-const WAVE_PREP = 0.45, WAVE_BACK = 0.9; // s que el mar se retira antes / que tarda en regresar
-const waveCrest = (w, x) => w.front + Math.sin(x * 0.045 + w.t * 7) * 6 + Math.sin(x * 0.014 - w.t * 3.2) * 9;
-function smushCarried(b) { b.pull = null; b.carried = false; b.tumble = 0; hit(b, 999, b.x, b.y - 20, true); }
-function updateWaves(dt) {
-  let shift = 0;
-  for (let i = waves.length - 1; i >= 0; i--) {
-    const w = waves[i];
-    w.t += dt;
-    const tr = w.t - WAVE_PREP;
-    if (tr < 0) {
-      // 1) El mar se retira (se ve la orilla bajar) mientras la ola toma fuerza
-      shift = Math.min(shift, -24 * easeOut(w.t / WAVE_PREP));
-      w.front = -60;
-    } else if (tr < w.dur) {
-      // 2) La ola baja: lenta al principio, rápida a la mitad, y se frena al final
-      const u = tr / w.dur, k = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
-      w.front = -60 + (H + 140) * k;
-      if (!w.crashed && w.front > seaH) { w.crashed = true; Sound.waveCrash(); buzz([24, 50, 30]); }
-      if (!lowFx) for (let j = 0; j < 3; j++) { const x = rand(0, W); part(x, waveCrest(w, x), rand(-50, 50), rand(40, 170), rand(1.5, 3.2), rand(0.4, 0.7), "#FFFFFF", "dot", 3, 120, 0.9); }
-      // Atrapa a los que alcanza la cresta
-      for (const b of balls) {
-        if (b.state === "die" || b.pull) continue;
-        if (b.y - b.T.top * 0.4 <= waveCrest(w, b.x)) {
-          b.pull = w; b.carried = true; b.cOff = rand(4, 26); b.tumble = 0;
-          b.spin = rand(3, 7) * (Math.random() < 0.5 ? -1 : 1);
-          if (b.claimed) { b.claimed.target = null; b.claimed = null; }
-          w.caught.push(b);
-          for (let j = 0; j < 4; j++) part(b.x, b.y, rand(-60, 60), rand(-80, -20), rand(1.6, 3), 0.5, "#FFFFFF", "dot", 3, 200, 0.85);
-        }
-      }
-    } else {
-      // 3) Revienta abajo y regresa al mar
-      w.front = H + 80;
-      if (!w.broke) {
-        w.broke = true;
-        for (let j = 0; j < 22; j++) { const x = rand(0, W); part(x, H - rand(0, 12), rand(-70, 70), -rand(80, 240), rand(1.8, 3.6), rand(0.5, 0.8), "#FFFFFF", "dot", 2.5, 380, 0.9); }
-      }
-    }
-    // Los atrapados viajan en la cresta dando vueltas; al llegar al fondo, revientan
-    for (const b of w.caught) {
-      if (b.state === "die" || !b.carried) continue;
-      const ty = Math.min(w.front, H + 40) - b.cOff;
-      b.y += (ty - b.y) * Math.min(1, dt * 10);
-      b.x = clamp(b.x + Math.sin(time * 2.5 + b.p1) * 30 * dt, b.T.side, W - b.T.side);
-      b.tumble += b.spin * dt;
-      if (b.y > H - b.T.bottom * 0.5 || w.broke) smushCarried(b);
-    }
-    if (tr > w.dur + WAVE_BACK) waves.splice(i, 1);
-  }
-  seaShift += (shift - seaShift) * Math.min(1, dt * 8);
+const fuseTip = (x, y, s = 1) => { const A = HELPER_ART.bomb, k = (BOMB_SIZE / A.h) * s; return [x + (49 - A.ax) * k, y + (9 - A.ay) * k]; };
+
+// --- Bombas que pone el jugador: se colocan con un toque y explotan juntas con el botón Detonar
+const bombs = [];
+const bombCap = () => (toolWorld("bomb") <= save.level ? save.tools.bomb || 0 : 0);
+function placeBomb(x, y) {
+  if (bombs.some((b) => b.lit)) return;
+  if (bombs.length >= bombCap()) { notReady(x, y); const d = $("#detonate"); if (d.animate && !reduceMotion) d.animate([{ transform: "translateX(-50%)" }, { transform: "translateX(calc(-50% - 6px))" }, { transform: "translateX(calc(-50% + 6px))" }, { transform: "translateX(-50%)" }], { duration: 260 }); return; }
+  bombs.push({ x: clamp(x, 14, W - 14), y: clamp(y, Math.max(26, shoreY(BALL_TYPES.green)), H - 6), t: 0, lit: 0, at: 0, seed: rand(0, TAU) });
+  ring(x, y, 4, 22, 0.4, PAL.text, 1.5, 0.22);
+  Sound.place(); buzz(10);
+  updateDetonate();
 }
-function drawWave(w) {
-  const tr = w.t - WAVE_PREP;
-  if (tr < 0) return;
-  let front = w.front, alpha = 1, back = 0;
-  if (tr >= w.dur) { back = Math.min(1, (tr - w.dur) / WAVE_BACK); front = H + 20 - (H + 20 - seaH) * easeOut(back); alpha = 1 - back; }
-  const t = w.t, crest = (x) => front + Math.sin(x * 0.045 + t * 7) * 6 + Math.sin(x * 0.014 - t * 3.2) * 9;
-  // Arena mojada que deja el agua al regresar
-  if (back > 0) { ctx.globalAlpha = 0.12 * (1 - back); ctx.fillStyle = PAL.onDark ? "#000000" : "#A08A5E"; ctx.fillRect(0, front, W, H - front); }
-  // Cuerpo de la ola: más profundo arriba, más claro cerca de la cresta
-  const g = ctx.createLinearGradient(0, 0, 0, Math.max(1, front));
-  if (PAL.dark) { g.addColorStop(0, "rgba(22,70,92,0.92)"); g.addColorStop(1, "rgba(48,128,155,0.82)"); }
-  else { g.addColorStop(0, "rgba(46,148,188,0.9)"); g.addColorStop(1, "rgba(120,208,230,0.8)"); }
-  ctx.globalAlpha = alpha; ctx.fillStyle = g;
-  ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(W, -10);
-  for (let x = W; x >= -12; x -= 12) ctx.lineTo(x, crest(x));
-  ctx.closePath(); ctx.fill();
-  // Corrientes: rayitas que bajan con el agua
-  ctx.strokeStyle = "#FFFFFF"; ctx.lineCap = "round"; ctx.lineWidth = 2;
-  for (let i = 0; i < 12; i++) {
-    const span = Math.max(40, front - 20), y = (i * 53 + tr * 280) % span, x = (i * 97) % W;
-    ctx.globalAlpha = 0.22 * alpha * Math.min(1, (front - y) / 40);
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 14, y + 4, x + 30, y); ctx.stroke();
+function detonate() {
+  if (!bombs.length || bombs.some((b) => b.lit)) return;
+  Sound.fuse(); buzz(8);
+  // Explotan en cadena: la primera que pusiste, luego las demás
+  bombs.forEach((b, i) => { b.lit = time; b.at = time + 0.38 + i * 0.13; });
+  updateDetonate();
+}
+function updateBombs(dt) {
+  for (let i = bombs.length - 1; i >= 0; i--) {
+    const b = bombs[i];
+    b.t += dt;
+    const [fx, fy] = fuseTip(b.x, b.y);
+    if (Math.random() < (b.lit ? 0.9 : 0.18) * (lowFx ? 0.5 : 1)) part(fx, fy, rand(-40, 40), -rand(20, 70), rand(0.8, 1.6), rand(0.2, 0.4), Math.random() < 0.5 ? "#FFD27A" : "#FFFFFF", "dot", 3, 120);
+    if (b.lit && time >= b.at) { bombs.splice(i, 1); explode(b.x, b.y, BOMB_R, false); if (!bombs.length) updateDetonate(); }
   }
-  // Labio de la ola: una franja clara justo arriba de la espuma
-  ctx.globalAlpha = 0.5 * alpha; ctx.fillStyle = PAL.dark ? "rgba(120,200,220,0.6)" : "rgba(205,242,250,0.9)";
-  ctx.beginPath(); for (let x = -12; x <= W + 12; x += 12) x > -12 ? ctx.lineTo(x, crest(x) - 18) : ctx.moveTo(x, crest(x) - 18);
-  for (let x = W + 12; x >= -12; x -= 12) ctx.lineTo(x, crest(x)); ctx.closePath(); ctx.fill();
-  // Espuma: un trazo grueso, uno más fino adentro y burbujitas que se mueven
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "#FFFFFF"; ctx.globalAlpha = 0.95 * alpha; ctx.lineWidth = 7;
-  ctx.beginPath(); for (let x = -12; x <= W + 12; x += 12) x > -12 ? ctx.lineTo(x, crest(x)) : ctx.moveTo(x, crest(x)); ctx.stroke();
-  ctx.globalAlpha = 0.5 * alpha; ctx.lineWidth = 3;
-  ctx.beginPath(); for (let x = -12; x <= W + 12; x += 12) { const y = crest(x) - 12 + Math.sin(x * 0.08 + t * 5) * 2; x > -12 ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
-  ctx.fillStyle = "#FFFFFF"; ctx.globalAlpha = 0.9 * alpha;
-  for (let x = 4; x < W; x += 15) { const r = 3 + 2 * Math.sin(x * 0.3 + t * 6); ctx.beginPath(); ctx.arc(x, crest(x) + 3 + Math.sin(x + t * 4) * 2, Math.max(1, r), 0, TAU); ctx.fill(); }
+}
+function drawBombs() {
+  for (const b of bombs) {
+    const land = Math.min(1, b.t / 0.32), drop = (1 - easeOut(land)) * 34;
+    let sx = 1, sy = 1, dx = 0;
+    if (land < 1) sy = 1;
+    else if (b.t < 0.5) { const k = Math.sin(((b.t - 0.32) / 0.18) * Math.PI); sx = 1 + 0.1 * k; sy = 1 - 0.1 * k; } // se asienta en la arena
+    if (b.lit) { const k = Math.min(1, (time - b.lit) / (b.at - b.lit)); sx = sy = 1 + 0.16 * k; dx = Math.sin(time * 70 + b.seed) * 1.6 * k; }
+    else sx = sy = sx * (1 + 0.02 * Math.sin(time * 3 + b.seed));
+    // Sombra (más chica mientras cae)
+    ctx.globalAlpha = 0.25 + 0.75 * land; ctx.fillStyle = PAL.shadow;
+    ctx.beginPath(); ctx.ellipse(b.x, b.y, 11 * (0.6 + 0.4 * land), 3.6 * (0.6 + 0.4 * land), 0, 0, TAU); ctx.fill();
+    // Brillo rojo debajo cuando ya va a explotar
+    if (b.lit) { const k = Math.min(1, (time - b.lit) / (b.at - b.lit)); const g = ctx.createRadialGradient(b.x, b.y - 8, 0, b.x, b.y - 8, 34); g.addColorStop(0, `rgba(255,90,60,${0.45 * k})`); g.addColorStop(1, "rgba(255,90,60,0)"); ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, b.y - 8, 34, 0, TAU); ctx.fill(); }
+    ctx.save(); ctx.translate(b.x + dx, b.y - drop); ctx.scale(sx, sy);
+    drawBombSprite(0, 0, 1, 0, Math.min(1, land * 3));
+    ctx.restore();
+    // Chispa de la mecha
+    const [fx, fy] = fuseTip(b.x + dx, b.y - drop, sx);
+    const fl = 0.7 + 0.3 * Math.sin(time * 40 + b.seed), g = ctx.createRadialGradient(fx, fy, 0, fx, fy, 7 * fl);
+    g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.35, "rgba(255,210,110,0.9)"); g.addColorStop(1, "rgba(255,150,60,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, 7 * fl, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+// El botón Detonar: aparece con la bomba en la mano o si hay bombas puestas
+function updateDetonate() {
+  const el = $("#detonate"), cap = bombCap(), lit = bombs.some((b) => b.lit);
+  const show = cap > 0 && (save.tool === "bomb" || bombs.length > 0);
+  if (el.hidden === show) { el.hidden = !show; if (show && el.animate && !reduceMotion) el.animate([{ opacity: 0, transform: "translate(-50%, 12px) scale(0.96)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 320, easing: "cubic-bezier(.2,.8,.3,1)" }); }
+  el.disabled = !bombs.length || lit;
+  el.classList.toggle("ready", bombs.length > 0 && !lit);
+  $("#bomb-count").textContent = `${bombs.length}/${cap}`;
+}
+$("#detonate").addEventListener("click", () => { Sound.unlock(); detonate(); });
+
+// --- Lluvia ácida: una nube suelta gotas sobre un área; cada gota que cae aplasta a quien esté ahí
+const rains = [], drops = [];
+function startRain(o) {
+  rains.push(Object.assign({ t: 0, emit: 0, hiss: 0, vx: 0 }, o));
+}
+const rainAlt = (r) => 64 + r.R * 0.22; // qué tan arriba flota la nube sobre el piso
+function updateRains(dt) {
+  for (let i = rains.length - 1; i >= 0; i--) {
+    const r = rains[i];
+    r.t += dt;
+    r.x += r.vx * dt;
+    const raining = r.storm ? r.t > 0.3 && r.x > -r.R && r.x < W + r.R : r.t > 0.45 && r.t < r.life;
+    if (raining) {
+      r.emit += dt * r.rate;
+      while (r.emit >= 1) {
+        r.emit--;
+        const a = rand(0, TAU), d = Math.sqrt(Math.random()) * r.R, tx = r.x + Math.cos(a) * d, ty = r.y + Math.sin(a) * d * 0.55;
+        drops.push({ sx: r.x + (tx - r.x) * 0.75 + rand(-6, 6), sy: r.y - rainAlt(r) + 6, tx, ty, t: 0, dur: rand(0.26, 0.34), auto: r.auto });
+      }
+      r.hiss -= dt;
+      if (r.hiss <= 0) { Sound.rain(r.auto); r.hiss = 0.3; }
+    }
+    const done = r.storm ? (r.vx > 0 ? r.x > W + r.R * 1.6 : r.x < -r.R * 1.6) : r.t > r.life + 0.8;
+    if (done) { rains.splice(i, 1); if (r.storm) acidClock = FX.acidEvery(save.up.acidH); }
+  }
+  for (let i = drops.length - 1; i >= 0; i--) {
+    const d = drops[i];
+    d.t += dt;
+    if (d.t < d.dur) continue;
+    drops.splice(i, 1);
+    // Salpica, deja un charquito ácido y aplasta a quien esté justo ahí
+    ring(d.tx, d.ty, 1, 11, 0.35, "#8FD14F", 1.5, 0.6);
+    for (let k = 0; k < 3; k++) { const a = rand(Math.PI * 1.1, Math.PI * 1.9); part(d.tx, d.ty, Math.cos(a) * rand(30, 70), Math.sin(a) * rand(30, 70), rand(1, 1.8), 0.35, "#B6F07A", "dot", 4, 260); }
+    if (Math.random() < 0.35) splats.push({ x: d.tx, y: d.ty, rx: rand(5, 8), color: "#7FC241", t: 0, dur: 1.2, seed: Math.random() * 10 });
+    for (const b of balls) {
+      if (b.state === "die" || b.pull) continue;
+      if (Math.hypot(b.x - d.tx, b.y - d.ty) < ACID_HIT + b.r * 0.6) { hit(b, 999, d.tx, d.ty - 10, true, d.auto); Sound.drip(); }
+    }
+  }
+}
+function drawRainsGround() {
+  // Mancha verde y la sombra de la nube en el piso, debajo de los marcianitos
+  for (const r of rains) {
+    const k = r.storm ? 1 : Math.min(1, r.t / 0.45) * (r.t > r.life ? Math.max(0, 1 - (r.t - r.life) / 0.8) : 1);
+    if (k <= 0) continue;
+    ctx.globalAlpha = 0.1 * k; ctx.fillStyle = "#7FC241";
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.R, r.R * 0.55, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.14 * k; ctx.fillStyle = PAL.shadow;
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, r.R * 0.8, r.R * 0.32, 0, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawRainsSky() {
+  // Gotas como rayitas verdes que caen, y la nube encima
+  ctx.lineCap = "round";
+  for (const d of drops) {
+    const u = d.t / d.dur, x = d.sx + (d.tx - d.sx) * u, y = d.sy + (d.ty - d.sy) * easeIn(u);
+    ctx.globalAlpha = 0.9; ctx.strokeStyle = "#6FB23A"; ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.moveTo(x - 1.5, y - 15); ctx.lineTo(x, y); ctx.stroke();
+    ctx.strokeStyle = "#D6FFA8"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x - 1, y - 11); ctx.lineTo(x, y - 2); ctx.stroke();
+  }
+  const img = helperSpr.acid, A = HELPER_ART.acid;
+  for (const r of rains) {
+    if (!img) break;
+    const k = r.storm ? 1 : easeOut(Math.min(1, r.t / 0.45)) * (r.t > r.life ? Math.max(0, 1 - (r.t - r.life) / 0.8) : 1);
+    if (k <= 0) continue;
+    const w = r.R * 1.7 * (0.85 + 0.15 * k), s = w / A.w, x = r.x + Math.sin(r.t * 0.9) * 5, y = r.y - rainAlt(r) + Math.sin(r.t * 1.6) * 2;
+    ctx.globalAlpha = k * 0.92;
+    ctx.drawImage(img, x - (A.ax) * s, y - A.ay * s, A.w * s, A.h * s);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// --- Jets bombarderos (ayudante): cruzan la playa y sueltan una bomba donde hay más marcianitos
+const jets = [], falling = [];
+let jetClock = 3, acidClock = 4;
+function crowdTarget() {
+  let best = null, bn = -1;
+  for (const b of balls) {
+    if (b.state === "die" || b.pull || !b.entered) continue;
+    let n = 0;
+    for (const c of balls) if (c !== b && c.state !== "die" && Math.hypot(c.x - b.x, c.y - b.y) < 70) n++;
+    if (n > bn) { bn = n; best = b; }
+  }
+  return best;
+}
+function launchJet() {
+  const t = crowdTarget();
+  if (!t) { jetClock = 1; return; }
+  const dir = Math.random() < 0.5 ? 1 : -1, ang = rand(-0.22, 0.22), sp = 400;
+  const vx = Math.cos(ang) * sp * dir, vy = Math.sin(ang) * sp, x0 = dir > 0 ? -90 : W + 90, tt = (t.x - x0) / vx;
+  jets.push({ x: x0, y: t.y - vy * tt, vx, vy, tx: t.x, ty: t.y, dropAt: Math.max(0.1, tt - 0.28), t: 0, dropped: false, trail: [] });
+  Sound.jet();
+}
+function updateSky(dt) {
+  const beach = lvl().id === "beach";
+  // Jets
+  if (beach && save.up.jet > 0 && playing && !jets.length && !falling.length) { jetClock -= dt; if (jetClock <= 0) launchJet(); }
+  for (let i = jets.length - 1; i >= 0; i--) {
+    const j = jets[i];
+    j.t += dt; j.x += j.vx * dt; j.y += j.vy * dt;
+    j.trail.push({ x: j.x, y: j.y, t: time });
+    while (j.trail.length && time - j.trail[0].t > 0.6) j.trail.shift();
+    if (!j.dropped && j.t >= j.dropAt) { j.dropped = true; falling.push({ x0: j.x, y0: j.y - 40, x1: j.tx, y1: j.ty, t: 0, dur: 0.55, rot: rand(-0.5, 0.5) }); Sound.whoosh(); }
+    if ((j.vx > 0 && j.x > W + 120) || (j.vx < 0 && j.x < -120)) jets.splice(i, 1);
+  }
+  for (let i = falling.length - 1; i >= 0; i--) {
+    const f = falling[i];
+    f.t += dt;
+    if (f.t >= f.dur) { falling.splice(i, 1); explode(f.x1, f.y1, JET_R, true); jetClock = FX.jetEvery(save.up.jet); }
+  }
+  // Tormentas ácidas
+  if (beach && save.up.acidH > 0 && playing && !rains.some((r) => r.storm)) {
+    acidClock -= dt;
+    if (acidClock <= 0) {
+      const dir = Math.random() < 0.5 ? 1 : -1, R = 68, top = Math.max(shoreY(BALL_TYPES.green) + R * 0.6, H * 0.3);
+      startRain({ storm: true, auto: true, R, rate: 9, x: dir > 0 ? -R * 1.5 : W + R * 1.5, y: rand(top, Math.max(top, H * 0.78)), vx: dir * 62 });
+      acidClock = 999;
+    }
+  }
+}
+function drawSky() {
+  // Bombas cayendo: empiezan grandes (cerca) y se achican al bajar; su sombra crece
+  for (const f of falling) {
+    const u = f.t / f.dur, x = f.x0 + (f.x1 - f.x0) * u, y = f.y0 + (f.y1 - f.y0) * easeIn(u);
+    ctx.globalAlpha = 0.15 + 0.5 * u; ctx.fillStyle = PAL.shadow;
+    ctx.beginPath(); ctx.ellipse(f.x1, f.y1, 6 + 6 * u, 2 + 2 * u, 0, 0, TAU); ctx.fill();
+    drawBombSprite(x, y, 1.7 - 0.7 * u, f.rot * (1 - u));
+  }
+  // Jets: estela, sombra en el piso y el avión
+  const img = helperSpr.jet, A = HELPER_ART.jet;
+  for (const j of jets) {
+    ctx.lineCap = "round"; ctx.strokeStyle = "#FFFFFF";
+    for (let k = 1; k < j.trail.length; k++) {
+      const p0 = j.trail[k - 1], p1 = j.trail[k], age = (time - p1.t) / 0.6;
+      ctx.globalAlpha = 0.55 * (1 - age); ctx.lineWidth = 3 + age * 6;
+      ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+    }
+    if (!img) continue;
+    const ang = Math.atan2(j.vy, j.vx), s = JET_SIZE / A.w;
+    ctx.globalAlpha = 0.16; ctx.save(); ctx.translate(j.x + 18, j.y + 46); ctx.rotate(ang); ctx.fillStyle = "#000000";
+    ctx.beginPath(); ctx.ellipse(0, 0, JET_SIZE * 0.42, JET_SIZE * 0.2, 0, 0, TAU); ctx.fill(); ctx.restore();
+    ctx.globalAlpha = 1; ctx.save(); ctx.translate(j.x, j.y); ctx.rotate(ang);
+    ctx.drawImage(img, -A.w * s * 0.5, -A.h * s * 0.5, A.w * s, A.h * s);
+    // Fuego del motor
+    const g = ctx.createRadialGradient(-A.w * s * 0.47, 0, 0, -A.w * s * 0.47, 0, 9);
+    g.addColorStop(0, "rgba(255,240,200,0.95)"); g.addColorStop(0.5, "rgba(255,170,80,0.6)"); g.addColorStop(1, "rgba(255,120,60,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(-A.w * s * 0.47, 0, 9, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
   ctx.globalAlpha = 1;
 }
 
@@ -2295,8 +2448,8 @@ function addCoins(n, x, y, T) {
 function priceOf(id) {
   const l = save.tools[id], T = TOOLS[id];
   if (l === 0) return T.price;
-  if (l >= 3) return null;
-  return T.upgrades[l - 1];
+  if (l >= toolMax(id)) return null;
+  return typeof T.upgrades === "function" ? T.upgrades(l) : T.upgrades[l - 1];
 }
 function upPrice(k) {
   const u = UP[k], l = save.up[k];
@@ -2304,11 +2457,8 @@ function upPrice(k) {
   return typeof u.cost === "function" ? u.cost(l) : u.cost[l];
 }
 // Las conversiones necesitan algo que convertir: un dedo para hacer una bota, una bota para hacer una nube
-function upReady(k) {
-  if (k === "bootH") return save.up.hire - save.up.bootH > 0;
-  if (k === "boltH") return save.up.bootH - save.up.boltH > 0;
-  return true;
-}
+// Los ayudantes de The Beach se desbloquean al llegar ahí
+function upReady(k) { return (UP[k].world || 0) <= save.level; }
 function afterBuy(was, card) {
   Sound.buy(was); buzz([10, 60, 18]);
   writeSave();
@@ -2332,6 +2482,8 @@ function buyUp(k) {
   const was = save.up[k];
   save.coins -= price; save.spent += price; save.up[k] = was + 1;
   if (k === "hire" || k === "bootH" || k === "boltH") syncHelpers();
+  if (k === "jet") jetClock = Math.min(jetClock, 1.5);
+  if (k === "acidH") acidClock = Math.min(acidClock, 2);
   if (k === "crowd") updateTarget();
   afterBuy(Math.min(was, 2), k);
 }
@@ -2384,7 +2536,7 @@ const pips = (n, max = 3) => Array.from({ length: max }, (_, i) => `<i class="${
 const fmtShort = (n) => (n >= 10000 ? new Intl.NumberFormat(loc(), { notation: "compact", maximumFractionDigits: 1 }).format(n) : fmt(n));
 const toolEls = {};
 function renderToolbar() {
-  const vis = TOOL_ORDER.filter((id) => save.tools[id] > 0);
+  const vis = TOOL_ORDER.filter((id) => save.tools[id] > 0 && toolWorld(id) <= save.level);
   const next = TOOL_ORDER.find((id) => !save.tools[id] && toolWorld(id) <= save.level);
   if (next) vis.push(next);
   const bar = $("#tools");
@@ -2394,19 +2546,19 @@ function renderToolbar() {
   bar.innerHTML = vis.map((id) => {
     const l = save.tools[id], locked = l === 0;
     return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}" style="--tc:${HUE[id]}" type="button" data-id="${id}" aria-pressed="${save.tool === id}" aria-label="${tx(id)}">
-      ${ICONS[id]}<span class="name">${tx(id)}</span><span class="pips">${pips(l)}</span>
+      ${ICONS[id]}<span class="name">${tx(id)}</span>${toolMax(id) > 3 ? `<span class="count">×${l}</span>` : `<span class="pips">${pips(l)}</span>`}
       <span class="price"><span class="coin"></span>${fmtShort(TOOLS[id].price)}</span><i class="cd"></i></button>`;
   }).join("");
   for (const k in toolEls) delete toolEls[k];
   bar.querySelectorAll(".tool").forEach((el) => { toolEls[el.dataset.id] = el; });
   const sel = toolEls[save.tool];
   if (sel && bar.classList.contains("strip")) sel.scrollIntoView({ inline: "nearest", block: "nearest" });
-  updateCursor();
+  updateCursor(); updateDetonate();
 }
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
 const cdShown = {};
 function updateCooldownUI() {
-  for (const id of ["vortex", "meteor", "wave"]) {
+  for (const id of ["acid", "meteor"]) {
     const el = toolEls[id]; if (!el) continue;
     const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
     if (cdShown[id] === p) continue;
@@ -2432,26 +2584,30 @@ function shopCard({ key, cls = "", icon, name, tags = "", lv = "", desc, stat, b
 const sect = (k) => `<div class="sect">${tx(k)}</div>`;
 function toolCard(id) {
   const l = save.tools[id], price = priceOf(id), wl = toolWorld(id), away = wl > save.level, pro = PREMIUM.has(id);
-  const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span class="nx">→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
+  const mx = toolMax(id);
+  const stat = l === 0 ? statText(id, 1) : l < mx ? `${statText(id, l)} <span class="nx">→ ${statShort(id, l + 1)}</span>` : statText(id, mx);
   const btn = away
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
-    : buyButton("tool", id, price, l === 0 ? tx("buy") : tx("upgrade"));
+    : buyButton("tool", id, price, l === 0 ? tx("buy") : id === "bomb" ? tx("addBomb") : tx("upgrade"));
   return shopCard({
     key: id, cls: (away ? " locked-world" : "") + (price == null ? " done" : ""), icon: ICONS[id], name: tx(id),
     tags: (pro ? `<span class="pro">${tx("premium")}</span>` : "") + (wl ? `<span class="tag">${LEVELS[wl].name}</span>` : ""),
-    lv: l ? `<span class="lv">${tx("lvShort")} ${l}/3</span>` : "", desc: tx(id + "D"), stat, bar: segs(l, 3), btn,
+    lv: l ? `<span class="lv">${tx("lvShort")} ${l}/${mx}</span>` : "", desc: tx(id + "D"), stat, bar: segs(l, mx), btn,
   });
 }
 function upCard(k) {
-  const l = save.up[k], u = UP[k], price = upPrice(k), conv = k === "bootH" || k === "boltH", ready = upReady(k);
+  const l = save.up[k], u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
   const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
-  const label = !ready ? tx(k === "bootH" ? "needFinger" : "needBoot") : k === "hire" ? tx("hireBtn") : conv ? tx("convert") : l === 0 ? tx("buy") : tx("upgrade");
-  const art = { hire: "finger", bootH: "boot", boltH: "bolt" }[k];
+  const hireLike = k === "hire" || k === "bootH" || k === "boltH" || ((k === "jet" || k === "acidH") && l === 0);
+  const btn = !ready
+    ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
+    : buyButton("up", k, price, hireLike ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade"));
+  const art = { hire: "finger", bootH: "boot", boltH: "bolt", jet: "jet", acidH: "acid" }[k];
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
   return shopCard({
-    key: k, cls: (art ? " art" : "") + (price == null ? " done" : ""), icon, name: tx(k),
-    lv: conv ? "" : `<span class="lv">${tx("lvShort")} ${l}/${u.max}</span>`, desc: tx(k + "D"), stat,
-    bar: conv ? "" : segs(l, u.max), btn: buyButton("up", k, price, label, !ready),
+    key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : ""), icon, name: tx(k),
+    tags: wl ? `<span class="tag">${LEVELS[wl].name}</span>` : "",
+    lv: `<span class="lv">${tx("lvShort")} ${l}/${u.max}</span>`, desc: tx(k + "D"), stat, bar: segs(l, u.max), btn,
   });
 }
 function renderShop(animate) {
@@ -2459,14 +2615,14 @@ function renderShop(animate) {
   $("#shop-note").textContent = tx({ tools: "noteTools", helpers: "noteHelpers", boosts: "noteBoosts" }[shopTab]);
   let html = "";
   if (shopTab === "tools") {
-    html = sect("secBasics") + ["finger", "boot", "spray", "bolt"].map(toolCard).join("")
-      + sect("secPro") + ["laser", "vortex", "meteor"].map(toolCard).join("")
-      + sect("secBeach") + ["sun", "wave"].map(toolCard).join("");
+    html = sect("secVoid") + ["finger", "boot", "bolt", "spray"].map(toolCard).join("")
+      + sect("secBeach") + ["bomb", "acid", "meteor"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "bootH", "boltH"].map(upCard).join("")
-      + sect("secTraining") + ["speed", "power"].map(upCard).join("");
+      + sect("secBeach") + ["jet", "acidH"].map(upCard).join("");
   } else {
-    html = UP_ORDER.filter((k) => UP[k].tab === "boosts").map(upCard).join("");
+    html = sect("secBoostWorld") + ["value", "crowd", "luck", "calm", "night"].map(upCard).join("")
+      + sect("secBoostHelp") + ["speed", "power"].map(upCard).join("");
   }
   const list = $("#shop-list");
   list.innerHTML = html;
@@ -2493,7 +2649,7 @@ function selectTool(id) {
   save.tool = id; markSave();
   Sound.tick(); buzz(6);
   document.querySelectorAll(".tool").forEach((el) => { const on = el.dataset.id === id; el.classList.toggle("sel", on); el.setAttribute("aria-pressed", on); });
-  updateCursor();
+  updateCursor(); updateDetonate();
 }
 function focusItem(key) {
   const card = document.querySelector(`.item[data-key="${key}"]`);
@@ -2575,9 +2731,9 @@ confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]
 $("#btn-reset-yes").addEventListener("click", () => {
   save = freshSave(); writeSave();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; timers.length = 0;
-  helpers.length = 0; vortices.length = 0; meteors.length = 0; beam.length = 0;
+  helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
-  waves.length = 0; applyLevel();
+  applyLevel(); updateDetonate();
   for (const k in cdEnd) delete cdEnd[k];
   lastYellow = -99; shopTab = "tools";
   populate();
@@ -2614,7 +2770,7 @@ cv.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") hover = p;
   useTool(p.x, p.y);
   if (save.tool === "spray") sprayTick(pointers.get(e.pointerId), 0);
-  if (save.tool === "laser") laserTick(pointers.get(e.pointerId));
+  if (save.tool === "bomb") pointers.delete(e.pointerId);
 });
 cv.addEventListener("pointermove", (e) => {
   const p = localPos(e);
@@ -2639,50 +2795,6 @@ function updateCursor() { cv.style.cursor = matchMedia("(pointer: fine)").matche
 /* ---------- 13. Dibujo y bucle principal (requestAnimationFrame) ---------- */
 const easeOut = (x) => 1 - Math.pow(1 - x, 3);
 const easeIn = (x) => x * x;
-// Agujero negro: un disco oscuro con brazos en espiral que giran; nace, jala y se cierra
-function drawVortex(v) {
-  const grow = easeOut(Math.min(1, v.t / 0.2)), close = v.t > v.life ? 1 - Math.min(1, (v.t - v.life) / 0.3) : 1;
-  const k = grow * close, R = v.R;
-  if (k <= 0) return;
-  ctx.globalAlpha = 0.18 * k; ctx.strokeStyle = "#7C5CE0"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 7]);
-  ctx.beginPath(); ctx.arc(v.x, v.y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
-  const core = R * 0.42 * k, g = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, core);
-  g.addColorStop(0, "rgba(20,12,40,0.95)"); g.addColorStop(0.55, "rgba(60,36,120,0.7)"); g.addColorStop(1, "rgba(124,92,224,0)");
-  ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(v.x, v.y, core, 0, TAU); ctx.fill();
-  ctx.lineCap = "round";
-  for (let i = 0; i < 4; i++) {
-    const a0 = -v.t * 5 + (i * TAU) / 4;
-    ctx.globalAlpha = 0.5 * k; ctx.strokeStyle = i % 2 ? "#A584E8" : "#7C5CE0"; ctx.lineWidth = 3;
-    ctx.beginPath();
-    for (let s = 0; s <= 14; s++) { const u = s / 14, r = core * 0.25 + u * R * 0.75 * k, a = a0 + u * 2.4; s ? ctx.lineTo(v.x + Math.cos(a) * r, v.y + Math.sin(a) * r * 0.85) : ctx.moveTo(v.x + Math.cos(a) * r, v.y + Math.sin(a) * r * 0.85); }
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-}
-function drawBeam() {
-  if (beam.length < 1) return;
-  ctx.lineCap = "round"; ctx.lineJoin = "round";
-  // Un solo trazo por dedo (así no se ven "cuentas" donde se enciman los segmentos)
-  for (const [w, col, al] of [[1, "#FF6B8A", 0.32], [0.2, "#FFFFFF", 0.95]]) {
-    let open = false, prev = null;
-    ctx.globalAlpha = al; ctx.strokeStyle = col;
-    for (const p of beam) {
-      if (!prev || prev.id !== p.id) { if (open) ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineWidth = Math.max(1.5, p.w * w); open = true; }
-      else ctx.lineTo(p.x, p.y);
-      prev = p;
-    }
-    if (open) ctx.stroke();
-  }
-  // Punta del láser donde está el dedo
-  for (const p of pointers.values()) {
-    if (save.tool !== "laser") break;
-    const w = TOOLS.laser.width[lvlOf("laser") - 1];
-    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, w);
-    g.addColorStop(0, "rgba(255,255,255,0.95)"); g.addColorStop(0.4, "rgba(255,107,138,0.6)"); g.addColorStop(1, "rgba(255,107,138,0)");
-    ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, w, 0, TAU); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
 function drawAlien(b) {
   const T = b.T, S = T.spr;
   if (!S || !S.img) return;
@@ -2739,8 +2851,8 @@ function render(dt) {
     ctx.fillStyle = p.color;
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill();
   }
-  // Agujeros negros (en el piso, debajo de todo)
-  for (const v of vortices) drawVortex(v);
+  // Lluvia ácida: la mancha y la sombra de la nube en el piso
+  drawRainsGround();
   // Sombra donde va a caer cada meteorito
   for (const m of meteors) {
     if (m.t < 0 || m.hit) continue;
@@ -2770,8 +2882,8 @@ function render(dt) {
       ctx.beginPath(); ctx.ellipse(b.x, gy, rx, ry, 0, rot + i * seg + 0.3, rot + (i + 1) * seg - 0.3); ctx.stroke();
     }
   }
-  // Tsunami: el agua va debajo; los marcianitos atrapados se ven encima, dando vueltas en la cresta
-  for (const w of waves) drawWave(w);
+  // Bombas puestas en la arena (debajo de los marcianitos que pasan)
+  drawBombs();
   // Marcianitos, del fondo hacia el frente
   balls.sort((a, b) => a.y - b.y);
   for (const b of balls) drawAlien(b);
@@ -2787,6 +2899,7 @@ function render(dt) {
   for (const p of parts) {
     if (p.kind === "mist") continue;
     const u = p.t / p.life;
+    if (p.kind === "smoke") { ctx.globalAlpha = p.a * (1 - u) * Math.min(1, u * 6); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + u * 2.2), 0, TAU); ctx.fill(); continue; }
     ctx.globalAlpha = p.a * (1 - u * u);
     ctx.fillStyle = p.color;
     if (p.kind === "star") { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.t * 4); const r = p.r * 1.8; ctx.fillRect(-r, -0.7, r * 2, 1.4); ctx.fillRect(-0.7, -r, 1.4, r * 2); ctx.restore(); continue; }
@@ -2803,10 +2916,8 @@ function render(dt) {
       ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
     }
   }
-  // Rayo de sol (encima de los marcianitos)
-  if (save.tool === "sun") for (const p of pointers.values()) drawSun(p);
-  // Estela del láser: un brillo rosado y un hilo blanco
-  drawBeam();
+  // Explosiones
+  for (const e of booms) drawBoom(e);
   // Meteoritos cayendo
   for (const m of meteors) {
     if (m.t < 0 || m.hit) continue;
@@ -2820,6 +2931,9 @@ function render(dt) {
     ctx.fillStyle = "#FFE2B8"; ctx.beginPath(); ctx.arc(sx, sy, 6.5, 0, TAU); ctx.fill();
     ctx.fillStyle = "#E8894A"; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(sx, sy, 9, 0, TAU); ctx.fill();
   }
+  // Lo que va en el aire: gotas y nubes de ácido, jets y bombas cayendo
+  drawRainsSky();
+  drawSky();
   // Ayudantes (encima de todo lo del piso), los más lejanos primero
   for (const h of helpers.slice().sort((a, b) => a.y - b.y)) drawHelper(h);
   // Burbuja del multiplicador (encima de todo)
@@ -2847,15 +2961,11 @@ function drawCursor(x, y) {
   if (id === "finger") {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
-  } else if (id === "boot" || id === "spray" || id === "vortex" || id === "meteor" || id === "sun") {
-    const R = id === "boot" ? TOOLS.boot.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "vortex" ? TOOLS.vortex.radius[L] : id === "sun" ? TOOLS.sun.radius[L] : TOOLS.meteor.spread;
+  } else if (id === "boot" || id === "spray" || id === "acid" || id === "meteor" || id === "bomb") {
+    const R = id === "boot" ? TOOLS.boot.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "acid" ? TOOLS.acid.radius[L] : id === "bomb" ? BOMB_R : TOOLS.meteor.spread;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "boot" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
-  } else if (id === "laser") {
-    const w = TOOLS.laser.width[L] / 2;
-    ctx.globalAlpha = 0.45; ctx.strokeStyle = "#FF6B8A"; ctx.beginPath(); ctx.arc(x, y, w, 0, TAU); ctx.stroke();
-    ctx.globalAlpha = 0.8; ctx.fillStyle = "#FF6B8A"; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else {
     ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x + 1.5, y - 5); ctx.lineTo(x - 2.5, y + 0.8); ctx.lineTo(x + 2.5, y - 0.8); ctx.lineTo(x - 1.5, y + 5); ctx.stroke();
@@ -2885,15 +2995,13 @@ function loop(now) {
   for (let i = timers.length - 1; i >= 0; i--) if (timers[i].at <= time) { const f = timers[i].fn; timers.splice(i, 1); f(); }
   if (playing) spawnStep(dt);
   updateBalls(dt);
-  updateVortices(dt);
   updateMeteors(dt);
-  updateWaves(dt);
+  updateBombs(dt);
+  updateRains(dt);
+  updateSky(dt);
   updateHelpers(dt);
   updateMult(dt);
   if (playing && save.tool === "spray") for (const p of pointers.values()) sprayTick(p, dt);
-  if (playing && save.tool === "laser") for (const p of pointers.values()) laserTick(p);
-  if (playing && save.tool === "sun") for (const p of pointers.values()) sunTick(p, dt);
-  while (beam.length && time - beam[0].t > 0.3) beam.shift();
   updateFx(dt);
   render(dt);
   updateCooldownUI();
@@ -3022,6 +3130,7 @@ function startGame() {
   applyLang();
   resize();
   syncHelpers();
+  updateDetonate();
   checkAway(save.lastSeen);
   writeSave();
   loadArt().then(() => { buildSprites(); });
