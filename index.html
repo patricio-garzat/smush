@@ -951,7 +951,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.29.2";
+const VERSION = "0.29.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -985,6 +985,8 @@ const LEVELS = [
   { id: "jungle", name: "The Jungle", coinMult: 16, smush: 100000, cost: 250000 },
 ];
 let city = null; // The City: la geometría del cruce (se arma con el fondo)
+// Lo que no se atraviesa en cualquier nivel (troncos, estanques, el castillo…): elipses en el piso (se arman con el fondo)
+let blocks = [];
 // En pantallas angostas (celular) los marcianitos se ven un poco más chicos
 const PHONE_SCALE = 0.6, PHONE_WIDTH = 520;
 
@@ -1992,9 +1994,10 @@ function spawnBall(inside) {
       for (const b of balls) { const d = T.r + b.r + 14; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
       for (const p of pointers.values()) { if ((p.x - x) ** 2 + (p.y - y) ** 2 < (T.r + 40) ** 2) { ok = false; break; } }
       if (ok && city && cityBlocked(x, y, T)) ok = false;
+      if (ok && blockedAt(x, y, T)) ok = false;
       if (ok) break;
     }
-    if (city && cityBlocked(x, y, T)) return;
+    if ((city && cityBlocked(x, y, T)) || blockedAt(x, y, T)) return;
     a = Math.random() * TAU;
   } else {
     // Una orilla al azar (las más largas, más seguido) y un rumbo hacia algún punto del centro.
@@ -2100,6 +2103,8 @@ function updateBalls(dt) {
   }
   // En The City, los edificios de las esquinas y los postes no se atraviesan
   if (city) for (const b of balls) if (b.state !== "die" && !b.pull) cityCollide(b);
+  // Troncos, estanques y demás: si chocan, quedan en la orilla y se dan la vuelta
+  if (blocks.length) for (const b of balls) if (b.state !== "die" && !b.pull) blockCollide(b);
 }
 
 /* ---------- 8. Efectos: partículas, anillos, manchas, textos flotantes, rayos (con reciclaje) ---------- */
@@ -3677,7 +3682,7 @@ function buildBackground() {
   stars = [];
   const n = Math.round((W * H) / 7000);
   for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(0.6, 1.5), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
-  bgLayer = null; pines = []; flakes = []; glints = []; city = null; jungle = null;
+  bgLayer = null; pines = []; flakes = []; glints = []; city = null; jungle = null; blocks = [];
   if (snowy) { buildSnow(); return; }
   if (isJungle()) { buildJungle(); return; }
   if (isCity()) { buildCity(); return; }
@@ -3961,11 +3966,13 @@ function buildSnow() {
     if (pines.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < 90)) continue;
     const h = rand(56, 84) * (small ? 0.82 : 1);
     pines.push({ x, y, h, ph: rand(0, TAU), spr: makePine(h, dark) });
+    blocks.push({ x, y, rx: 7, ry: 4 });
   }
   // Un muñeco de nieve y, en compu, un cerquito de madera (también a los lados)
   for (const kind of small ? ["snowman"] : ["snowman", "fence"]) for (let tries = 0; tries < 80; tries++) {
     const left = Math.random() < 0.5, x = left ? rand(30, W * 0.22) : rand(W * 0.78, W - 30), y = rand(top + 90, H - 18);
     if (pines.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < 80)) continue;
+    blocks.push(kind === "snowman" ? { x, y, rx: 13 * k, ry: 6 * k } : { x, y: y - 2, rx: 44 * k, ry: 5 * k });
     if (kind === "snowman") pines.push({ x, y, h: 64 * k, sway: 0, spr: makePropSprite((gg) => paintSnowman(gg, 32 * k, 68 * k, k, dark), 64 * k, 72 * k, 32 * k, 68 * k) });
     else pines.push({ x, y, h: 30, sway: 0, spr: makePropSprite((gg) => paintFence(gg, 52, 34, k, dark), 104, 42, 52, 34) });
     break;
@@ -4015,6 +4022,7 @@ function buildSnow() {
   })();
   if (pond) {
     const { x, y, rx, ry } = pond;
+    blocks.push({ x, y, rx: rx + 5, ry: ry + 4 });
     g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.16)"; g.beginPath(); g.ellipse(x, y + 2, rx + 7, ry + 5, 0, 0, TAU); g.fill();
     g.fillStyle = dark ? "#C2D0E2" : "#FFFFFF"; g.beginPath(); g.ellipse(x, y, rx + 6, ry + 4, 0, 0, TAU); g.fill();
     const ice = g.createLinearGradient(x - rx, y - ry, x + rx, y + ry);
@@ -4363,6 +4371,7 @@ function buildBeachProps(g) {
   let colorI = Math.floor(Math.random() * UMBRELLAS.length);
   for (const p of placed) {
     if (p.type === "castle") {
+      blocks.push({ x: p.x + 4 * k, y: p.y - 6 * k, rx: 34 * k, ry: 9 * k });
       const sc = k * 1.05, w = 110 * sc, hh = 64 * sc;
       pines.push({ x: p.x, y: p.y, h: hh, sway: 0, spr: makePropSprite((gg) => paintCastle(gg, w * 0.4, hh - 8, sc, dark), w, hh + 4, w * 0.4, hh - 8) });
       continue;
@@ -4376,6 +4385,7 @@ function buildBeachProps(g) {
       const h = rand(120, 150) * k, dir = p.x < W / 2 ? 1 : -1, w = h * 2.3, top = h * 1.45; // lienzo amplio: las hojas nunca se cortan
       g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(120,90,50,0.16)";
       g.beginPath(); g.ellipse(p.x + dir * h * 0.32, p.y + 4, h * 0.42, h * 0.11, 0, 0, TAU); g.fill(); // sombra de la copa
+      blocks.push({ x: p.x, y: p.y, rx: 7, ry: 4 });
       pines.push({ x: p.x, y: p.y, h, ph: rand(0, TAU), sway: 0.03, spr: makePropSprite((gg) => paintPalm(gg, w / 2, top, h, dir, dark), w, top + h * 0.08, w / 2, top) });
     } else {
       const h = rand(58, 70) * k, cols = UMBRELLAS[colorI++ % UMBRELLAS.length], tilt = rand(-0.12, 0.12), w = h * 1.5;
@@ -5410,6 +5420,22 @@ function drawArrows() {
   }
   ctx.globalAlpha = 1;
 }
+// Obstáculos (elipses en el piso): los pies del marcianito no pueden entrar; si choca, queda en la orilla y voltea
+function blockedAt(x, y, T) {
+  const fy = y + T.bottom, m = T.side * 0.6 + 3;
+  return blocks.some((o) => Math.hypot((x - o.x) / (o.rx + m), (fy - o.y) / (o.ry + m * 0.5)) < 1);
+}
+function blockCollide(b) {
+  const T = b.T, m = T.side * 0.6;
+  for (const o of blocks) {
+    const ex = o.rx + m, ey = o.ry + m * 0.5, dx = b.x - o.x, dy = b.y + T.bottom - o.y, d = Math.hypot(dx / ex, dy / ey);
+    if (d >= 1) continue;
+    if (d < 0.001) { b.y = o.y + ey - T.bottom; continue; }
+    b.x = o.x + dx / d; b.y = o.y + dy / d - T.bottom;
+    const nx0 = dx / (ex * ex), ny0 = dy / (ey * ey), nl = Math.hypot(nx0, ny0) || 1, nx = nx0 / nl, ny = ny0 / nl, vn = b.vx * nx + b.vy * ny;
+    if (vn < 0) { b.vx -= 2 * vn * nx; b.vy -= 2 * vn * ny; b.heading = Math.atan2(b.vy, b.vx); b.goal = b.heading; }
+  }
+}
 // Las esquinas (edificios) y los postes no se atraviesan: si un marcianito choca, se acomoda afuera y se da la vuelta
 function cityBlocked(x, y, T) {
   if (!city) return false;
@@ -5578,6 +5604,7 @@ function buildJungle() {
   // --- Un estanquito con lirios (en un lado de abajo, para no estorbar en medio)
   const pond = { x: W * (R() < 0.5 ? rr(0.12, 0.24) : rr(0.76, 0.88)), y: H * rr(0.72, 0.84), rx: clamp(W * 0.1, 40, 80) };
   pond.ry = pond.rx * 0.45;
+  blocks.push({ x: pond.x, y: pond.y, rx: pond.rx + 5, ry: pond.ry + 4 });
   {
     const { x, y, rx, ry } = pond;
     g.fillStyle = dark ? "#2A3A2C" : "#9FBF84"; g.beginPath(); g.ellipse(x, y + 2, rx + 6, ry + 5, 0, 0, TAU); g.fill();
@@ -5638,6 +5665,8 @@ function buildJungle() {
   });
   for (const p of placed) {
     const seed = Math.floor(p.x * 3 + p.y);
+    if (p.kind === "tree") blocks.push({ x: p.x, y: p.y, rx: 15 * k, ry: 6 * k });
+    else if (p.kind === "rock") blocks.push({ x: p.x, y: p.y - 2, rx: 19 * k, ry: 6 * k });
     if (p.kind === "tree") { const h = rr(150, 190) * k, w0 = h * 1.3, tp = h * 1.1; pines.push({ x: p.x, y: p.y, h, ph: rr(0, TAU), sway: 0.006, spr: makePropSprite((gg) => paintJungleTree(gg, w0 / 2, tp, h, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
     else if (p.kind === "fern") { const s = k * rr(1, 1.25), w0 = 90 * s, tp = 52 * s; pines.push({ x: p.x, y: p.y, h: 40 * s, ph: rr(0, TAU), sway: 0.02, spr: makePropSprite((gg) => paintFern(gg, w0 / 2, tp, s, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
     else if (p.kind === "bush") { const s = k * 1.15, w0 = 70 * s, tp = 40 * s; pines.push({ x: p.x, y: p.y, h: 30 * s, ph: rr(0, TAU), sway: 0.01, spr: makePropSprite((gg) => paintFlowerBush(gg, w0 / 2, tp, s, dark, seed), w0, tp + 8, w0 / 2, tp) }); }
@@ -7100,6 +7129,13 @@ const Hero = (() => {
         a.x += (dx / d) * (min - d) * Math.min(1, dt * 12); a.y += ((dy / d) * (min - d) * Math.min(1, dt * 12)) / 1.6;
         a.h += angDiff(Math.atan2(dy, dx), a.h) * Math.min(1, dt * 4);
       }
+    }
+    // Los charquitos (nieve y selva) no se pisan: se rodean
+    const hp = lvl().id === "snow" ? [e.cx + e.rx * 0.18, e.cy + e.ry * 0.12, e.rx * 0.2] : lvl().id === "jungle" ? [e.cx + e.rx * 0.2, e.cy + e.ry * 0.15, e.rx * 0.17] : null;
+    if (hp) for (const a of solid) {
+      const m = BALL_TYPES[a.k].baseR * 0.7, ex = hp[2] + m, ey = hp[2] * 0.44 + m * 0.5, dx = a.x - hp[0], dy = a.y - hp[1], d = Math.hypot(dx / ex, dy / ey);
+      if (d >= 1 || d < 0.001) continue;
+      a.x = hp[0] + dx / d; a.y = hp[1] + dy / d; a.h += angDiff(Math.atan2(dy / ey, dx / ex), a.h) * Math.min(1, dt * 6);
     }
     // Las cositas de la isla (palmera, castillo, muñeco de nieve, cristales…) no se atraviesan
     for (const P of heroProps(lvl().id, e)) for (const a of solid) {
