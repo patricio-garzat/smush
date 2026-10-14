@@ -898,7 +898,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.21.4";
+const VERSION = "0.21.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1706,6 +1706,10 @@ if (isNative()) {
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const field = $("#field"), cv = $("#cv"), ctx = cv.getContext("2d");
 let W = 0, H = 0, DPR = 1;
+// Escala de las áreas (radios de herramientas, ayudantes, explosiones): proporcional al tamaño del área de juego,
+// para que en el celular cubran la misma parte de la pantalla que en la compu (1 en pantallas grandes)
+const RS_REF = 640000; // px² de un área de juego de compu
+let RS = 1;
 const PAL = {};
 
 function hexRgb(h) { h = h.replace("#", ""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
@@ -1807,6 +1811,7 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2); // más de 2× no se nota y cuesta batería
   const changedDpr = dpr !== DPR;
   W = r.width; H = r.height; DPR = dpr;
+  RS = clamp(Math.sqrt((W * H) / RS_REF), 0.5, 1);
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   // En el celular los marcianitos se ven más chicos
@@ -2188,7 +2193,7 @@ function notReady(x, y) { ring(x, y, 4, 20, 0.35, PAL.text, 1.5, 0.25); Sound.no
 function useTool(x, y, pid) {
   const id = save.tool, L = lvlOf(id) - 1;
   if (id === "finger") {
-    const R = TOOLS.finger.radius[L];
+    const R = TOOLS.finger.radius[L] * RS;
     if (!R) {
       const b = pick(x, y, TOOLS.finger.slop);
       if (b) hit(b, 1, x, y);
@@ -2217,13 +2222,13 @@ function useTool(x, y, pid) {
     const b = pick(x, y, 16);
     if (!b) { ring(x, y, 3, 18, 0.3, PAL.text, 1.5, 0.2); sparks(x, y, 3); Sound.miss(); return; }
     buzz([8, 30, 8]);
-    zapChain(x, y, b, TOOLS.bolt.chains[L], TOOLS.bolt.range[L], 1, false);
+    zapChain(x, y, b, TOOLS.bolt.chains[L], TOOLS.bolt.range[L] * RS, 1, false);
   } else if (id === "meteor") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
     startCd(id, TOOLS.meteor.cooldown[L]);
     const M = TOOLS.meteor, n = M.count[L];
     for (let i = 0; i < n; i++) {
-      const a = rand(0, TAU), d = i ? Math.sqrt(Math.random()) * M.spread[L] : 0;
+      const a = rand(0, TAU), d = i ? Math.sqrt(Math.random()) * M.spread[L] * RS : 0;
       meteors.push({ x: clamp(x + Math.cos(a) * d, 0, W), y: clamp(y + Math.sin(a) * d * 0.8, 0, H), t: -i * 0.11 - rand(0, 0.05), dur: 0.34, dx: rand(0.35, 0.7), hit: false });
     }
     Sound.whoosh();
@@ -2275,7 +2280,7 @@ function sawSprite(R) {
 // La sierra va un poco arriba del dedo en pantallas táctiles (para que se vea)
 const sawLift = (p, R) => (p.touch ? R * 0.55 + 16 : 0);
 function sawTick(p, dt) {
-  const R = TOOLS.saw.radius[lvlOf("saw") - 1];
+  const R = Math.round(Math.max(16, TOOLS.saw.radius[lvlOf("saw") - 1] * RS)); // en el celular nunca más chica que un marcianito
   let s = p.saw;
   if (!s || !saws.includes(s)) { s = p.saw = { p, x: p.x, y: p.y - sawLift(p, R), rot: rand(0, TAU), spin: 14, vx: 0, vy: 0, R, held: true, fade: 1, cutT: 0 }; saws.push(s); }
   s.R = R;
@@ -2369,12 +2374,12 @@ function updateMeteors(dt) {
     m.t += dt;
     if (!m.hit && m.t >= m.dur) {
       m.hit = true;
-      ring(m.x, m.y, 8, M.radius * 1.15, 0.5, "#E8894A", 3, 0.5, 0.12);
+      ring(m.x, m.y, 8, M.radius * RS * 1.15, 0.5, "#E8894A", 3, 0.5, 0.12);
       for (let k = 0; k < 10; k++) { const a = rand(Math.PI, TAU), s = rand(80, 220); part(m.x, m.y, Math.cos(a) * s, Math.sin(a) * s, rand(1.8, 3.4), rand(0.4, 0.7), k % 2 ? "#FFB067" : "#FFE2B8", "dot", 4, 300); }
       for (let k = 0; k < 6; k++) { const a = rand(0, TAU); part(m.x + Math.cos(a) * 20, m.y + Math.sin(a) * 8, Math.cos(a) * 50, -rand(10, 40), rand(4, 7), 0.8, PAL.mist, "mist", 3, 0, 0.3); }
-      splats.push({ x: m.x, y: m.y, rx: M.radius * 0.7, color: "#8A7462", t: 0, dur: 2.2, seed: Math.random() * 10 });
+      splats.push({ x: m.x, y: m.y, rx: M.radius * RS * 0.7, color: "#8A7462", t: 0, dur: 2.2, seed: Math.random() * 10 });
       Sound.meteor(); buzz(14);
-      balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - m.x, b.y - m.y) < M.radius + b.r * 0.5).forEach((b) => hit(b, M.damage, m.x, m.y, true));
+      balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - m.x, b.y - m.y) < M.radius * RS + b.r * 0.5).forEach((b) => hit(b, M.damage, m.x, m.y, true));
     }
     if (m.t > m.dur + 0.05) meteors.splice(i, 1);
   }
@@ -2388,7 +2393,7 @@ const HELPER_MAX = 5;
 // Lugares de inicio (en fracciones del área de juego) antes de que los muevas
 const SPOT0 = [[0.3, 0.45], [0.7, 0.45], [0.5, 0.66], [0.24, 0.8], [0.76, 0.8]];
 const helperKind = () => (save.hmode === "cloud" && save.up.cloud ? "bolt" : "finger");
-const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) : FX.fingerArea(save.up.farea));
+const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) : FX.fingerArea(save.up.farea)) * RS;
 const CLOUD_RATE = 2; // descargas por segundo de cada nube
 const helperRateNow = () => (helperKind() === "bolt" ? CLOUD_RATE : FX.fingerRate(save.up.fspeed));
 // Dónde va cada ayudante en px (dentro del área y nunca en el mar ni en los picos)
@@ -2459,7 +2464,7 @@ function updateHelpers(dt) {
         const d = Math.hypot(b.x - h.x, b.y - h.y);
         if (d < R + b.r * 0.5 && d < bd) { bd = d; best = b; }
       }
-      if (best) { h.press = 1; zapChain(h.x, h.y - HOVER.bolt + 4, best, FX.cloudHits(save.up.cchain) - 1, FX.cloudJump(save.up.cchain), 1, true); }
+      if (best) { h.press = 1; zapChain(h.x, h.y - HOVER.bolt + 4, best, FX.cloudHits(save.up.cchain) - 1, FX.cloudJump(save.up.cchain) * RS, 1, true); }
     }
   }
 }
@@ -3710,7 +3715,7 @@ const fuseTip = (x, y, s = 1) => { const A = HELPER_ART.bomb, k = (BOMB_SIZE / A
 // --- Bombas que pone el jugador: se colocan con un toque y explotan juntas con el botón Detonar
 const bombs = [];
 const bombCap = () => (toolWorld("bomb") <= save.level && save.tools.bomb ? TOOLS.bomb.count[save.tools.bomb - 1] : 0);
-const bombR = () => TOOLS.bomb.radius[Math.max(0, (save.tools.bomb || 1) - 1)];
+const bombR = () => TOOLS.bomb.radius[Math.max(0, (save.tools.bomb || 1) - 1)] * RS;
 function placeBomb(x, y) {
   if (bombs.some((b) => b.lit)) return;
   if (bombs.length >= bombCap()) { notReady(x, y); const d = $("#detonate"); if (d.animate && !reduceMotion) d.animate([{ transform: "translateX(-50%)" }, { transform: "translateX(calc(-50% - 6px))" }, { transform: "translateX(calc(-50% + 6px))" }, { transform: "translateX(-50%)" }], { duration: 260 }); return; }
@@ -3823,7 +3828,7 @@ function updateSky(dt) {
   for (let i = falling.length - 1; i >= 0; i--) {
     const f = falling[i];
     f.t += dt;
-    if (f.t >= f.dur) { falling.splice(i, 1); explode(f.x1, f.y1, JET_R, true); jetClock = FX.jetEvery(save.up.jet); }
+    if (f.t >= f.dur) { falling.splice(i, 1); explode(f.x1, f.y1, JET_R * RS, true); jetClock = FX.jetEvery(save.up.jet); }
   }
 }
 function drawSky() {
@@ -4597,7 +4602,7 @@ function drawCursor(x, y) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else if (id === "saw" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = id === "finger" ? TOOLS.finger.radius[L] : id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() : TOOLS.meteor.spread[L];
+    const R = (id === "finger" ? TOOLS.finger.radius[L] : id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
