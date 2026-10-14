@@ -174,15 +174,44 @@ a { color: inherit; }
 .badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #FF9E55; box-shadow: 0 0 0 2px var(--card); opacity: 0; transform: scale(0.4); transition: opacity 0.3s, transform 0.3s; pointer-events: none; }
 .badge.on { opacity: 1; transform: none; }
 
+/* Fondo vivo: manchas suaves de color del nivel que se mueven muy despacio detrás de todo */
+:root { --amb1: rgba(165, 132, 232, 0.5); --amb2: rgba(107, 203, 155, 0.42); --amb3: rgba(255, 158, 85, 0.4); }
+:root[data-level="beach"] { --amb1: rgba(95, 191, 217, 0.5); --amb2: rgba(255, 205, 90, 0.5); --amb3: rgba(255, 140, 120, 0.38); }
+:root[data-level="snow"] { --amb1: rgba(110, 165, 235, 0.5); --amb2: rgba(175, 155, 240, 0.42); --amb3: rgba(110, 210, 195, 0.36); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --amb1: rgba(124, 92, 224, 0.34); --amb2: rgba(70, 170, 120, 0.22); --amb3: rgba(255, 140, 70, 0.18); }
+  :root[data-level="beach"]:not([data-theme="light"]) { --amb1: rgba(47, 140, 180, 0.34); --amb2: rgba(255, 190, 90, 0.18); --amb3: rgba(255, 120, 100, 0.18); }
+  :root[data-level="snow"]:not([data-theme="light"]) { --amb1: rgba(80, 130, 220, 0.36); --amb2: rgba(150, 120, 230, 0.24); --amb3: rgba(90, 190, 180, 0.18); }
+}
+:root[data-theme="dark"] { --amb1: rgba(124, 92, 224, 0.34); --amb2: rgba(70, 170, 120, 0.22); --amb3: rgba(255, 140, 70, 0.18); }
+:root[data-theme="dark"][data-level="beach"] { --amb1: rgba(47, 140, 180, 0.34); --amb2: rgba(255, 190, 90, 0.18); --amb3: rgba(255, 120, 100, 0.18); }
+:root[data-theme="dark"][data-level="snow"] { --amb1: rgba(80, 130, 220, 0.36); --amb2: rgba(150, 120, 230, 0.24); --amb3: rgba(90, 190, 180, 0.18); }
+body::before {
+  content: ""; position: fixed; inset: -8%; pointer-events: none;
+  /* Casi todo lo tapa el campo: el color vive arriba (detrás del encabezado), en las orillas y abajo */
+  background:
+    radial-gradient(55% 20% at 12% 4%, var(--amb1), transparent 72%),
+    radial-gradient(50% 18% at 92% 6%, var(--amb2), transparent 72%),
+    radial-gradient(30% 40% at 0% 50%, var(--amb3), transparent 72%),
+    radial-gradient(30% 40% at 100% 55%, var(--amb1), transparent 72%),
+    radial-gradient(60% 20% at 12% 98%, var(--amb2), transparent 72%),
+    radial-gradient(55% 22% at 88% 96%, var(--amb3), transparent 72%);
+  animation: ambDrift 26s ease-in-out infinite alternate;
+}
+@keyframes ambDrift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(2.5%, -2%, 0) scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+
 /* El área de juego: un "suelo" claro con un puntito muy sutil, como la superficie de un planeta */
 #field {
   position: relative; flex: 1; min-height: 0; overflow: hidden;
   width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 1076px;
   margin: 0 auto; border-radius: 28px;
+  /* Marco: un borde claro y un halo del color del nivel, como un tablero */
+  --frame: 0 0 0 4px color-mix(in srgb, var(--card) 70%, transparent), 0 0 0 5px color-mix(in srgb, var(--lvl) 22%, transparent), 0 18px 40px -16px color-mix(in srgb, var(--lvl) 50%, transparent);
   background:
     radial-gradient(var(--speck) 1.1px, transparent 1.4px) 0 0 / 22px 22px,
     radial-gradient(120% 90% at 50% 35%, var(--field-hi), var(--field) 70%);
-  box-shadow: inset 0 0 0 1px var(--line);
+  box-shadow: var(--frame), inset 0 0 0 1px var(--line);
 }
 #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 #hint {
@@ -218,13 +247,13 @@ a { color: inherit; }
 #mult-hud b { display: block; width: 100%; height: 100%; border-radius: inherit; background: #F1C84D; transform-origin: left center; }
 #mult-hud.x4 b { background: #A584E8; }
 #field { transition: box-shadow 0.4s ease; }
-#field.boosted { box-shadow: inset 0 0 0 2px rgba(241, 200, 77, 0.7), inset 0 0 40px rgba(241, 200, 77, 0.12); }
-#field.boosted.x4 { box-shadow: inset 0 0 0 2px rgba(165, 132, 232, 0.75), inset 0 0 40px rgba(165, 132, 232, 0.14); }
+#field.boosted { box-shadow: var(--frame), inset 0 0 0 2px rgba(241, 200, 77, 0.7), inset 0 0 40px rgba(241, 200, 77, 0.12); }
+#field.boosted.x4 { box-shadow: var(--frame), inset 0 0 0 2px rgba(165, 132, 232, 0.75), inset 0 0 40px rgba(165, 132, 232, 0.14); }
 
 #tools {
   display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 4px;
   width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 640px;
-  margin: 10px auto calc(env(safe-area-inset-bottom) + 10px); padding: 6px; border-radius: 26px;
+  margin: 14px auto 8px; padding: 6px; border-radius: 26px;
   background: var(--card); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(36, 37, 33, 0.1);
 }
 .tool {
@@ -247,6 +276,30 @@ a { color: inherit; }
 .tool.sel svg { color: #FFFFFF; }
 .tool.locked svg { color: var(--muted); }
 /* Con muchas herramientas la barra se desliza de lado (solo la barra, nunca la pantalla) */
+/* Tienda: botón grande y alegre debajo de las herramientas; cuenta cuántas cosas te alcanzan */
+#btn-shop {
+  position: relative; display: flex; align-items: center; gap: 12px; flex: none; overflow: hidden;
+  width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 640px; height: 58px;
+  margin: 0 auto calc(env(safe-area-inset-bottom) + 10px); padding: 0 14px 0 8px; border: 0; border-radius: 22px; color: #FFFFFF; text-align: left;
+  background: linear-gradient(120deg, #FFB24A 0%, #FF7A59 52%, #F2557A 100%);
+  box-shadow: 0 10px 24px rgba(255, 110, 80, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.14s ease;
+}
+#btn-shop:active { transform: scale(0.98); }
+#btn-shop::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; pointer-events: none; transform: skewX(-18deg);
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.38), transparent); }
+#btn-shop.has::after { animation: shopSheen 4s ease-in-out infinite; }
+@keyframes shopSheen { 0%, 62% { left: -60%; } 100% { left: 130%; } }
+.shop-ic { width: 42px; height: 42px; flex: none; border-radius: 15px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.shop-ic svg { width: 23px; height: 23px; }
+.shop-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.shop-txt b { font-size: 17px; font-weight: 850; letter-spacing: -0.01em; }
+.shop-txt small { font-size: 12.5px; font-weight: 650; opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shop-count { display: none; min-width: 26px; height: 26px; padding: 0 8px; border-radius: 13px; background: #FFFFFF; color: #EF5F3E; font-size: 13.5px; font-weight: 850; font-variant-numeric: tabular-nums; place-items: center; box-shadow: 0 2px 6px rgba(160, 40, 30, 0.25); }
+.shop-count.on { display: inline-grid; }
+.shop-go svg { width: 20px; height: 20px; opacity: 0.85; display: block; }
+@media (max-height: 700px) { #btn-shop { height: 50px; border-radius: 19px; } .shop-ic { width: 36px; height: 36px; border-radius: 13px; } #tools { margin-top: 10px; } }
+@media (prefers-reduced-motion: reduce) { #btn-shop.has::after { animation: none; } }
 #tools.strip { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; touch-action: pan-x; scrollbar-width: none;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); }
 #tools.strip::-webkit-scrollbar { display: none; }
@@ -594,10 +647,6 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
       <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
     </div>
     <div class="actions">
-      <button id="btn-shop" class="pill" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
-        <span data-i18n="shop">Shop</span><i class="badge" id="shop-badge"></i>
-      </button>
       <button id="btn-menu" class="icon-btn" type="button" aria-label="Menu" data-i18n-aria="menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg>
       </button>
@@ -611,6 +660,12 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
     <div id="mult-hud" aria-live="polite"><span id="mult-x">×2</span><i><b id="mult-bar"></b></i></div>
   </main>
   <nav id="tools" aria-label="Tools"></nav>
+  <button id="btn-shop" type="button">
+    <span class="shop-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z" fill="currentColor" fill-opacity=".25"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg></span>
+    <span class="shop-txt"><b data-i18n="shop">Shop</b><small id="shop-sub"></small></span>
+    <span class="shop-count" id="shop-count"></span>
+    <span class="shop-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>
+  </button>
 </div>
 
 <!-- Inicio: el menú de la app -->
@@ -834,7 +889,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.15.7";
+const VERSION = "0.16.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1072,6 +1127,8 @@ const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.strin
 const STR = {
   smushed: ["smushed", "aplastados"],
   shop: ["Shop", "Tienda"],
+  shopSub: ["Tools, helpers & boosts", "Herramientas, ayudantes y mejoras"],
+  shopCan: ["things you can buy", "cosas que puedes comprar"], shopCan1: ["thing you can buy", "cosa que puedes comprar"],
   tabTools: ["Tools", "Herramientas"], tabHelpers: ["Helpers", "Ayudantes"], tabBoosts: ["Boosts", "Mejoras"],
   noteTools: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
   noteHelpers: ["Helpers smush aliens on their own, even while you're away. Use the switch to turn any of them off.", "Los ayudantes aplastan marcianitos solos, incluso cuando no estás. Con el interruptor puedes apagar cualquiera."],
@@ -3637,6 +3694,7 @@ function tweenCoins(dt) {
 let coinBump = false, bumpAnim = null, shopTab = "tools";
 const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p && toolHere(id); };
 const canUp = (k) => { const p = upPrice(k); return p != null && save.coins >= p && upReady(k); };
+let shopShownN = 0;
 function updateUI() {
   uiDirty = false;
   shopCoinsEl.textContent = fmt(save.coins);
@@ -3650,7 +3708,16 @@ function updateUI() {
   // ¿Alcanza para algo? Punto en la Tienda y en cada pestaña
   const tabs = { tools: TOOL_ORDER.some(canTool), helpers: false, boosts: false };
   for (const k of UP_ORDER) if (canUp(k)) tabs[UP[k].tab] = true;
-  $("#shop-badge").classList.toggle("on", tabs.tools || tabs.helpers || tabs.boosts);
+  const canN = TOOL_ORDER.filter(canTool).length + UP_ORDER.filter(canUp).length;
+  const sc = $("#shop-count");
+  if (sc.textContent !== String(canN || "")) {
+    if (canN > shopShownN && !reduceMotion) $(".shop-ic").animate([{ transform: "rotate(0)" }, { transform: "rotate(-12deg) scale(1.08)" }, { transform: "rotate(8deg)" }, { transform: "none" }], { duration: 420, easing: "ease-out" });
+    shopShownN = canN;
+    sc.textContent = canN || "";
+  }
+  sc.classList.toggle("on", canN > 0);
+  $("#btn-shop").classList.toggle("has", canN > 0);
+  $("#shop-sub").textContent = canN ? `${canN} ${tx(canN === 1 ? "shopCan1" : "shopCan")}` : tx("shopSub");
   document.querySelectorAll("#shop-tabs button").forEach((b) => b.querySelector(".badge").classList.toggle("on", tabs[b.dataset.tab] && b.dataset.tab !== shopTab));
   document.querySelectorAll(".tool").forEach((el) => { const p = priceOf(el.dataset.id); el.classList.toggle("can", p != null && save.coins >= p); });
   renderLevelChip();
