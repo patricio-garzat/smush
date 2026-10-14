@@ -958,7 +958,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.30.1";
+const VERSION = "0.30.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1651,7 +1651,7 @@ const Sound = (() => {
     whoosh() { breath({ dur: 0.35, vol: 0.035, from: 1800, to: 500 }); },
     preload(url) { loadClip(url); },
     // Flechas: el "huy huy"
-    huy() { clip("audio/huy.m4a", 0.55); },
+    huy() { clip("audio/huy.m4a", 0.3); },
     // Cambiar de nivel en el Inicio: un soplido y un "uuuh" que baja (se caen de la isla)
     homeSwap() { breath({ dur: 0.45, vol: 0.04, from: 1500, to: 450 }); tone(620, { t: 0.06, dur: 0.5, vol: 0.025, type: "triangle", slide: 0.5, attack: 0.03 }); },
     // El carro: un claxon suavecito y el motor que pasa de lejos a cerca y se va
