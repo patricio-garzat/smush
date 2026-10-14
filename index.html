@@ -395,9 +395,12 @@ a { color: inherit; }
 /* Viaje a un nivel nuevo: la ilustración del mundo llena la pantalla y aparece su nombre */
 #travel { position: fixed; inset: 0; z-index: 190; display: grid; place-items: center; }
 #travel[hidden] { display: none; }
-#travel .lvl-art.big { position: absolute; inset: 0; height: auto; }
-#travel .lvl-art.big img { height: 84px; bottom: 18%; }
-#travel .lvl-art.big img:nth-of-type(2) { height: 62px; }
+#trip-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#travel .mask { display: block; overflow: hidden; padding: 2px 4px 4px; }
+#travel-name { display: block; }
+#travel-line { display: block; width: 46px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, #2FA3C4, #7FD0E3); transform-origin: center; }
+#travel-from { font-size: 12.5px; font-weight: 700; color: #8A8982; }
+#travel-from::before { content: "← "; }
 #travel .travel-text { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 28px; border-radius: 26px; background: rgba(255, 255, 255, 0.82); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18); color: #242521; text-align: center; }
 #travel-kicker { font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6A6A63; }
 #travel-name { font-size: clamp(34px, 11vw, 54px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; }
@@ -591,8 +594,8 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 
 <!-- Viaje a un nivel nuevo -->
 <div id="travel" hidden aria-live="polite">
-  <div class="lvl-art big"></div>
-  <div class="travel-text"><span id="travel-kicker"></span><strong id="travel-name"></strong></div>
+  <canvas id="trip-cv"></canvas>
+  <div class="travel-text"><span id="travel-kicker"></span><span class="mask"><strong id="travel-name"></strong></span><i id="travel-line"></i><span id="travel-from"></span></div>
 </div>
 
 <!-- Confirmación para reiniciar -->
@@ -678,7 +681,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.9.4";
+const VERSION = "0.10.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2108,38 +2111,196 @@ function renderLevels(animate) {
 $("#lvl-chip").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-levels")); });
 $("#levels-list").addEventListener("click", (e) => { if (e.target.closest("[data-travel]")) travel(); });
 
-// Pagar y viajar: la pantalla se llena con el nuevo mundo, se cambia todo por debajo y se vuelve al juego
+// Pagar y viajar: una cinemática de "viaje a otra isla" y, cuando la cámara cae sobre la arena, el juego ya está ahí
 function travel() {
   const n = nextLvl();
   if (!n || save.lvlSmushed < n.smush || save.coins < n.cost) { Sound.nope(); return; }
+  const from = lvl();
   save.coins -= n.cost; save.spent += n.cost;
   save.level++; save.lvlSmushed = 0;
   writeSave();
   closeSheet($("#sheet-levels"));
-  const ov = $("#travel");
-  ov.querySelector(".lvl-art").outerHTML = levelArt(n.id, 0, true);
-  $("#travel-kicker").textContent = `${tx("level")} ${save.level + 1}`;
-  $("#travel-name").textContent = n.name;
-  ov.hidden = false;
-  const text = ov.querySelector(".travel-text");
-  const quick = reduceMotion || !ov.animate;
-  if (!quick) {
-    ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 550, easing: "ease", fill: "both" });
-    text.animate([{ opacity: 0, transform: "translateY(18px) scale(0.97)" }, { opacity: 1, transform: "none" }], { delay: 350, duration: 700, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
-  }
-  Sound.levelUp(); buzz([16, 80, 16, 80, 30]);
-  setTimeout(() => {
+  playTrip(from, n, save.level + 1, () => {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; bolts.length = 0;
     meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     populate();
-  }, quick ? 100 : 700);
-  setTimeout(() => {
-    const done = () => { ov.hidden = true; };
-    if (quick) { done(); return; }
-    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 650, easing: "ease", fill: "both" }).onfinish = done;
-  }, quick ? 1400 : 2900);
+  });
+}
+
+/* Cinemática del viaje (5 s, en su propio canvas):
+   0.0–0.9  despegue: la cámara está pegada a la isla de origen y se aleja hasta ver el mapa
+   0.7–3.0  vuelo: el jet sigue una ruta punteada sobre el mar hasta la isla nueva, con nubes en parallax
+   2.9–4.0  llegada: la cámara cae en picada sobre la arena de la isla nueva; aparece el título
+   4.0–4.8  la arena se funde con el juego, que ya está en el nivel nuevo */
+const TRIP = { len: 4.8, fly: [0.7, 3.0], dive: [2.9, 4.0], fade: 4.0 };
+function playTrip(from, to, num, onSwitch) {
+  const ov = $("#travel"), cvs = $("#trip-cv"), g = cvs.getContext("2d"), card = ov.querySelector(".travel-text");
+  $("#travel-kicker").textContent = `${tx("level")} ${num}`;
+  $("#travel-name").textContent = to.name;
+  $("#travel-from").textContent = from.name;
+  const quick = reduceMotion || !ov.animate;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), vw = window.innerWidth, vh = window.innerHeight;
+  cvs.width = Math.round(vw * dpr); cvs.height = Math.round(vh * dpr);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ov.hidden = false;
+  Sound.unlock(); buzz(10);
+  if (quick) {
+    // Movimiento reducido: un fundido sencillo con el título
+    g.fillStyle = "#F6EBD3"; g.fillRect(0, 0, vw, vh);
+    card.style.opacity = 1;
+    Sound.levelUp();
+    setTimeout(onSwitch, 300);
+    setTimeout(() => { ov.hidden = true; card.style.opacity = ""; }, 1800);
+    return;
+  }
+  // El mapa: islas en coordenadas de mundo; la ruta es una curva suave que sube y baja
+  const unit = Math.min(vw, vh), R = unit * 0.2;
+  const A = { x: 0, y: 0 }, B = { x: unit * 1.55, y: -unit * 0.55 }, C = { x: unit * 0.7, y: -unit * 0.95 };
+  const bez = (u) => ({ x: (1 - u) ** 2 * A.x + 2 * (1 - u) * u * C.x + u * u * B.x, y: (1 - u) ** 2 * A.y + 2 * (1 - u) * u * C.y + u * u * B.y });
+  const clouds = Array.from({ length: 11 }, () => ({ x: rand(-0.3, 1.3), y: rand(-0.2, 1.2), s: rand(0.6, 1.5), z: rand(0.35, 1) }));
+  const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+  const img = (k) => (alienImg[k] ? alienImg[k] : null);
+  let t0 = performance.now(), switched = false, sfx = { jet: false, arrive: false, dive: false };
+  card.style.opacity = 0;
+  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: "ease", fill: "forwards" });
+
+  function island(kind, x, y, r, t) {
+    if (kind === "beach") {
+      // Agua clarita alrededor, arena con orilla ondulada, palmera y dos marcianitos
+      g.fillStyle = "rgba(175,232,244,0.75)"; g.beginPath(); g.arc(x, y, r * 1.32, 0, TAU); g.fill();
+      g.strokeStyle = "rgba(255,255,255,0.8)"; g.lineWidth = r * 0.03;
+      g.beginPath(); for (let i = 0; i <= 60; i++) { const a = (i / 60) * TAU, rr = r * (1.16 + 0.025 * Math.sin(a * 9 + t * 3)); i ? g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.92) : g.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.92); } g.stroke();
+      const sg = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
+      sg.addColorStop(0, "#FFF7E4"); sg.addColorStop(1, "#EED9AE");
+      g.fillStyle = sg; g.beginPath();
+      for (let i = 0; i <= 60; i++) { const a = (i / 60) * TAU, rr = r * (1 + 0.04 * Math.sin(a * 5) + 0.02 * Math.sin(a * 11)); i ? g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.9) : g.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.9); }
+      g.closePath(); g.fill();
+      // Palmera
+      const px = x + r * 0.35, py = y - r * 0.05, sway = Math.sin(t * 1.6) * 0.06;
+      g.strokeStyle = "#A07A4C"; g.lineWidth = r * 0.07; g.lineCap = "round";
+      g.beginPath(); g.moveTo(px, py + r * 0.3); g.quadraticCurveTo(px + r * 0.12, py, px + r * 0.05, py - r * 0.3); g.stroke();
+      g.fillStyle = "#4CB782";
+      for (let i = 0; i < 6; i++) { g.save(); g.translate(px + r * 0.05, py - r * 0.3); g.rotate((i / 6) * TAU + sway); g.beginPath(); g.ellipse(r * 0.17, 0, r * 0.18, r * 0.06, 0.25, 0, TAU); g.fill(); g.restore(); }
+      for (const [k, dx, dy, s] of [["orange", -0.38, 0.12, 0.26], ["yellow", -0.05, 0.38, 0.24]]) {
+        const im = img(k); if (!im) continue;
+        const w = r * s * (im.width / im.height), hgt = r * s, bob = Math.abs(Math.sin(t * 5 + dx * 9)) * r * 0.02;
+        g.drawImage(im, x + r * dx - w / 2, y + r * dy - hgt - bob, w, hgt);
+      }
+    } else {
+      // Isla flotante del vacío: roca morada con borde brillante y chispitas alrededor
+      const glow = g.createRadialGradient(x, y, r * 0.6, x, y, r * 1.7);
+      glow.addColorStop(0, "rgba(124,92,224,0.45)"); glow.addColorStop(1, "rgba(124,92,224,0)");
+      g.fillStyle = glow; g.beginPath(); g.arc(x, y, r * 1.7, 0, TAU); g.fill();
+      const rg = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
+      rg.addColorStop(0, "#6B58B8"); rg.addColorStop(1, "#2A2350");
+      g.fillStyle = rg; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+      g.strokeStyle = "rgba(200,185,255,0.6)"; g.lineWidth = r * 0.025; g.beginPath(); g.arc(x, y, r * 0.98, Math.PI * 1.1, Math.PI * 1.8); g.stroke();
+      g.fillStyle = "#FFFFFF";
+      for (let i = 0; i < 10; i++) { const a = i * 2.4 + t * 0.4, d = r * (1.15 + (i % 3) * 0.12); g.globalAlpha = 0.4 + 0.4 * Math.sin(t * 3 + i); g.beginPath(); g.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, r * 0.012 * (1 + (i % 2)), 0, TAU); g.fill(); }
+      g.globalAlpha = 1;
+      for (const [k, dx, dy, s] of [["green", -0.3, 0.2, 0.3], ["purple", 0.22, 0.32, 0.36]]) {
+        const im = img(k); if (!im) continue;
+        const w = r * s * (im.width / im.height), hgt = r * s;
+        g.drawImage(im, x + r * dx - w / 2, y + r * dy - hgt, w, hgt);
+      }
+    }
+  }
+  function label(text, x, y, zoom, alpha) {
+    if (alpha <= 0) return;
+    g.save(); g.globalAlpha = alpha;
+    g.font = `800 ${14 / Math.max(0.6, zoom)}px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif`;
+    const w = g.measureText(text).width + 22 / zoom, h = 26 / zoom;
+    g.fillStyle = "rgba(255,255,255,0.92)"; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, h / 2); g.fill();
+    g.fillStyle = "#242521"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, x, y + 0.5 / zoom);
+    g.restore();
+  }
+  function frame(now) {
+    const t = (now - t0) / 1000;
+    // --- La cámara: despega de la isla de origen, sigue al jet y cae en picada sobre la isla nueva
+    const pFly = ease(seg(t, TRIP.fly[0], TRIP.fly[1])), pDive = seg(t, TRIP.dive[0], TRIP.dive[1]);
+    const plane = bez(pFly);
+    const lift = ease(seg(t, 0, 0.9));
+    let zoom = 2.8 + (0.82 - 2.8) * lift;
+    zoom *= 1 - 0.04 * Math.sin(seg(t, 0.9, 2.9) * Math.PI);
+    zoom = zoom + (6 - zoom) * Math.pow(pDive, 2.4);
+    const follow = ease(seg(t, 0.6, 3.1));
+    let cx = A.x + (B.x - A.x) * follow, cy = A.y + (B.y - A.y) * follow;
+    cx += (plane.x - cx) * 0.35 * Math.sin(follow * Math.PI); cy += (plane.y - cy) * 0.35 * Math.sin(follow * Math.PI);
+    // --- Fondo: el mar, con un degradado de profundidad
+    const sea = g.createLinearGradient(0, 0, 0, vh);
+    sea.addColorStop(0, "#2B6C93"); sea.addColorStop(1, "#4AAFCF");
+    g.globalAlpha = 1; g.fillStyle = sea; g.fillRect(0, 0, vw, vh);
+    g.save();
+    g.translate(vw / 2, vh / 2); g.scale(zoom, zoom); g.translate(-cx, -cy);
+    // Olitas del mar que se mueven
+    g.strokeStyle = "rgba(255,255,255,0.18)"; g.lineWidth = 2 / zoom; g.lineCap = "round";
+    const step = unit * 0.22, x0 = Math.floor((cx - vw / zoom) / step) * step, y0 = Math.floor((cy - vh / zoom) / step) * step;
+    for (let gx = x0; gx < cx + vw / zoom; gx += step) for (let gy = y0; gy < cy + vh / zoom; gy += step) {
+      const ox = ((gx * 7.3 + gy * 3.1) % step + step) % step * 0.5, wx = gx + ox + Math.sin(t * 1.2 + gy) * step * 0.08, wy = gy + ((gx * 1.7) % step + step) % step * 0.4;
+      g.beginPath(); g.moveTo(wx, wy); g.quadraticCurveTo(wx + step * 0.06, wy - step * 0.04, wx + step * 0.12, wy); g.quadraticCurveTo(wx + step * 0.18, wy + step * 0.04, wx + step * 0.24, wy); g.stroke();
+    }
+    // Ruta punteada que se dibuja detrás del jet
+    if (pFly > 0) {
+      g.setLineDash([12 / zoom * 1.4, 10 / zoom * 1.4]); g.strokeStyle = "rgba(255,255,255,0.85)"; g.lineWidth = 3.2 / zoom;
+      g.lineDashOffset = -t * 30 / zoom;
+      g.beginPath(); for (let i = 0; i <= 50; i++) { const q = bez((i / 50) * pFly); i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); } g.stroke();
+      g.setLineDash([]);
+    }
+    island(from.id, A.x, A.y, R, t);
+    island(to.id, B.x, B.y, R * 1.08, t);
+    const lab = seg(t, 0.7, 1.1) * (1 - seg(t, 2.7, 3.0));
+    label(from.name, A.x, A.y + R * 1.5, zoom, lab);
+    label(to.name, B.x, B.y + R * 1.55, zoom, lab);
+    // El jet: despega chiquito, va inclinado según la curva y al llegar baja y se desvanece
+    const jetImg = helperSpr.jet, JA = HELPER_ART.jet;
+    if (jetImg && t > TRIP.fly[0] - 0.1 && t < TRIP.fly[1] + 0.35) {
+      const ahead = bez(Math.min(1, pFly + 0.01)), ang = Math.atan2(ahead.y - plane.y, ahead.x - plane.x) || -0.4;
+      const appear = seg(t, TRIP.fly[0] - 0.1, TRIP.fly[0] + 0.3), land = seg(t, TRIP.fly[1], TRIP.fly[1] + 0.35);
+      const size = unit * 0.32 * (0.6 + 0.4 * appear) * (1 - 0.6 * land), alt = Math.sin(pFly * Math.PI) * unit * 0.08;
+      g.globalAlpha = 0.18 * appear * (1 - land); g.fillStyle = "#000000";
+      g.save(); g.translate(plane.x + alt * 0.6, plane.y + alt); g.rotate(ang); g.beginPath(); g.ellipse(0, 0, size * 0.42, size * 0.2, 0, 0, TAU); g.fill(); g.restore();
+      g.globalAlpha = appear * (1 - land);
+      g.save(); g.translate(plane.x, plane.y); g.rotate(ang);
+      const s = size / JA.w; g.drawImage(jetImg, -JA.w * s / 2, -JA.h * s / 2, JA.w * s, JA.h * s);
+      g.restore();
+    }
+    g.restore();
+    // --- Nubes en primer plano (parallax): pasan rápido y en la picada se abren hacia los lados
+    g.globalAlpha = 1;
+    for (const c of clouds) {
+      const par = c.z * 1.6, sx = ((c.x - (cx / unit) * par * 0.35) % 1.6 + 1.6) % 1.6 - 0.3, sy = ((c.y - (cy / unit) * par * 0.35) % 1.4 + 1.4) % 1.4 - 0.2;
+      let x = sx * vw, y = sy * vh;
+      const spread = Math.pow(pDive, 1.6) * 1.8;
+      x += (x - vw / 2) * spread; y += (y - vh / 2) * spread;
+      const r = unit * 0.09 * c.s * (1 + spread * 1.2) * (0.7 + c.z * 0.5);
+      g.globalAlpha = (0.45 + 0.35 * c.z) * seg(t, 0.4, 1.2) * (1 - seg(t, 3.6, 4.0));
+      g.fillStyle = "#FFFFFF";
+      g.beginPath(); g.arc(x, y, r, 0, TAU); g.arc(x + r * 0.9, y + r * 0.15, r * 0.75, 0, TAU); g.arc(x - r * 0.9, y + r * 0.2, r * 0.7, 0, TAU); g.fill();
+    }
+    g.globalAlpha = 1;
+    // --- La arena llena la pantalla al final de la picada (se funde con el juego)
+    const sandK = seg(t, 3.55, 4.0);
+    if (sandK > 0) { g.globalAlpha = sandK; g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#FCFAF5"; g.fillRect(0, 0, vw, vh); g.globalAlpha = 1; }
+    // --- Sonido y vibración en los momentos clave
+    if (!sfx.jet && t > TRIP.fly[0]) { sfx.jet = true; Sound.jet(); buzz([8, 40, 8]); }
+    if (!sfx.dive && t > TRIP.dive[0]) { sfx.dive = true; Sound.whoosh(); showCard(); }
+    if (!sfx.arrive && t > 3.35) { sfx.arrive = true; Sound.levelUp(); buzz([16, 80, 16, 80, 30]); }
+    if (!switched && t > TRIP.fade) { switched = true; onSwitch(); ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 800, easing: "ease", fill: "forwards" }).onfinish = () => { ov.hidden = true; ov.getAnimations().forEach((a) => a.cancel()); card.style.opacity = ""; }; }
+    if (t < TRIP.len) requestAnimationFrame(frame);
+  }
+  // Título: "Nivel 2" se acomoda con el espaciado de letras y el nombre sube desde una máscara
+  function showCard() {
+    card.style.opacity = 1;
+    card.animate([{ opacity: 0, transform: "translateY(14px) scale(0.96)" }, { opacity: 1, transform: "none" }], { duration: 650, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
+    $("#travel-kicker").animate([{ letterSpacing: "0.5em", opacity: 0 }, { letterSpacing: "0.14em", opacity: 1 }], { duration: 900, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
+    $("#travel-name").animate([{ transform: "translateY(105%)" }, { transform: "none" }], { delay: 120, duration: 700, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
+    $("#travel-line").animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], { delay: 260, duration: 700, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
+    $("#travel-from").animate([{ opacity: 0 }, { opacity: 1 }], { delay: 380, duration: 500, fill: "both" });
+  }
+  requestAnimationFrame(frame);
 }
 
 // Fondo de cada mundo: The Void tiene estrellas que titilan (y una fugaz de vez en cuando);
