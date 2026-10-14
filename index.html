@@ -968,7 +968,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.34.0";
+const VERSION = "0.34.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1883,7 +1883,7 @@ function readPalette() {
   PAL.onDark = v("--field-dark") === "1"; // el piso es oscuro (tema oscuro)
   PAL.text = PAL.onDark ? v("--text") : "#242521"; PAL.mist = v("--mist");
   const lv = document.documentElement.dataset.level;
-  PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : lv === "snow" ? "rgba(60,95,150,0.15)" : lv === "city" ? "rgba(20,24,36,0.26)" : lv === "jungle" ? "rgba(25,55,30,0.2)" : "rgba(60,52,30,0.13)";
+  PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : lv === "snow" ? "rgba(60,95,150,0.15)" : lv === "city" ? "rgba(20,24,36,0.26)" : lv === "jungle" ? "rgba(20,48,25,0.3)" : lv === "void" ? "rgba(60,40,140,0.2)" : "rgba(80,58,25,0.17)";
   PAL.boltCore = PAL.onDark ? "rgba(255,255,255," : "rgba(84,116,214,";
   PAL.boltGlow = PAL.onDark ? "rgba(150,178,255," : "rgba(126,160,242,";
   PAL.finger = PAL.dark ? "#E8E5DE" : "#FFFFFF";
@@ -1918,16 +1918,31 @@ function loadArt() {
 // después solo se copia, así va fluido en el iPhone.
 const RES = 1.3; // un poco más de resolución para que se vea nítido al aplastarse
 // Un marcianito (o su traje) pintado a la resolución de la pantalla, con su silueta blanca para el destello
-function alienSprite(A, img, r) {
+// Contraste: en los pisos claros donde se pierden (verdes en la selva, morados en la luna lila, amarillos en la arena,
+// el yeti en la nieve) llevan un contorno delgado del tono oscuro de su propio color, como calcomanía
+const OUTLINE_COL = { green: "#1E6F52", orange: "#A9441C", purple: "#47309A", yellow: "#94660A", purpleYeti: "#4D7CA6" };
+const needOutline = () => !PAL.dark && ["void", "beach", "snow", "jungle"].includes(lvl().id);
+function alienSprite(A, img, r, key) {
   const [vx, vy, vw, vh] = A.vb, [bx, by, bw, bh] = A.body;
   const s = (2 * r) / ((bw + bh) / 2); // el cuerpo mide 2r
-  const w = vw * s, h = vh * s;
-  const S = { w, h, cx: (bx + bw / 2 - vx) * s, cy: (by + bh / 2 - vy) * s, ground: (vh - A.pad) * s };
+  const ol = img && key && OUTLINE_COL[key] && needOutline() ? clamp(r * 0.085, 1.2, 2) : 0, P = ol ? ol + 1 : 0;
+  const w = vw * s + P * 2, h = vh * s + P * 2;
+  const S = { w, h, cx: (bx + bw / 2 - vx) * s + P, cy: (by + bh / 2 - vy) * s + P, ground: (vh - A.pad) * s + P };
   if (img) {
     const c = document.createElement("canvas");
     c.width = Math.ceil(w * DPR * RES); c.height = Math.ceil(h * DPR * RES);
-    const g = c.getContext("2d");
-    g.drawImage(img, 0, 0, c.width, c.height);
+    const g = c.getContext("2d"), k = DPR * RES, pp = P * k;
+    if (ol) {
+      // La silueta del color del contorno, corrida en un círculo alrededor, y encima el dibujo
+      const sil = document.createElement("canvas"); sil.width = c.width; sil.height = c.height;
+      const gs = sil.getContext("2d");
+      gs.drawImage(img, pp, pp, c.width - pp * 2, c.height - pp * 2); gs.globalCompositeOperation = "source-in"; gs.fillStyle = OUTLINE_COL[key]; gs.fillRect(0, 0, sil.width, sil.height);
+      const ring = document.createElement("canvas"); ring.width = c.width; ring.height = c.height;
+      const gr = ring.getContext("2d"), d = ol * k;
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU; gr.drawImage(sil, Math.cos(a) * d, Math.sin(a) * d); }
+      g.globalAlpha = 0.85; g.drawImage(ring, 0, 0); g.globalAlpha = 1;
+    }
+    g.drawImage(img, pp, pp, c.width - pp * 2, c.height - pp * 2);
     const f = document.createElement("canvas");
     f.width = c.width; f.height = c.height;
     const gf = f.getContext("2d");
@@ -1938,14 +1953,14 @@ function alienSprite(A, img, r) {
 }
 function buildSprites() {
   for (const k of TYPE_ORDER) {
-    const T = BALL_TYPES[k], S = alienSprite(ALIENS[k], alienImg[k], T.r);
+    const T = BALL_TYPES[k], S = alienSprite(ALIENS[k], alienImg[k], T.r, k);
     T.top = S.cy * 0.82;                       // de centro del cuerpo a la punta de las antenas
     T.bottom = S.ground - S.cy;                // de centro del cuerpo a los pies
     T.side = Math.max(S.cx, S.w - S.cx) * 0.85; // ancho a cada lado (sirve volteado o no)
     T.spr = S;
   }
   // Trajes (mismo tamaño de cuerpo que su marcianito)
-  for (const k in SKIN_BASE) SKIN_SPR[k] = alienSprite(ALIENS[k], alienImg[k], BALL_TYPES[SKIN_BASE[k]].r);
+  for (const k in SKIN_BASE) SKIN_SPR[k] = alienSprite(ALIENS[k], alienImg[k], BALL_TYPES[SKIN_BASE[k]].r, k);
   // Ayudantes: guante, bota y nube
   for (const k of Object.keys(HELPER_ART)) {
     const A = HELPER_ART[k], img = helperImg[k];
