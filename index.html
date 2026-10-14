@@ -19,6 +19,8 @@
     var dark = t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
     var root = document.documentElement;
     if (t !== "auto") root.dataset.theme = t;
+    // El nivel guardado decide el tema del mundo (The Void, The Beach…)
+    try { if ((JSON.parse(localStorage.getItem("smush-save-v1") || "{}").level | 0) === 1) root.dataset.level = "beach"; } catch (e) {}
     // Dentro de la app de iOS (Capacitor) la intro de BluBer arranca en blanco desde la pantalla de carga
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
       root.classList.add("native", "studio-paper");
@@ -76,6 +78,17 @@
   --is-dark: 1; color-scheme: dark;
 }
 
+/* Tema de The Beach (nivel 2): arena, mar y cielo cálido. De noche (tema oscuro), playa de luna */
+:root { --lvl: #7C5CE0; --lvl-soft: rgba(124, 92, 224, 0.14); }
+:root[data-level="beach"] {
+  --bg: #FAF6EE; --field: #EEDCB7; --field-hi: #F8EDD4; --speck: rgba(160, 120, 60, 0.11);
+  --lvl: #2FA3C4; --lvl-soft: rgba(47, 163, 196, 0.14); --mist: #B7A68A;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1A1915; --field: #37301F; --field-hi: #433A27; --speck: rgba(255, 230, 180, 0.05); --mist: #CFC3A8; }
+}
+:root[data-level="beach"][data-theme="dark"] { --bg: #1A1915; --field: #37301F; --field-hi: #433A27; --speck: rgba(255, 230, 180, 0.05); --mist: #CFC3A8; }
+
 /* ============================================================
    Base: sin zoom, sin selección, sin scroll de la página
    ============================================================ */
@@ -110,7 +123,22 @@ a { color: inherit; }
 .coins .coin { font-size: 20px; }
 #coins { display: inline-block; transform-origin: left center; }
 .sub { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-#rate { display: none; align-items: center; gap: 4px; padding: 1px 7px 1px 5px; border-radius: 9px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12px; font-weight: 750; }
+/* Chip del nivel: nombre, progreso hacia el siguiente y un anillito */
+#lvl-chip {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 4px; border: 0; border-radius: 11px;
+  background: var(--card); box-shadow: var(--shadow); color: var(--text); font-size: 12.5px; font-weight: 750; white-space: nowrap;
+  transition: transform 0.14s ease, box-shadow 0.3s ease;
+}
+#lvl-chip:active { transform: scale(0.96); }
+#lvl-chip .ring { width: 16px; height: 16px; transform: rotate(-90deg); }
+#lvl-chip .ring circle { fill: none; stroke-width: 3; }
+#lvl-chip .ring .bg { stroke: var(--field); }
+#lvl-chip .ring .fg { stroke: var(--lvl); stroke-linecap: round; stroke-dasharray: 50.27; stroke-dashoffset: 50.27; transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 0.8, 0.24, 1); }
+#lvl-prog { color: var(--muted); font-weight: 650; }
+#lvl-chip .badge { top: -2px; right: -2px; background: var(--lvl); }
+#lvl-chip.ready { animation: chipGlow 2.4s ease-in-out infinite; }
+@keyframes chipGlow { 0%, 100% { box-shadow: var(--shadow), 0 0 0 0 var(--lvl-soft); } 50% { box-shadow: var(--shadow), 0 0 0 5px var(--lvl-soft); } }
+#rate { display: none; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 6px; border-radius: 11px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12px; font-weight: 750; }
 #rate.on { display: inline-flex; }
 #rate svg { width: 12px; height: 12px; }
 .actions { display: flex; align-items: center; gap: 8px; }
@@ -179,6 +207,11 @@ a { color: inherit; }
 .tool.locked .price { display: flex; }
 .tool.locked.can .price { color: var(--text); }
 .tool.sel { background: var(--accent); color: var(--on-accent); }
+/* Con muchas herramientas la barra se desliza de lado (solo la barra, nunca la pantalla) */
+#tools.strip { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; touch-action: pan-x; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); }
+#tools.strip::-webkit-scrollbar { display: none; }
+#tools.strip .tool { flex: 0 0 48px; scroll-snap-align: center; }
 #tools.compact { gap: 6px; }
 #tools.compact .tool { height: 64px; border-radius: 18px; }
 #tools.compact .tool .name { display: none; }
@@ -239,6 +272,13 @@ a { color: inherit; }
   transition: box-shadow 0.4s ease;
 }
 .item.flash { box-shadow: var(--shadow), 0 0 0 2px var(--on); }
+/* Las tarjetas entran una tras otra al abrir la Tienda o cambiar de pestaña */
+.enter > * { animation: cardIn 0.42s cubic-bezier(0.22, 0.8, 0.24, 1) both; animation-delay: calc(var(--i, 0) * 40ms); }
+@keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.item.world .ic { background: linear-gradient(160deg, #9EDCF0, #F4E3BF); color: #2B5E73; }
+.item .tag { padding: 2px 7px; border-radius: 8px; background: linear-gradient(135deg, #2FA3C4, #7FD0E3); color: #FFFFFF; font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; }
+.item.locked-world { opacity: 0.75; }
+.buy .lock { width: 12px; height: 12px; }
 .item .ic { width: 50px; height: 50px; border-radius: 15px; background: var(--field); display: grid; place-items: center; }
 .item .ic svg { width: 26px; height: 26px; }
 .item .ic img { max-width: 36px; max-height: 36px; }
@@ -260,6 +300,66 @@ a { color: inherit; }
 .buy .cost .coin { font-size: 11px; }
 .buy:disabled { background: var(--field); color: var(--muted); cursor: default; }
 .buy.max { background: transparent; color: var(--muted); }
+
+/* Niveles: tarjetas con una ilustración animada de cada mundo */
+.lvl-card { margin-bottom: 12px; border-radius: 22px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
+.lvl-card.locked .lvl-art { filter: saturate(0.55) brightness(0.92); }
+.lvl-art { position: relative; height: 116px; overflow: hidden; }
+.lvl-art .num { position: absolute; left: 14px; top: 12px; padding: 3px 9px; border-radius: 10px; background: rgba(255, 255, 255, 0.85); color: #242521; font-size: 11.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.lvl-art img { position: absolute; bottom: 10px; height: 46px; animation: artWalk 3.2s ease-in-out infinite; }
+.lvl-art img:nth-of-type(2) { height: 34px; animation-delay: -1.6s; }
+@keyframes artWalk { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
+.lvl-art.void { background: radial-gradient(80% 120% at 75% 10%, rgba(124, 92, 224, 0.55), transparent 60%), linear-gradient(165deg, #1C1A2E, #2E2652 70%, #3A2F68); }
+.lvl-art.void::before, .lvl-art.void::after {
+  content: ""; position: absolute; inset: 0; background-image:
+    radial-gradient(1.2px 1.2px at 12% 30%, #fff, transparent), radial-gradient(1px 1px at 32% 70%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 58% 22%, #fff, transparent), radial-gradient(1px 1px at 82% 55%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 92% 18%, #fff, transparent), radial-gradient(1px 1px at 46% 48%, #fff, transparent);
+  animation: twinkle 3s ease-in-out infinite;
+}
+.lvl-art.void::after { transform: translate(7%, 12%) scale(1.2); animation-delay: -1.5s; opacity: 0.7; }
+@keyframes twinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.lvl-art.void img:nth-of-type(1) { left: 22%; } .lvl-art.void img:nth-of-type(2) { left: 52%; }
+.lvl-art.beach { background: linear-gradient(180deg, #A8E0F1 0%, #CDEFF7 34%, #4FB7D3 34%, #63C3DC 52%, #F4E3BF 52%, #EBD3A3 100%); }
+.lvl-art.beach::before { content: ""; position: absolute; right: 16%; top: 10px; width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle, #FFF6CF, #FFD66B 60%, rgba(255, 214, 107, 0) 72%); animation: sunPulse 3.6s ease-in-out infinite; }
+.lvl-art.beach::after {
+  content: ""; position: absolute; left: -40px; right: -40px; top: calc(52% - 7px); height: 14px; animation: shore 4s ease-in-out infinite alternate;
+  background: radial-gradient(15px 4.5px at 14px 7px, rgba(255, 255, 255, 0.8) 96%, transparent) 0 0 / 28px 14px repeat-x; filter: blur(0.6px);
+}
+@keyframes sunPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes shore { from { transform: translateX(0); } to { transform: translateX(28px); } }
+.lvl-art.beach img:nth-of-type(1) { left: 20%; } .lvl-art.beach img:nth-of-type(2) { left: 54%; }
+.lvl-art.soon { background: repeating-linear-gradient(135deg, var(--field) 0 12px, var(--field-hi) 12px 24px); display: grid; place-items: center; height: 80px; }
+.lvl-art.soon span { font-size: 26px; font-weight: 900; color: var(--muted); letter-spacing: 0.1em; }
+.lvl-body { padding: 14px 16px 16px; }
+.lvl-body h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 850; letter-spacing: -0.01em; }
+.lvl-body p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.4; font-weight: 550; color: var(--muted); }
+.lvl-status { padding: 2px 8px; border-radius: 9px; background: var(--lvl-soft); color: var(--lvl); font-size: 11px; font-weight: 800; }
+.lvl-status.done { background: rgba(107, 203, 155, 0.16); color: #3E9E70; }
+.lvl-status.lock { background: var(--field); color: var(--muted); }
+.req { margin-top: 12px; display: grid; gap: 10px; }
+.req-row { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 10px; font-size: 14px; font-weight: 650; }
+.req-row .chk { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--field); color: var(--muted); }
+.req-row.ok .chk { background: #6BCB9B; color: #FFFFFF; }
+.req-row .chk svg { width: 12px; height: 12px; }
+.req-row .v { color: var(--muted); font-weight: 650; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; }
+.req-row .v .coin { font-size: 12px; }
+.bar { grid-column: 2 / 4; height: 6px; margin-top: -4px; border-radius: 3px; background: var(--field); overflow: hidden; }
+.bar b { display: block; height: 100%; border-radius: inherit; background: var(--lvl); transform-origin: left center; transition: transform 0.6s cubic-bezier(0.22, 0.8, 0.24, 1); }
+.travel-btn { width: 100%; height: 48px; margin-top: 14px; border: 0; border-radius: 16px; background: var(--accent); color: var(--on-accent); font-size: 15.5px; font-weight: 800; transition: transform 0.14s, background-color 0.25s, color 0.25s; }
+.travel-btn:active:not(:disabled) { transform: scale(0.98); }
+.travel-btn:disabled { background: var(--field); color: var(--muted); cursor: default; }
+.travel-btn.go { background: linear-gradient(135deg, #2FA3C4, #57C1DA); color: #FFFFFF; box-shadow: 0 6px 18px rgba(47, 163, 196, 0.3); }
+
+/* Viaje a un nivel nuevo: la ilustración del mundo llena la pantalla y aparece su nombre */
+#travel { position: fixed; inset: 0; z-index: 190; display: grid; place-items: center; }
+#travel[hidden] { display: none; }
+#travel .lvl-art.big { position: absolute; inset: 0; height: auto; }
+#travel .lvl-art.big img { height: 84px; bottom: 18%; }
+#travel .lvl-art.big img:nth-of-type(2) { height: 62px; }
+#travel .travel-text { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 28px; border-radius: 26px; background: rgba(255, 255, 255, 0.82); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18); color: #242521; text-align: center; }
+#travel-kicker { font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6A6A63; }
+#travel-name { font-size: clamp(34px, 11vw, 54px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; }
 
 /* Ajustes: lista estilo iOS */
 .group-title { margin: 6px 6px 8px; font-size: 12.5px; font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
@@ -340,7 +440,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   <header id="top">
     <div class="wallet">
       <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
-      <div class="sub"><span><span id="smushed">0</span> <span data-i18n="smushed">smushed</span></span><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
+      <div class="sub"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
     </div>
     <div class="actions">
       <button id="btn-shop" class="pill" type="button">
@@ -410,7 +510,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 
       <div class="group-title" data-i18n="howTo">How to play</div>
       <div class="group">
-        <ul class="how"><li data-i18n="how1"></li><li data-i18n="how2"></li><li data-i18n="how3"></li><li data-i18n="how4"></li><li data-i18n="how5"></li><li data-i18n="how6"></li></ul>
+        <ul class="how"><li data-i18n="how1"></li><li data-i18n="how2"></li><li data-i18n="how3"></li><li data-i18n="how4"></li><li data-i18n="how5"></li><li data-i18n="how6"></li><li data-i18n="how7"></li></ul>
       </div>
 
       <div class="group-title" data-i18n="data">Data</div>
@@ -425,6 +525,28 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
       <p class="foot">SMUSH! · <span data-i18n="by">by BluBer Games</span></p>
     </div>
   </section>
+</div>
+
+<!-- Niveles -->
+<div id="sheet-levels" class="sheet" hidden>
+  <div class="scrim" data-close></div>
+  <section class="panel" role="dialog" aria-modal="true" aria-labelledby="levels-title">
+    <div class="grab"></div>
+    <div class="panel-head">
+      <h2 id="levels-title" data-i18n="levels">Levels</h2>
+      <div class="actions">
+        <div class="coins"><span class="coin"></span><span id="levels-coins">0</span></div>
+        <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+      </div>
+    </div>
+    <div class="panel-body"><div id="levels-list"></div></div>
+  </section>
+</div>
+
+<!-- Viaje a un nivel nuevo -->
+<div id="travel" hidden aria-live="polite">
+  <div class="lvl-art big"></div>
+  <div class="travel-text"><span id="travel-kicker"></span><strong id="travel-name"></strong></div>
 </div>
 
 <!-- Confirmación para reiniciar -->
@@ -510,7 +632,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.5.1";
+const VERSION = "0.6.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -522,6 +644,16 @@ const BALL_TYPES = {
   yellow: { color: "#F1C84D", r: 17, speed: 58, hp: 1, reward: 25, weight: 3,  pitch: 392 },
 };
 const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
+for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia en el celular (PHONE_SCALE)
+
+// Niveles: cada uno con su tema (colores y fondo animado), su multiplicador de monedas y sus herramientas.
+// Para pasar al siguiente: aplastar "smush" marcianitos en el nivel actual y luego pagar "cost" monedas.
+const LEVELS = [
+  { id: "void",  name: "The Void",  coinMult: 1 },
+  { id: "beach", name: "The Beach", coinMult: 2, smush: 5000, cost: 10000 },
+];
+// En pantallas angostas (celular) los marcianitos se ven un poco más chicos
+const PHONE_SCALE = 0.82, PHONE_WIDTH = 520;
 
 // Aparición: entre 12 y 20 marcianitos según el tamaño del área y el rendimiento (más con "Planeta lleno").
 // La mayoría aparece en medio (como antes) y otros entran caminando por las orillas; si nadie los aplasta, se van.
@@ -545,10 +677,14 @@ const TOOLS = {
   // Herramientas premium: mucho más caras, mucho más poderosas
   laser:  { price: 4000,  upgrades: [8000, 16000],  width: [18, 24, 32], damage: [2, 2, 3], tick: 0.2 },        // arrastra el dedo
   vortex: { price: 8000,  upgrades: [15000, 30000], radius: [110, 140, 170], cooldown: [2.4, 1.9, 1.4], life: 1.5 }, // se los traga
+  // Herramientas de The Beach (nivel 2): world = nivel en el que se desbloquean (0 = The Void)
+  sun:    { price: 15000, upgrades: [30000, 60000], world: 1, radius: [70, 85, 100], interval: [0.2, 0.16, 0.12], damage: 2 }, // mantén y mueve
+  wave:   { price: 30000, upgrades: [60000, 120000], world: 1, damage: [3, 4, 5], cooldown: [8, 6.5, 5], dur: 1.3 },          // barre la pantalla
   meteor: { price: 15000, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
 };
-const TOOL_ORDER = ["finger", "boot", "spray", "bolt", "laser", "vortex", "meteor"];
+const TOOL_ORDER = ["finger", "boot", "spray", "bolt", "laser", "vortex", "meteor", "sun", "wave"];
 const PREMIUM = new Set(["laser", "vortex", "meteor"]);
+const toolWorld = (id) => TOOLS[id].world || 0;
 
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
 const UP = {
@@ -603,6 +739,9 @@ const ICONS = {
   laser:  svgI('<path d="M3 20 20 3"/><path d="M14.5 3H20v5.5" opacity=".45"/><circle cx="4.5" cy="18.5" r="2" fill="currentColor" stroke="none"/>'),
   vortex: svgI('<path d="M12 12a2 2 0 1 1 2-2"/><path d="M14 10a4.5 4.5 0 1 1-4.5-4.5"/><path d="M9.5 5.5A7.5 7.5 0 1 1 3.4 9.3"/><path d="M3.4 9.3A10 10 0 0 1 12 2"/>'),
   meteor: svgI('<circle cx="15" cy="15" r="5"/><path d="M11.5 11.5 4 4M14.5 9.5 10 3M9.5 14.5 3 10"/>'),
+  sun:    svgI('<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/>'),
+  wave:   svgI('<path d="M2.5 16c2.2 0 2.2-1.6 4.4-1.6s2.2 1.6 4.4 1.6 2.2-1.6 4.4-1.6 2.2 1.6 4.4 1.6"/><path d="M3 11.5c1.2-4.4 5-6.8 9.4-6 3.2.6 4.6 3.2 3.4 5.2-1 1.6-3.4 1.6-4.1.1"/><path d="M2.5 20c2.2 0 2.2-1.4 4.4-1.4s2.2 1.4 4.4 1.4 2.2-1.4 4.4-1.4 2.2 1.4 4.4 1.4" opacity=".45"/>'),
+  levels: svgI('<path d="M4 20 9 9l4 6 3-4 4 9z"/><circle cx="16.5" cy="6" r="2"/>'),
   bootH:  svgI('<path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14"/>'),
   boltH:  svgI('<path d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>'),
   hire:   svgI('<path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/>'),
@@ -634,9 +773,10 @@ const TAU = Math.PI * 2;
 const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
-  tools: { finger: 1, boot: 0, spray: 0, bolt: 0 }, // 0 = sin comprar; 1–3 = nivel
+  tools: { finger: 1, boot: 0, spray: 0, bolt: 0, laser: 0, vortex: 0, meteor: 0, sun: 0, wave: 0 }, // 0 = sin comprar; 1–3 = nivel
   up: { hire: 0, bootH: 0, boltH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, calm: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
+  level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
 });
 function loadSave() {
@@ -652,6 +792,9 @@ function loadSave() {
     TOOL_ORDER.forEach((k) => { d.tools[k] = clamp(Math.floor(num(s.tools && s.tools[k])), k === "finger" ? 1 : 0, 3); });
     UP_ORDER.forEach((k) => { d.up[k] = clamp(Math.floor(num(s.up && s.up[k])), 0, UP[k].max); });
     d.up.bootH = Math.min(d.up.bootH, d.up.hire); d.up.boltH = Math.min(d.up.boltH, d.up.bootH);
+    d.level = clamp(Math.floor(num(s.level)), 0, LEVELS.length - 1);
+    // Partidas de antes de los niveles: lo que llevas aplastado cuenta para la meta de The Beach
+    d.lvlSmushed = Number.isFinite(s.lvlSmushed) ? Math.floor(num(s.lvlSmushed)) : d.smushed;
     if (TOOLS[s.tool] && d.tools[s.tool] > 0) d.tool = s.tool;
     d.hinted = !!s.hinted;
     if (Number.isFinite(s.lastSeen)) d.lastSeen = s.lastSeen;
@@ -699,6 +842,7 @@ const STR = {
   how3: ["Switch tools anytime from the bar below. Hold to use the Spray.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado para usar el Spray."],
   how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 25.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 25."],
   how5: ["Helpers keep smushing while you're away. Turn fingers into boots and storm clouds for more power.", "Los ayudantes siguen aplastando cuando no estás. Convierte dedos en botas y nubes de rayos para más poder."],
+  how7: ["Smush 5,000 aliens and pay 10,000 coins to travel to The Beach: new theme, double coins and new tools.", "Aplasta 5,000 marcianitos y paga 10,000 monedas para viajar a The Beach: nuevo tema, monedas dobles y herramientas nuevas."],
   how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
@@ -723,6 +867,18 @@ const STR = {
   vortex: ["Black hole", "Agujero negro"], vortexD: ["Opens a black hole that swallows every alien nearby.", "Abre un agujero negro que se traga a todos los cercanos."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
+  sun: ["Sunbeam", "Rayo de sol"], sunD: ["Hold and move: a scorching circle of sunlight that melts everything under it.", "Mantén y mueve: un círculo de sol ardiente que derrite todo lo que está debajo."],
+  wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave sweeps the whole screen. Nobody stays dry.", "Una ola gigante barre toda la pantalla. Nadie queda seco."],
+  unlocksAt: ["Unlocks at", "Se desbloquea en"],
+  levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
+  voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
+  beachD: ["Sun, sand and waves. Every alien is worth ×2, and two new tools await: Sunbeam and Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan dos herramientas nuevas: Rayo de sol y Tsunami."],
+  youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
+  reqSmush: ["Smush aliens here", "Aplasta marcianitos aquí"], reqPay: ["Pay the trip", "Paga el viaje"],
+  travelTo: ["Travel to", "Viajar a"], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
+  soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianitos, nuevas herramientas."],
+  ready: ["Ready!", "¡Listo!"], welcomeTo: ["Welcome to", "Bienvenido a"],
+  currentLevel: ["Level", "Nivel"],
   bootH: ["Boot helper", "Bota ayudante"], bootHD: ["Turns a finger helper into a boot that stomps a whole area.", "Convierte un dedo ayudante en una bota que pisa un área completa."],
   boltH: ["Storm cloud", "Nube de rayos"], boltHD: ["Turns a boot helper into a cloud that zaps aliens in a chain.", "Convierte una bota ayudante en una nube que electrocuta en cadena."],
   needFinger: ["Needs a finger", "Falta un dedo"], needBoot: ["Needs a boot", "Falta una bota"],
@@ -757,6 +913,8 @@ function statText(id, lvl) {
   if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
   if (id === "laser") { const w = TOOLS.laser.width[i], d = TOOLS.laser.damage[i]; return es ? `Rayo de ${w} px · ${d} de daño` : `${w} px beam · ${d} damage`; }
   if (id === "vortex") { const r = TOOLS.vortex.radius[i], c = TOOLS.vortex.cooldown[i]; return es ? `Radio ${r} px · cada ${c} s` : `${r} px pull · every ${c}s`; }
+  if (id === "sun") { const r = TOOLS.sun.radius[i], v = TOOLS.sun.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · burns every ${v}s`; }
+  if (id === "wave") { const d = TOOLS.wave.damage[i], c = TOOLS.wave.cooldown[i]; return es ? `${d} de daño · cada ${c} s` : `${d} damage · every ${c}s`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
 function statShort(id, lvl) {
@@ -768,6 +926,8 @@ function statShort(id, lvl) {
   const s = LANG === "es" ? " s" : "s";
   if (id === "laser") return `${TOOLS.laser.width[i]} px · ${TOOLS.laser.damage[i]}`;
   if (id === "vortex") return `${TOOLS.vortex.radius[i]} px · ${TOOLS.vortex.cooldown[i]}${s}`;
+  if (id === "sun") return `${TOOLS.sun.radius[i]} px · ${TOOLS.sun.interval[i]}${s}`;
+  if (id === "wave") return `${TOOLS.wave.damage[i]} · ${TOOLS.wave.cooldown[i]}${s}`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
@@ -987,6 +1147,14 @@ const Sound = (() => {
       tone(196, { dur: 1.6, vol: 0.035, attack: 0.2 });
     },
     boostEnd() { pluck(523.25, { vol: 0.05, dur: 0.9 }); pluck(392, { t: 0.12, vol: 0.045, dur: 1 }); },
+    // Viaje a un nivel nuevo: arpegio largo sobre un acorde que respira
+    levelUp() {
+      [261.63, 329.63, 392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i) => pluck(f, { t: 0.2 + i * 0.12, vol: 0.085, dur: 2 }));
+      [130.81, 196, 261.63].forEach((f) => tone(f, { t: 0.1, dur: 3, vol: 0.035, attack: 0.6 }));
+      breath({ t: 0.05, dur: 1.6, vol: 0.04, from: 300, to: 1200 });
+    },
+    sizzle() { noise({ dur: 0.22, vol: 0.025, freq: vary(3000, 0.1), q: 0.7, attack: 0.05 }); },
+    wave() { breath({ dur: 1.4, vol: 0.07, from: 260, to: 900 }); noise({ t: 0.25, dur: 1, vol: 0.05, freq: 600, q: 0.4, attack: 0.35, kind: "lowpass" }); },
     bubbleMiss() { breath({ dur: 0.35, vol: 0.02, from: 900, to: 500 }); },
     // Intro del estudio: el oso aparece con un soplo y una nota grave, golpecitos suaves por letra
     studio(from = 0) {
@@ -1130,7 +1298,7 @@ function buildSprites() {
 let haloSprite = null;
 const helperSpr = {};
 
-let baseTarget = SPAWN.min;
+let baseTarget = SPAWN.min, sizeScale = 0;
 function resize() {
   const r = field.getBoundingClientRect();
   if (!r.width || !r.height) return;
@@ -1139,7 +1307,11 @@ function resize() {
   W = r.width; H = r.height; DPR = dpr;
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (changedDpr || !BALL_TYPES.green.spr) buildSprites();
+  // En el celular los marcianitos se ven más chicos
+  const size = W < PHONE_WIDTH ? PHONE_SCALE : 1, changedSize = size !== sizeScale;
+  if (changedSize) { sizeScale = size; for (const k of TYPE_ORDER) BALL_TYPES[k].r = BALL_TYPES[k].baseR * size; for (const b of balls) b.r = b.T.r; }
+  if (changedDpr || changedSize || !BALL_TYPES.green.spr) buildSprites();
+  buildBackground();
   for (const b of balls) keepInside(b);
   for (const h of helpers) { h.x = clamp(h.x, 0, W); h.y = clamp(h.y, 0, H); }
   updateTarget();
@@ -1180,7 +1352,7 @@ function spawnBall(inside) {
   if (inside) {
     // Busca un lugar libre, lejos de otros marcianitos y del dedo
     for (let i = 0; i < 16; i++) {
-      x = rand(T.side + e, W - T.side - e); y = rand(T.top + e, H - T.bottom - e);
+      x = rand(T.side + e, W - T.side - e); y = rand(T.top + e + seaTop() * 0.8, H - T.bottom - e);
       let ok = true;
       for (const b of balls) { const d = T.r + b.r + 14; if ((b.x - x) ** 2 + (b.y - y) ** 2 < d * d) { ok = false; break; } }
       for (const p of pointers.values()) { if ((p.x - x) ** 2 + (p.y - y) ** 2 < (T.r + 40) ** 2) { ok = false; break; } }
@@ -1359,9 +1531,9 @@ const luckyRound = (x) => Math.floor(x) + (Math.random() < x - Math.floor(x) ? 1
 function smush(b, auto) {
   b.state = "die"; b.t = 0;
   if (b.claimed) b.claimed.target = null;
-  const coins = Math.max(1, luckyRound(b.T.reward * FX.valueMult(save.up.value)));
+  const coins = Math.max(1, luckyRound(b.T.reward * FX.valueMult(save.up.value) * lvl().coinMult));
   addCoins(coins, b.x, b.y - b.T.top * 0.55, b.T);
-  save.smushed++; save.byType[b.type]++;
+  save.smushed++; save.lvlSmushed++; save.byType[b.type]++;
   burst(b);
   Sound.pop(b.type, auto);
   if (!auto) buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
@@ -1417,7 +1589,12 @@ function useTool(x, y) {
     else { ring(x, y, 3, 16, 0.3, PAL.text, 1.5, 0.2); Sound.miss(); }
   } else if (id === "boot") {
     stompAt(x, y, TOOLS.boot.radius[L], 1, false);
-  } else if (id === "spray" || id === "laser") {
+  } else if (id === "wave") {
+    if (cdLeft(id) > 0) { notReady(x, y); return; }
+    startCd(id, TOOLS.wave.cooldown[L]);
+    waves.push({ dir: x < W / 2 ? 1 : -1, t: 0, dur: TOOLS.wave.dur, id: ++waveId, dmg: TOOLS.wave.damage[L], front: 0 });
+    Sound.wave(); buzz([12, 60, 18, 60, 24]);
+  } else if (id === "spray" || id === "laser" || id === "sun") {
     // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick / laserTick)
   } else if (id === "bolt") {
     const b = pick(x, y, 16);
@@ -1619,7 +1796,7 @@ function drawHelper(h) {
 function coinsPerTap(dmg) {
   let coins = 0, taps = 0;
   for (const k of TYPE_ORDER) { const T = BALL_TYPES[k], w = weightOf(k); coins += w * T.reward; taps += w * Math.ceil(T.hp / dmg); }
-  return (coins / taps) * FX.valueMult(save.up.value);
+  return (coins / taps) * FX.valueMult(save.up.value) * lvl().coinMult;
 }
 function helperRate() {
   const iv0 = FX.helperInterval(save.up.speed);
@@ -1630,7 +1807,7 @@ function helperRate() {
 function avgReward() {
   let c = 0, w = 0;
   for (const k of TYPE_ORDER) { c += weightOf(k) * BALL_TYPES[k].reward; w += weightOf(k); }
-  return (c / w) * FX.valueMult(save.up.value);
+  return (c / w) * FX.valueMult(save.up.value) * lvl().coinMult;
 }
 // Al volver: cuánto hicieron los ayudantes mientras no estabas (con el límite del Turno de noche)
 function checkAway(since) {
@@ -1663,7 +1840,7 @@ $("#btn-collect").addEventListener("click", () => {
   w.classList.remove("open"); setTimeout(() => { if (!w.classList.contains("open")) w.hidden = true; }, 250);
   if (!a) return;
   Sound.unlock();
-  save.coins += a.coins; save.earned += a.coins; save.awayEarned += a.coins; save.smushed += a.aliens;
+  save.coins += a.coins; save.earned += a.coins; save.awayEarned += a.coins; save.smushed += a.aliens; save.lvlSmushed += a.aliens;
   uiDirty = true; coinBump = true; writeSave();
   Sound.collect(); buzz([12, 70, 12, 70, 20]);
   // Una lluvia suave de monedas en el campo
@@ -1747,6 +1924,258 @@ function drawBubble() {
   ctx.globalAlpha = 1;
 }
 
+/* ---------- 10c. Niveles: The Void → The Beach (tema, fondo animado y viaje) ---------- */
+const lvl = () => LEVELS[save.level];
+const nextLvl = () => LEVELS[save.level + 1];
+const ALIEN_URL = {};
+const alienUrl = (k) => ALIEN_URL[k] || (ALIEN_URL[k] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ALIENS[k].svg));
+const ART_ALIENS = { void: ["green", "purple"], beach: ["orange", "yellow"] };
+const levelArt = (id, n, big) => `<div class="lvl-art ${id}${big ? " big" : ""}">${n ? `<span class="num">${tx("level")} ${n}</span>` : ""}${(ART_ALIENS[id] || []).map((k) => `<img alt="" src="${alienUrl(k)}">`).join("")}</div>`;
+const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>';
+
+function applyLevel() {
+  const root = document.documentElement;
+  if (lvl().id === "void") delete root.dataset.level; else root.dataset.level = lvl().id;
+  readPalette(); if (W) { buildSprites(); buildBackground(); }
+  syncThemeColor();
+  levelShown = "";
+}
+// Chip del nivel en el encabezado: nombre + progreso hacia el siguiente
+let levelShown = "";
+function renderLevelChip() {
+  const n = nextLvl(), done = n ? Math.min(save.lvlSmushed, n.smush) : 0;
+  const key = save.level + "|" + done + "|" + (n && save.coins >= n.cost) + LANG;
+  if (key === levelShown) return;
+  levelShown = key;
+  $("#lvl-name").textContent = lvl().name;
+  $("#lvl-prog").textContent = n ? `${Math.floor((done / n.smush) * 100)}%` : "";
+  const pct = n ? done / n.smush : 1;
+  $("#lvl-ring").style.strokeDashoffset = String(50.27 * (1 - pct));
+  const ready = !!n && done >= n.smush;
+  $("#lvl-chip").classList.toggle("ready", ready);
+  $("#lvl-badge").classList.toggle("on", ready && save.coins >= n.cost);
+}
+function renderLevels(animate) {
+  const list = $("#levels-list");
+  let html = "";
+  LEVELS.forEach((L, i) => {
+    const here = i === save.level, done = i < save.level, isNext = i === save.level + 1;
+    const status = here ? `<span class="lvl-status">${tx("youAreHere")}</span>` : done ? `<span class="lvl-status done">${tx("completed")}</span>` : `<span class="lvl-status lock">${tx("lockedLvl")}</span>`;
+    let req = "";
+    if (isNext) {
+      const s = Math.min(save.lvlSmushed, L.smush), okS = s >= L.smush, okC = save.coins >= L.cost;
+      req = `<div class="req">
+        <div class="req-row${okS ? " ok" : ""}"><span class="chk">${checkSvg}</span><span>${tx("reqSmush")}</span><span class="v">${fmt(s)} / ${fmt(L.smush)}</span>
+          <div class="bar"><b style="transform:scaleX(${s / L.smush})"></b></div></div>
+        <div class="req-row${okS && okC ? " ok" : ""}"><span class="chk">${checkSvg}</span><span>${tx("reqPay")}</span><span class="v"><span class="coin"></span>${fmt(L.cost)}</span></div>
+      </div>
+      <button class="travel-btn${okS && okC ? " go" : ""}" type="button" data-travel ${okS && okC ? "" : "disabled"}>${!okS ? tx("needSmush") : !okC ? tx("needCoins") : `${tx("travelTo")} ${L.name}`}</button>`;
+    }
+    html += `<div class="lvl-card${i > save.level ? " locked" : ""}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`;
+  });
+  html += `<div class="lvl-card"><div class="lvl-art soon"><span>· · ·</span></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`;
+  list.innerHTML = html;
+  list.classList.toggle("enter", !!animate);
+  [...list.children].forEach((c, i) => c.style.setProperty("--i", i));
+  $("#levels-coins").textContent = fmt(save.coins);
+}
+$("#lvl-chip").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-levels")); });
+$("#levels-list").addEventListener("click", (e) => { if (e.target.closest("[data-travel]")) travel(); });
+
+// Pagar y viajar: la pantalla se llena con el nuevo mundo, se cambia todo por debajo y se vuelve al juego
+function travel() {
+  const n = nextLvl();
+  if (!n || save.lvlSmushed < n.smush || save.coins < n.cost) { Sound.nope(); return; }
+  save.coins -= n.cost; save.spent += n.cost;
+  save.level++; save.lvlSmushed = 0;
+  writeSave();
+  closeSheet($("#sheet-levels"));
+  const ov = $("#travel");
+  ov.querySelector(".lvl-art").outerHTML = levelArt(n.id, 0, true);
+  $("#travel-kicker").textContent = `${tx("level")} ${save.level + 1}`;
+  $("#travel-name").textContent = n.name;
+  ov.hidden = false;
+  const text = ov.querySelector(".travel-text");
+  const quick = reduceMotion || !ov.animate;
+  if (!quick) {
+    ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 550, easing: "ease", fill: "both" });
+    text.animate([{ opacity: 0, transform: "translateY(18px) scale(0.97)" }, { opacity: 1, transform: "none" }], { delay: 350, duration: 700, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" });
+  }
+  Sound.levelUp(); buzz([16, 80, 16, 80, 30]);
+  setTimeout(() => {
+    // Por debajo de la cortina: el mundo nuevo
+    balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; bolts.length = 0;
+    vortices.length = 0; meteors.length = 0; waves.length = 0; beam.length = 0;
+    applyLevel(); renderToolbar(); renderShop(); uiDirty = true;
+    populate();
+  }, quick ? 100 : 700);
+  setTimeout(() => {
+    const done = () => { ov.hidden = true; };
+    if (quick) { done(); return; }
+    ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 650, easing: "ease", fill: "both" }).onfinish = done;
+  }, quick ? 1400 : 2900);
+}
+
+// Fondo de cada mundo: The Void tiene estrellas que titilan (y una fugaz de vez en cuando);
+// The Beach tiene mar con olas, espuma, destellos, conchitas y estrellas de mar en la arena.
+let bgLayer = null, stars = [], shooting = null, shootClock = 8, seaH = 0;
+const seaTop = () => (lvl().id === "beach" ? seaH : 0);
+function buildBackground() {
+  if (!W) return;
+  seaH = clamp(H * 0.12, 42, 84);
+  stars = [];
+  const n = Math.round((W * H) / 7000);
+  for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(0.6, 1.5), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
+  bgLayer = null;
+  if (lvl().id !== "beach") return;
+  // Detalles fijos de la arena (se pintan una vez)
+  const c = document.createElement("canvas");
+  c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR);
+  const sand = PAL.dark ? "rgba(255,230,180," : "rgba(150,110,55,";
+  g.lineCap = "round";
+  for (let i = 0; i < Math.round(W * H / 16000); i++) {
+    const x = rand(0, W), y = rand(seaH + 30, H), w = rand(18, 40);
+    g.strokeStyle = sand + "0.09)"; g.lineWidth = 1.3;
+    g.beginPath(); g.moveTo(x - w / 2, y); g.quadraticCurveTo(x, y - 4, x + w / 2, y); g.stroke();
+  }
+  const items = Math.max(4, Math.round(W * H / 45000));
+  for (let i = 0; i < items; i++) {
+    const x = rand(20, W - 20), y = rand(seaH + 40, H - 20), rot = rand(0, TAU), s = rand(0.8, 1.2);
+    g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.globalAlpha = PAL.dark ? 0.35 : 0.55;
+    if (i % 2) { // estrella de mar
+      g.fillStyle = "#EE9D78"; g.beginPath();
+      for (let k = 0; k < 10; k++) { const r = k % 2 ? 3.4 : 9, a = (k * Math.PI) / 5 - Math.PI / 2; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+      g.closePath(); g.fill();
+      g.fillStyle = "rgba(255,240,225,0.8)"; for (let k = 0; k < 5; k++) { const a = (k * TAU) / 5 - Math.PI / 2; g.beginPath(); g.arc(Math.cos(a) * 4.5, Math.sin(a) * 4.5, 0.8, 0, TAU); g.fill(); }
+    } else { // conchita
+      g.fillStyle = "#F6D7C6"; g.strokeStyle = "rgba(190,130,100,0.55)"; g.lineWidth = 0.9;
+      g.beginPath(); g.moveTo(0, 5); g.arc(0, 5, 9, Math.PI * 1.12, Math.PI * 1.88); g.closePath(); g.fill(); g.stroke();
+      for (let k = 1; k < 5; k++) { const a = Math.PI * (1.12 + 0.76 * (k / 5)); g.beginPath(); g.moveTo(0, 5); g.lineTo(Math.cos(a) * 9, 5 + Math.sin(a) * 9); g.stroke(); }
+    }
+    g.restore();
+  }
+  bgLayer = c;
+}
+function drawBackground(dt) {
+  if (lvl().id === "beach") {
+    if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+    // Mar arriba: la orilla sube y baja despacio (la marea) y las olas se mueven
+    const tide = Math.sin(time * 0.35) * 4 * (reduceMotion ? 0.3 : 1);
+    const edge = (x, off, ph) => seaH + tide + off + Math.sin(x * 0.035 + time * 1.3 + ph) * 3 + Math.sin(x * 0.013 - time * 0.7 + ph) * 2.5;
+    // arena mojada
+    ctx.globalAlpha = 1; ctx.fillStyle = PAL.dark ? "rgba(0,0,0,0.12)" : "rgba(140,100,50,0.10)";
+    ctx.beginPath(); ctx.moveTo(0, 0); for (let x = 0; x <= W + 12; x += 12) ctx.lineTo(x, edge(x, 12, 1.5)); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
+    // agua
+    const wg = ctx.createLinearGradient(0, 0, 0, seaH + 10);
+    if (PAL.dark) { wg.addColorStop(0, "#173F50"); wg.addColorStop(1, "#2A6A80"); } else { wg.addColorStop(0, "#5DBFD9"); wg.addColorStop(1, "#A6E1EE"); }
+    ctx.fillStyle = wg;
+    ctx.beginPath(); ctx.moveTo(0, 0); for (let x = 0; x <= W + 12; x += 12) ctx.lineTo(x, edge(x, 0, 0)); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
+    // espuma en la orilla y una ola más adentro
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.strokeStyle = "#FFFFFF"; ctx.globalAlpha = PAL.dark ? 0.5 : 0.9; ctx.lineWidth = 3;
+    ctx.beginPath(); for (let x = 0; x <= W + 12; x += 12) x ? ctx.lineTo(x, edge(x, 0, 0)) : ctx.moveTo(x, edge(x, 0, 0)); ctx.stroke();
+    ctx.globalAlpha = PAL.dark ? 0.2 : 0.4; ctx.lineWidth = 2;
+    ctx.beginPath(); for (let x = 0; x <= W + 12; x += 12) { const y = edge(x, -seaH * 0.38, 2.4); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    // destellos del sol en el agua
+    for (let i = 0; i < 7; i++) {
+      const x = ((i * W) / 7 + time * (10 + i * 2)) % (W + 30) - 15, y = seaH * (0.2 + (i % 3) * 0.2);
+      ctx.globalAlpha = (PAL.dark ? 0.25 : 0.5) * (0.5 + 0.5 * Math.sin(time * 2 + i * 1.7));
+      ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    return;
+  }
+  // The Void: estrellas que titilan suavemente
+  ctx.fillStyle = PAL.dark ? "#FFFFFF" : PAL.text;
+  const base = PAL.dark ? 0.5 : 0.16;
+  for (const s of stars) {
+    ctx.globalAlpha = base * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(time * s.sp + s.ph)));
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill();
+  }
+  // Una estrella fugaz de vez en cuando
+  if (!reduceMotion) {
+    shootClock -= dt;
+    if (!shooting && shootClock <= 0) { shooting = { x: rand(W * 0.2, W), y: rand(0, H * 0.4), t: 0 }; shootClock = rand(9, 18); }
+    if (shooting) {
+      const s = shooting, u = s.t / 0.9;
+      s.t += dt;
+      if (u >= 1) shooting = null;
+      else {
+        const x = s.x - u * 160, y = s.y + u * 90, g = ctx.createLinearGradient(x, y, x + 50, y - 28);
+        const c = PAL.dark ? "255,255,255" : "36,37,33";
+        g.addColorStop(0, `rgba(${c},${(PAL.dark ? 0.8 : 0.35) * Math.sin(u * Math.PI)})`); g.addColorStop(1, `rgba(${c},0)`);
+        ctx.globalAlpha = 1; ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 50, y - 28); ctx.stroke();
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Herramientas de The Beach
+// Rayo de sol: un círculo de luz que sigue al dedo y quema a intervalos
+function sunTick(p, dt) {
+  const L = lvlOf("sun") - 1, T = TOOLS.sun, R = T.radius[L];
+  for (const b of balls) {
+    if (b.state === "die" || b.pull || time - b.lastSpray < T.interval[L]) continue;
+    if (Math.hypot(b.x - p.x, b.y - p.y) < R + b.r * 0.4) {
+      b.lastSpray = time;
+      for (let i = 0; i < 3; i++) part(b.x + rand(-b.r, b.r), b.y + rand(-b.r * 0.5, b.r * 0.5), rand(-20, 20), -rand(40, 90), rand(1.4, 2.4), 0.6, i % 2 ? "#FFB347" : "#FFE08A", "dot", 2, -30);
+      hit(b, T.damage, p.x, p.y, true);
+    }
+  }
+  p.hiss = (p.hiss || 0) - dt;
+  if (p.hiss <= 0) { Sound.sizzle(); p.hiss = 0.2; buzz(4); }
+}
+function drawSun(p) {
+  const R = TOOLS.sun.radius[lvlOf("sun") - 1], pulse = 1 + Math.sin(time * 6) * 0.03;
+  const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * pulse);
+  g.addColorStop(0, "rgba(255,250,225,0.9)"); g.addColorStop(0.35, "rgba(255,214,107,0.55)"); g.addColorStop(0.8, "rgba(255,170,70,0.18)"); g.addColorStop(1, "rgba(255,170,70,0)");
+  ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, R * pulse, 0, TAU); ctx.fill();
+  ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(time * 0.8);
+  ctx.fillStyle = "rgba(255,214,107,0.28)";
+  for (let i = 0; i < 12; i++) { ctx.rotate(TAU / 12); ctx.beginPath(); ctx.moveTo(-3, R * 0.45); ctx.lineTo(0, R * 1.08); ctx.lineTo(3, R * 0.45); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+// Tsunami: una ola cruza toda la pantalla desde la orilla más cercana al toque
+const waves = [];
+let waveId = 0;
+function updateWaves(dt) {
+  for (let i = waves.length - 1; i >= 0; i--) {
+    const w = waves[i];
+    w.t += dt;
+    const u = Math.min(1, w.t / w.dur), k = u * u * (3 - 2 * u);
+    w.front = w.dir > 0 ? -90 + (W + 180) * k : W + 90 - (W + 180) * k;
+    if (u < 1) for (const b of balls) {
+      if (b.state === "die" || b.pull || b.waveHit === w.id) continue;
+      if (w.dir > 0 ? b.x <= w.front : b.x >= w.front) {
+        b.waveHit = w.id; b.vx += w.dir * 120;
+        for (let j = 0; j < 3; j++) part(b.x, b.y, w.dir * rand(40, 120), -rand(40, 110), rand(1.6, 3), 0.6, "#FFFFFF", "dot", 3, 200, 0.85);
+        hit(b, w.dmg, b.x - w.dir * 20, b.y, true);
+      }
+    }
+    if (w.t > w.dur + 0.7) waves.splice(i, 1);
+  }
+}
+function drawWave(w) {
+  const fade = w.t > w.dur ? 1 - (w.t - w.dur) / 0.7 : 1;
+  if (fade <= 0) return;
+  const from = w.dir > 0 ? -20 : W + 20, f = w.front;
+  const edgeX = (y) => f + Math.sin(y * 0.045 + w.t * 9) * 7 + Math.sin(y * 0.017 - w.t * 4) * 6;
+  const g = ctx.createLinearGradient(from, 0, f, 0);
+  g.addColorStop(0, PAL.dark ? "rgba(40,110,140,0.05)" : "rgba(80,175,210,0.08)"); g.addColorStop(1, PAL.dark ? "rgba(60,150,180,0.55)" : "rgba(80,185,220,0.55)");
+  ctx.globalAlpha = fade; ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(from, -10);
+  for (let y = -10; y <= H + 10; y += 14) ctx.lineTo(edgeX(y), y);
+  ctx.lineTo(from, H + 10); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.globalAlpha = 0.9 * fade;
+  ctx.beginPath(); for (let y = -10; y <= H + 10; y += 14) y > -10 ? ctx.lineTo(edgeX(y), y) : ctx.moveTo(edgeX(y), y); ctx.stroke();
+  ctx.lineWidth = 2; ctx.globalAlpha = 0.45 * fade;
+  ctx.beginPath(); for (let y = -10; y <= H + 10; y += 14) { const x = edgeX(y) - w.dir * 16; y > -10 ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
 /* ---------- 11. Economía: monedas y compras ---------- */
 let uiDirty = true;
 function addCoins(n, x, y, T) {
@@ -1782,7 +2211,7 @@ function afterBuy(was, card) {
 }
 function buyTool(id) {
   const price = priceOf(id);
-  if (price == null) return;
+  if (price == null || toolWorld(id) > save.level) return;
   if (save.coins < price) { Sound.nope(); return; }
   const was = save.tools[id];
   save.coins -= price; save.spent += price; save.tools[id] = was + 1;
@@ -1801,15 +2230,21 @@ function buyUp(k) {
 }
 
 /* ---------- 12. Interfaz: encabezado, barra, tienda, ajustes ---------- */
-const coinsEl = $("#coins"), smushedEl = $("#smushed"), shopCoinsEl = $("#shop-coins");
+const coinsEl = $("#coins"), shopCoinsEl = $("#shop-coins");
+// El contador de monedas sube (o baja) con suavidad en vez de saltar
+let shownCoins = save.coins, shownText = "";
+function tweenCoins(dt) {
+  const d = save.coins - shownCoins;
+  if (Math.abs(d) < 0.5) shownCoins = save.coins; else shownCoins += d * Math.min(1, dt * 9);
+  const t = fmt(Math.round(shownCoins));
+  if (t !== shownText) { shownText = t; coinsEl.textContent = t; }
+}
 let coinBump = false, bumpAnim = null, shopTab = "tools";
-const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p; };
+const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p && toolWorld(id) <= save.level; };
 const canUp = (k) => { const p = upPrice(k); return p != null && save.coins >= p && upReady(k); };
 function updateUI() {
   uiDirty = false;
-  coinsEl.textContent = fmt(save.coins);
   shopCoinsEl.textContent = fmt(save.coins);
-  smushedEl.textContent = fmt(save.smushed);
   const rate = helperRate();
   $("#rate").classList.toggle("on", rate > 0);
   if (rate > 0) $("#rate-v").textContent = "+" + fmt1(rate) + "/s";
@@ -1823,6 +2258,8 @@ function updateUI() {
   $("#shop-badge").classList.toggle("on", tabs.tools || tabs.helpers || tabs.boosts);
   document.querySelectorAll("#shop-tabs button").forEach((b) => b.querySelector(".badge").classList.toggle("on", tabs[b.dataset.tab] && b.dataset.tab !== shopTab));
   document.querySelectorAll(".tool").forEach((el) => { const p = priceOf(el.dataset.id); el.classList.toggle("can", p != null && save.coins >= p); });
+  renderLevelChip();
+  if (!$("#sheet-levels").hidden) renderLevels(false);
   document.querySelectorAll(".buy[data-key]").forEach((el) => {
     const k = el.dataset.key, p = el.dataset.kind === "tool" ? priceOf(k) : upPrice(k);
     if (p != null) el.disabled = save.coins < p || (el.dataset.kind !== "tool" && !upReady(k));
@@ -1836,11 +2273,12 @@ const fmtShort = (n) => (n >= 10000 ? new Intl.NumberFormat(loc(), { notation: "
 const toolEls = {};
 function renderToolbar() {
   const vis = TOOL_ORDER.filter((id) => save.tools[id] > 0);
-  const next = TOOL_ORDER.find((id) => !save.tools[id]);
+  const next = TOOL_ORDER.find((id) => !save.tools[id] && toolWorld(id) <= save.level);
   if (next) vis.push(next);
   const bar = $("#tools");
   bar.style.setProperty("--n", vis.length);
   bar.classList.toggle("compact", vis.length >= 6);
+  bar.classList.toggle("strip", vis.length > 7);
   bar.innerHTML = vis.map((id) => {
     const l = save.tools[id], locked = l === 0;
     return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}${PREMIUM.has(id) ? " premium" : ""}" type="button" data-id="${id}" aria-pressed="${save.tool === id}" aria-label="${tx(id)}">
@@ -1849,12 +2287,14 @@ function renderToolbar() {
   }).join("");
   for (const k in toolEls) delete toolEls[k];
   bar.querySelectorAll(".tool").forEach((el) => { toolEls[el.dataset.id] = el; });
+  const sel = toolEls[save.tool];
+  if (sel && bar.classList.contains("strip")) sel.scrollIntoView({ inline: "nearest", block: "nearest" });
   updateCursor();
 }
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
 const cdShown = {};
 function updateCooldownUI() {
-  for (const id of ["vortex", "meteor"]) {
+  for (const id of ["vortex", "meteor", "wave"]) {
     const el = toolEls[id]; if (!el) continue;
     const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
     if (cdShown[id] === p) continue;
@@ -1868,7 +2308,7 @@ function buyButton(kind, key, price, label, blocked) {
   return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}"${save.coins < price || blocked ? " disabled" : ""}>
     <span class="what">${label}</span><span class="cost">${price ? '<span class="coin"></span>' + fmt(price) : ""}</span></button>`;
 }
-function renderShop() {
+function renderShop(animate) {
   document.querySelectorAll("#shop-tabs button").forEach((b) => { const on = b.dataset.tab === shopTab; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
   $("#shop-note").textContent = tx({ tools: "noteTools", helpers: "noteHelpers", boosts: "noteBoosts" }[shopTab]);
   let html = "";
@@ -1876,10 +2316,13 @@ function renderShop() {
     html = TOOL_ORDER.map((id) => {
       const l = save.tools[id], price = priceOf(id);
       const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span>→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
-      const btn = buyButton("tool", id, price, l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1));
+      const wl = toolWorld(id), away = wl > save.level;
+      const btn = away
+        ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
+        : buyButton("tool", id, price, l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1));
       const pro = PREMIUM.has(id);
-      return `<div class="item${pro ? " premium" : ""}" data-key="${id}"><div class="ic">${ICONS[id]}</div>
-        <div><h3>${tx(id)}${pro ? `<span class="pro">${tx("premium")}</span>` : ""}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
+      return `<div class="item${pro ? " premium" : ""}${wl ? " world" : ""}${away ? " locked-world" : ""}" data-key="${id}"><div class="ic">${ICONS[id]}</div>
+        <div><h3>${tx(id)}${pro ? `<span class="pro">${tx("premium")}</span>` : ""}${wl ? `<span class="tag">${LEVELS[wl].name}</span>` : ""}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
     }).join("");
   } else {
     html = UP_ORDER.filter((k) => UP[k].tab === shopTab).map((k) => {
@@ -1893,11 +2336,15 @@ function renderShop() {
         <div><h3>${tx(k)}${lv}</h3><p>${tx(k + "D")}</p><div class="stat">${stat}</div></div>${buyButton("up", k, price, label, !ready)}</div>`;
     }).join("");
   }
-  $("#shop-list").innerHTML = html;
+  const list = $("#shop-list");
+  list.innerHTML = html;
+  list.classList.toggle("enter", !!animate);
+  [...list.children].forEach((c, i) => c.style.setProperty("--i", i));
   uiDirty = true;
 }
 function renderRecords() {
   const rows = [
+    `<div class="row"><span>${tx("currentLevel")}</span><span class="val">${save.level + 1} · ${lvl().name}</span></div>`,
     `<div class="row"><span>${tx("totalSmushed")}</span><span class="val">${fmt(save.smushed)}</span></div>`,
     `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.earned)}</span></div>`,
     `<div class="row"><span>${tx("coinsSpent")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.spent)}</span></div>`,
@@ -1927,7 +2374,8 @@ function openSheet(el) {
   if (!el.hidden && el.classList.contains("open")) return;
   pointers.clear();
   if (el.id === "sheet-menu") { renderRecords(); syncSettingsUI(); }
-  if (el.id === "sheet-shop") { renderShop(); $("#shop-body").scrollTop = 0; }
+  if (el.id === "sheet-shop") { renderShop(true); $("#shop-body").scrollTop = 0; }
+  if (el.id === "sheet-levels") { renderLevels(true); el.querySelector(".panel-body").scrollTop = 0; }
   el.hidden = false;
   void el.offsetWidth;
   el.classList.add("open");
@@ -1979,7 +2427,7 @@ $("#tools").addEventListener("click", (e) => { const b = e.target.closest(".tool
 $("#btn-shop").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-shop")); });
 $("#btn-menu").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-menu")); });
 document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) { Sound.tick(); closeSheet(s); } }));
-$("#shop-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === shopTab) return; shopTab = b.dataset.tab; renderShop(); $("#shop-body").scrollTop = 0; Sound.tick(); });
+$("#shop-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === shopTab) return; shopTab = b.dataset.tab; renderShop(true); $("#shop-body").scrollTop = 0; Sound.tick(); });
 $("#shop-list").addEventListener("click", (e) => {
   const b = e.target.closest(".buy[data-key]"); if (!b || b.disabled) return;
   if (b.dataset.kind === "tool") buyTool(b.dataset.key); else buyUp(b.dataset.key);
@@ -1997,6 +2445,7 @@ $("#btn-reset-yes").addEventListener("click", () => {
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; timers.length = 0;
   helpers.length = 0; vortices.length = 0; meteors.length = 0; beam.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
+  waves.length = 0; applyLevel();
   for (const k in cdEnd) delete cdEnd[k];
   lastYellow = -99; shopTab = "tools";
   populate();
@@ -2048,7 +2497,7 @@ cv.addEventListener("lostpointercapture", release);
 cv.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hover = null; });
 cv.addEventListener("contextmenu", (e) => e.preventDefault());
 // Nada de zoom, selección ni scroll de la página (sí se puede desplazar dentro de las hojas)
-document.addEventListener("touchmove", (e) => { if (!e.target.closest(".panel-body")) e.preventDefault(); }, { passive: false });
+document.addEventListener("touchmove", (e) => { if (!e.target.closest(".panel-body, #tools.strip")) e.preventDefault(); }, { passive: false });
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("dblclick", (e) => e.preventDefault());
 document.addEventListener("touchend", (e) => { if (e.target === cv) e.preventDefault(); }, { passive: false });
@@ -2138,8 +2587,9 @@ function drawAlien(b) {
   if (b.flash > 0) { ctx.globalAlpha = alpha * b.flash * 0.55; ctx.drawImage(S.flash, -S.cx, -S.ground, S.w, S.h); }
   ctx.restore();
 }
-function render() {
+function render(dt) {
   ctx.clearRect(0, 0, W, H);
+  drawBackground(dt || 0);
   // Manchitas en el piso de los que ya se aplastaron
   for (const s of splats) {
     const u = s.t / s.dur;
@@ -2218,6 +2668,9 @@ function render() {
       ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
     }
   }
+  // Tsunami y rayo de sol (encima de los marcianitos)
+  for (const w of waves) drawWave(w);
+  if (save.tool === "sun") for (const p of pointers.values()) drawSun(p);
   // Estela del láser: un brillo rosado y un hilo blanco
   drawBeam();
   // Meteoritos cayendo
@@ -2260,8 +2713,8 @@ function drawCursor(x, y) {
   if (id === "finger") {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
-  } else if (id === "boot" || id === "spray" || id === "vortex" || id === "meteor") {
-    const R = id === "boot" ? TOOLS.boot.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "vortex" ? TOOLS.vortex.radius[L] : TOOLS.meteor.spread;
+  } else if (id === "boot" || id === "spray" || id === "vortex" || id === "meteor" || id === "sun") {
+    const R = id === "boot" ? TOOLS.boot.radius[L] : id === "spray" ? TOOLS.spray.radius[L] : id === "vortex" ? TOOLS.vortex.radius[L] : id === "sun" ? TOOLS.sun.radius[L] : TOOLS.meteor.spread;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "boot" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
@@ -2300,14 +2753,17 @@ function loop(now) {
   updateBalls(dt);
   updateVortices(dt);
   updateMeteors(dt);
+  updateWaves(dt);
   updateHelpers(dt);
   updateMult(dt);
   if (playing && save.tool === "spray") for (const p of pointers.values()) sprayTick(p, dt);
   if (playing && save.tool === "laser") for (const p of pointers.values()) laserTick(p);
+  if (playing && save.tool === "sun") for (const p of pointers.values()) sunTick(p, dt);
   while (beam.length && time - beam[0].t > 0.3) beam.shift();
   updateFx(dt);
-  render();
+  render(dt);
   updateCooldownUI();
+  tweenCoins(dt);
   if (uiDirty) updateUI();
 }
 function startLoop() { if (!raf && !document.hidden) { last = 0; raf = requestAnimationFrame(loop); } }
@@ -2428,6 +2884,7 @@ function startGame() {
 (function boot() {
   readPalette();
   applyTheme();
+  applyLevel();
   applyLang();
   resize();
   syncHelpers();
