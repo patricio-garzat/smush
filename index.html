@@ -898,7 +898,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.21.6";
+const VERSION = "0.21.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1710,9 +1710,6 @@ let W = 0, H = 0, DPR = 1;
 // para que en el celular cubran la misma parte de la pantalla que en la compu (1 en pantallas grandes)
 const RS_REF = 640000; // px² de un área de juego de compu
 let RS = 1;
-// Las áreas de toque (Click y dedos ayudantes) se achican menos: en un iPhone vertical (RS ≈ 0.55) el nivel 20 mide 90 px
-const TAP_TOP_PHONE = 90;
-const tapScale = (top) => Math.min(1, RS * (TAP_TOP_PHONE / (top * 0.55)));
 const PAL = {};
 
 function hexRgb(h) { h = h.replace("#", ""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); }
@@ -2196,7 +2193,7 @@ function notReady(x, y) { ring(x, y, 4, 20, 0.35, PAL.text, 1.5, 0.25); Sound.no
 function useTool(x, y, pid) {
   const id = save.tool, L = lvlOf(id) - 1;
   if (id === "finger") {
-    const R = TOOLS.finger.radius[L] * tapScale(TOOLS.finger.radius[LV_MAX - 1]);
+    const R = TOOLS.finger.radius[L] * RS;
     if (!R) {
       const b = pick(x, y, TOOLS.finger.slop);
       if (b) hit(b, 1, x, y);
@@ -2396,7 +2393,7 @@ const HELPER_MAX = 5;
 // Lugares de inicio (en fracciones del área de juego) antes de que los muevas
 const SPOT0 = [[0.3, 0.45], [0.7, 0.45], [0.5, 0.66], [0.24, 0.8], [0.76, 0.8]];
 const helperKind = () => (save.hmode === "cloud" && save.up.cloud ? "bolt" : "finger");
-const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) * RS : FX.fingerArea(save.up.farea) * tapScale(FX.fingerArea(20)));
+const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) : FX.fingerArea(save.up.farea)) * RS;
 const CLOUD_RATE = 2; // descargas por segundo de cada nube
 const helperRateNow = () => (helperKind() === "bolt" ? CLOUD_RATE : FX.fingerRate(save.up.fspeed));
 // Dónde va cada ayudante en px (dentro del área y nunca en el mar ni en los picos)
@@ -4605,7 +4602,7 @@ function drawCursor(x, y) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else if (id === "saw" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = id === "finger" ? TOOLS.finger.radius[L] * tapScale(TOOLS.finger.radius[LV_MAX - 1]) : (id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
+    const R = (id === "finger" ? TOOLS.finger.radius[L] : id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
