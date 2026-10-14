@@ -806,7 +806,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.15.0";
+const VERSION = "0.15.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -856,8 +856,10 @@ const TOOLS = {
   acid:   { price: 20000, world: 1, upgrades: [35000, 60000], radius: [60, 75, 90], rate: [5, 7, 9], damage: 1 }, // mantén y mueve: la nube te sigue
   meteor: { price: 15000, world: 1, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
   wave:   { price: 30000, world: 1, only: 1, upgrades: [60000, 120000], cooldown: [8, 6.5, 5], dur: [1.8, 1.55, 1.3] }, // tsunami: baja desde el mar y arrastra a todos
+  // The Slopes
+  aval:   { price: 60000, world: 2, upgrades: [120000, 240000], cooldown: [9, 7, 5.5], dur: [2.3, 2.05, 1.8] }, // avalancha: baja de los picos y arrastra a todos
 };
-const TOOL_ORDER = ["finger", "bolt", "spray", "bomb", "acid", "meteor", "wave"];
+const TOOL_ORDER = ["finger", "bolt", "spray", "bomb", "acid", "meteor", "wave", "aval"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
 const toolWorld = (id) => TOOLS[id].world || 0;
@@ -872,8 +874,6 @@ const UP = {
   // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
   jet:   { tab: "helpers", world: 1, max: 6, cost: [10000, 6000, 10000, 16000, 25000, 40000] }, // jet bombardero
   acidH: { tab: "helpers", world: 1, max: 6, cost: [15000, 8000, 13000, 20000, 30000, 45000] }, // tormenta ácida
-  // Ayudante de The Slopes
-  aval:  { tab: "helpers", world: 2, max: 6, cost: [40000, 20000, 32000, 50000, 75000, 110000] }, // avalancha
   // Mejoras
   speed: { tab: "boosts",  max: 5,  cost: [150, 350, 700, 1300, 2200] },     // los ayudantes tocan más seguido
   power: { tab: "boosts",  max: 2,  cost: [1200, 4000] },                     // los ayudantes pegan más fuerte
@@ -882,7 +882,7 @@ const UP = {
   luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
   night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
 };
-const UP_ORDER = ["hire", "boltH", "jet", "acidH", "aval", "speed", "power", "value", "crowd", "luck", "night"];
+const UP_ORDER = ["hire", "boltH", "jet", "acidH", "speed", "power", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   helperInterval: (l) => 2.5 * 0.82 ** l,   // s entre toques de cada ayudante
@@ -895,7 +895,6 @@ const FX = {
   nightHours: (l) => [0.5, 1, 2, 4, 8][l],  // horas que trabajan los ayudantes mientras no estás
   jetEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)],  // s entre que cae una bomba y pasa el siguiente jet
   acidEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)], // s entre una tormenta y la siguiente
-  avalEvery: (l) => [12, 10.5, 9, 7.5, 6.2, 5][Math.max(0, l - 1)],  // s entre una avalancha y la siguiente
 };
 // Tipos de ayudante: every = multiplica la pausa entre golpes; targets = a cuántos alcanza en promedio
 const HELPER_KIND = {
@@ -951,7 +950,6 @@ const HELPER_ART = {
   jet:    { svg: "<svg width=\"130\" height=\"80\" viewBox=\"0 0 130 80\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"jb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C3CCDA\"/></linearGradient> <linearGradient id=\"jw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#BFC9D8\"/><stop offset=\"1\" stop-color=\"#EEF2F7\"/></linearGradient> <linearGradient id=\"jg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B9DCFA\"/><stop offset=\"1\" stop-color=\"#3E6FB8\"/></linearGradient></defs> <g stroke=\"#4A5468\" stroke-opacity=\".28\" stroke-width=\"1.2\" stroke-linejoin=\"round\"> <path d=\"M58 35 L38 5 Q37 3 40 3 L49 3 Q51 3 52 5 L80 35 Z\" fill=\"url(#jw)\"/> <path d=\"M58 45 L38 75 Q37 77 40 77 L49 77 Q51 77 52 75 L80 45 Z\" fill=\"url(#jw)\"/> <path d=\"M20 36 L9 21 L16 21 L31 36 Z\" fill=\"url(#jw)\"/> <path d=\"M20 44 L9 59 L16 59 L31 44 Z\" fill=\"url(#jw)\"/> <path d=\"M7 40 C7 35 13 33 23 33 L100 33 C114 33 124 37 127 40 C124 43 114 47 100 47 L23 47 C13 47 7 45 7 40 Z\" fill=\"url(#jb)\"/> </g> <path d=\"M30 40 H95\" stroke=\"#4F86E8\" stroke-width=\"2.6\" stroke-linecap=\"round\"/> <path d=\"M44 12 L50 12 M44 68 L50 68\" stroke=\"#4F86E8\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\".7\"/> <ellipse cx=\"105\" cy=\"40\" rx=\"9.5\" ry=\"4.4\" fill=\"url(#jg)\"/> <ellipse cx=\"102\" cy=\"38.6\" rx=\"4\" ry=\"1.4\" fill=\"#FFFFFF\" opacity=\".7\"/> </svg>", w: 130, h: 80, ax: 65, ay: 40, size: 200 },
   bomb:   { svg: "<svg width=\"60\" height=\"66\" viewBox=\"0 0 60 66\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><radialGradient id=\"bb\" cx=\".36\" cy=\".32\" r=\".78\"><stop offset=\"0\" stop-color=\"#727A92\"/><stop offset=\".5\" stop-color=\"#363B50\"/><stop offset=\"1\" stop-color=\"#1A1C26\"/></radialGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9AFC0\"/><stop offset=\"1\" stop-color=\"#5B6174\"/></linearGradient></defs> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#B88C55\" stroke-width=\"3.4\" stroke-linecap=\"round\"/> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#7C5A32\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-dasharray=\"2 4\" opacity=\".6\"/> <circle cx=\"28\" cy=\"41\" r=\"22\" fill=\"url(#bb)\"/> <rect x=\"21\" y=\"13\" width=\"14\" height=\"9\" rx=\"3\" fill=\"url(#bc)\" transform=\"rotate(14 28 17.5)\"/> <ellipse cx=\"19.5\" cy=\"31.5\" rx=\"7\" ry=\"4.2\" fill=\"#FFFFFF\" opacity=\".33\" transform=\"rotate(-38 19.5 31.5)\"/> </svg>", w: 60, h: 66, ax: 28, ay: 63, size: 66 },
   acid:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"ac\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#C7D3C0\"/><stop offset=\".6\" stop-color=\"#7C8C74\"/><stop offset=\"1\" stop-color=\"#55654D\"/></linearGradient></defs> <g fill=\"url(#ac)\"><circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/><rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/></g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/> <path d=\"M26 76h80\" stroke=\"#9BE15D\" stroke-opacity=\".75\" stroke-width=\"3.5\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 66, ay: 78, size: 200 },
-  aval:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"am\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9C0DD\"/><stop offset=\"1\" stop-color=\"#6E8DB5\"/></linearGradient> <radialGradient id=\"as\" cx=\".38\" cy=\".32\" r=\".75\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#D3E1F1\"/></radialGradient></defs> <path d=\"M6 80 L58 8 L84 44 L97 28 L126 80 Z\" fill=\"url(#am)\"/> <path d=\"M58 8 L46 25 L51 22 L55 27 L60 22 L65 26 L71 25 Z M97 28 L89.5 38 L93 36 L96.5 39 L100 36 L103 38 Z\" fill=\"#FFFFFF\"/> <g fill=\"#B9CBE2\"><circle cx=\"43\" cy=\"64\" r=\"16\"/><circle cx=\"65\" cy=\"72\" r=\"14\"/><circle cx=\"24\" cy=\"74\" r=\"12\"/><circle cx=\"85\" cy=\"78\" r=\"10\"/></g> <g fill=\"url(#as)\"><circle cx=\"41\" cy=\"61\" r=\"16\"/><circle cx=\"63\" cy=\"69\" r=\"14\"/><circle cx=\"22\" cy=\"71\" r=\"12\"/><circle cx=\"83\" cy=\"75\" r=\"10\"/><rect x=\"10\" y=\"70\" width=\"84\" height=\"16\" rx=\"8\"/></g> <circle cx=\"72\" cy=\"46\" r=\"7\" fill=\"#FFFFFF\" opacity=\".75\"/><circle cx=\"60\" cy=\"40\" r=\"5\" fill=\"#FFFFFF\" opacity=\".6\"/> <path d=\"M31 53a12 12 0 0 1 14-6\" stroke=\"#FFFFFF\" stroke-width=\"3.2\" fill=\"none\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 65, ay: 80, size: 90 },
   bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 28 },
 };
 
@@ -967,8 +965,8 @@ const TAU = Math.PI * 2;
 const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
-  tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, acid: 0, meteor: 0, wave: 0 }, // 0 = sin comprar; 1+ = nivel
-  up: { hire: 0, boltH: 0, jet: 0, acidH: 0, aval: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
+  tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, acid: 0, meteor: 0, wave: 0, aval: 0 }, // 0 = sin comprar; 1+ = nivel
+  up: { hire: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 2, // versión del guardado
   level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
@@ -1083,7 +1081,7 @@ const STR = {
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a row of 6 big bombs where the crowd is biggest.", "Pasa volando y suelta una fila de 6 bombas grandes donde hay más marcianitos."],
-  aval: ["Avalanche", "Avalancha"], avalD: ["Snow breaks loose from the peaks and rolls down the slope, burying every alien in its path.", "La nieve se desprende de los picos y baja rodando por la ladera, sepultando a todos los marcianitos a su paso."],
+  aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
   acidH: ["Acid storm", "Tormenta ácida"], acidHD: ["A storm cloud drifts across the beach, raining acid on its own.", "Una nube cruza la playa lloviendo ácido sola."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
@@ -1098,7 +1096,7 @@ const STR = {
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
   beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, Acid rain, Meteors and the Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, Lluvia ácida, Meteoritos y el Tsunami."],
-  snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and the Avalanche joins your team. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y la Avalancha se une a tu equipo. Aquí no hay mar, así que no hay Tsunami."],
+  snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and the Avalanche arrives. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llega la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Smush aliens here", "Aplasta marcianitos aquí"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
@@ -1136,7 +1134,7 @@ function statText(id, lvl) {
 
   if (id === "spray") { const r = TOOLS.spray.radius[i], v = TOOLS.spray.interval[i]; return es ? `Llama de ${r} px · quema cada ${v} s` : `${r} px flame · burns every ${v}s`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i]; return es ? `+${n} en cadena` : `+${n} chained aliens`; }
-  if (id === "wave") { const c = TOOLS.wave.cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
+  if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   if (id === "bomb") { const n = lvl; return es ? `${n} ${n === 1 ? "bomba" : "bombas"} a la vez` : `${n} ${n === 1 ? "bomb" : "bombs"} at once`; }
   if (id === "acid") { const r = TOOLS.acid.radius[i], v = TOOLS.acid.rate[i]; return es ? `Radio ${r} px · ${v} gotas/s` : `${r} px · ${v} drops/s`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
@@ -1148,7 +1146,7 @@ function statShort(id, lvl) {
   if (id === "spray") return `${TOOLS.spray.radius[i]} px · ${TOOLS.spray.interval[i]}${LANG === "es" ? " s" : "s"}`;
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]}`;
   const s = LANG === "es" ? " s" : "s";
-  if (id === "wave") return `${TOOLS.wave.cooldown[i]}${s}`;
+  if (id === "wave" || id === "aval") return `${TOOLS[id].cooldown[i]}${s}`;
   if (id === "bomb") return String(lvl);
   if (id === "acid") return `${TOOLS.acid.radius[i]} px · ${TOOLS.acid.rate[i]}/s`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
@@ -1158,9 +1156,9 @@ function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
     case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "dedo" : "dedos"}` : `${l} ${l === 1 ? "finger" : "fingers"}`;
-    case "jet": case "acidH": case "aval": {
+    case "jet": case "acidH": {
       if (!l) return tx("notHired");
-      const s = n(k === "jet" ? FX.jetEvery(l) : k === "aval" ? FX.avalEvery(l) : FX.acidEvery(l));
+      const s = n(k === "jet" ? FX.jetEvery(l) : FX.acidEvery(l));
       return short ? `${s} s` : es ? `Pasa cada ${s} s` : `Every ${s}s`;
     }
     case "boltH": return short ? String(l) : es ? `${l} ${l === 1 ? "nube" : "nubes"}` : `${l} ${l === 1 ? "cloud" : "clouds"}`;
@@ -1859,6 +1857,10 @@ function useTool(x, y, pid) {
     startCd(id, TOOLS.wave.cooldown[L]);
     waves.push({ t: 0, dur: TOOLS.wave.dur[L], id: ++waveId, front: -60, caught: [] });
     Sound.wave(); buzz([12, 60, 18, 60, 24]);
+  } else if (id === "aval") {
+    if (cdLeft(id) > 0) { notReady(x, y); return; }
+    startCd(id, TOOLS.aval.cooldown[L]);
+    launchAval(TOOLS.aval.dur[L]);
   } else if (id === "bomb") {
     placeBomb(x, y);
   } else if (id === "acid") {
@@ -2080,7 +2082,6 @@ function helperRate() {
   let rate = taps * coinsPerTap(FX.helperDamage(save.up.power));
   // Jets y tormentas (solo en The Beach): ~3 marcianitos por bomba, ~6 por tormenta
   if (save.level >= 1) {
-    if (save.level >= 2 && save.up.aval) rate += (12 / (FX.avalEvery(save.up.aval) + 3.5)) * avgReward();
     if (save.up.jet) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
     if (save.up.acidH) rate += (6 / (FX.acidEvery(save.up.acidH) + 7)) * avgReward();
   }
@@ -2296,7 +2297,7 @@ function travel() {
   const fresh = freshSave();
   save.tools = fresh.tools; save.up = fresh.up; save.tool = "finger";
   helpers.length = 0; syncHelpers();
-  jetClock = 3; acidClock = 4; avalClock = 6;
+  jetClock = 3; acidClock = 4;
   for (const k in cdEnd) delete cdEnd[k];
   writeSave();
   shopTab = "tools";
@@ -2862,14 +2863,13 @@ function drawSnowfall(dt) {
   ctx.globalAlpha = 1;
 }
 
-// Avalancha (ayudante de The Slopes): la nieve se desprende de los picos, baja rodando como una pared
+// Avalancha (herramienta de The Slopes): la nieve se desprende de los picos, baja rodando como una pared
 // de bolas de nieve con una nube de polvo, se lleva a todos los marcianitos y luego se asienta y se derrite.
 const AVAL_BACK = 1.4;
-let avalClock = 6;
 const avalCrest = (w, x) => w.front + Math.sin(x * 0.028 + w.t * 1.8) * 9 + Math.sin(x * 0.083 - w.t * 2.6) * 4;
 const crestAt = (w, x) => (w.kind === "aval" ? avalCrest(w, x) : waveCrest(w, x));
-function launchAval() {
-  waves.push({ kind: "aval", t: 0, dur: 2.3, id: ++waveId, front: seaH - 30, caught: [], puffs: [] });
+function launchAval(dur) {
+  waves.push({ kind: "aval", t: 0, dur, id: ++waveId, front: seaH - 30, caught: [], puffs: [] });
   Sound.avalanche(); buzz([14, 50, 20, 50, 26]);
 }
 const puff = (x, y, s) => ({ x, y, r: rand(14, 30) * s, t: 0, life: rand(0.8, 1.3), vx: rand(-14, 14), vy: rand(10, 45) });
@@ -3174,8 +3174,6 @@ function launchJet() {
 }
 function updateSky(dt) {
   const beach = save.level >= 1; // jets y tormentas: de The Beach en adelante
-  // Avalancha (The Slopes): baja una, y la siguiente espera a que termine
-  if (save.level >= 2 && save.up.aval > 0 && playing && !waves.some((w) => w.kind === "aval")) { avalClock -= dt; if (avalClock <= 0) { launchAval(); avalClock = FX.avalEvery(save.up.aval); } }
   // Jets
   if (beach && save.up.jet > 0 && playing && !jets.length && !falling.length) { jetClock -= dt; if (jetClock <= 0) launchJet(); }
   for (let i = jets.length - 1; i >= 0; i--) {
@@ -3461,7 +3459,7 @@ function renderToolbar() {
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
 const cdShown = {};
 function updateCooldownUI() {
-  for (const id of ["meteor", "wave"]) {
+  for (const id of ["meteor", "wave", "aval"]) {
     const el = toolEls[id]; if (!el) continue;
     const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
     if (cdShown[id] === p) continue;
@@ -3501,11 +3499,11 @@ function toolCard(id) {
 function upCard(k) {
   const l = save.up[k], u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
   const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
-  const hireLike = k === "hire" || k === "boltH" || ((k === "jet" || k === "acidH" || k === "aval") && l === 0);
+  const hireLike = k === "hire" || k === "boltH" || ((k === "jet" || k === "acidH") && l === 0);
   const btn = !ready
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
     : buyButton("up", k, price, hireLike ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade"));
-  const art = { hire: "finger", boltH: "bolt", jet: "jet", acidH: "acid", aval: "aval" }[k];
+  const art = { hire: "finger", boltH: "bolt", jet: "jet", acidH: "acid" }[k];
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
   return shopCard({
     key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : ""), icon, name: tx(k),
@@ -3519,11 +3517,12 @@ function renderShop(animate) {
   let html = "";
   if (shopTab === "tools") {
     html = sect("secVoid") + ["finger", "bolt", "spray"].map(toolCard).join("")
-      + sect("secBeach") + ["bomb", "acid", "meteor", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("");
+      + sect("secBeach") + ["bomb", "acid", "meteor", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("")
+      + sect("secSnow") + ["aval"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "boltH"].map(upCard).join("")
       + sect("secBeach") + ["jet", "acidH"].map(upCard).join("")
-      + sect("secSnow") + ["aval"].map(upCard).join("");
+
   } else {
     html = sect("secBoostWorld") + ["value", "crowd", "luck", "night"].map(upCard).join("")
       + sect("secBoostHelp") + ["speed", "power"].map(upCard).join("");
