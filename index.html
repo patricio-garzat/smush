@@ -20,7 +20,7 @@
     var root = document.documentElement;
     if (t !== "auto") root.dataset.theme = t;
     // El nivel guardado decide el tema del mundo (The Void, The Beach…)
-    try { if ((JSON.parse(localStorage.getItem("smush-save-v1") || "{}").level | 0) === 1) root.dataset.level = "beach"; } catch (e) {}
+    try { var lv = ["", "beach", "snow"][JSON.parse(localStorage.getItem("smush-save-v1") || "{}").level | 0]; if (lv) root.dataset.level = lv; } catch (e) {}
     // Dentro de la app de iOS (Capacitor) la intro de BluBer arranca en blanco desde la pantalla de carga
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
       root.classList.add("native", "studio-paper");
@@ -90,6 +90,15 @@
   :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
 }
 :root[data-level="beach"][data-theme="dark"] { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
+/* Tema de The Slopes (nivel 3): nieve fresca, azul de montaña. De noche, nieve bajo la luna */
+:root[data-level="snow"] {
+  --bg: #F5F8FC; --field: #EDF3F9; --field-hi: #F8FBFE; --speck: transparent;
+  --lvl: #4A86D8; --lvl-soft: rgba(74, 134, 216, 0.14); --mist: #9DB0C8;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-level="snow"]:not([data-theme="light"]) { --bg: #161A22; --field: #253042; --field-hi: #2C384C; --speck: transparent; --mist: #C9D6E6; }
+}
+:root[data-level="snow"][data-theme="dark"] { --bg: #161A22; --field: #253042; --field-hi: #2C384C; --speck: transparent; --mist: #C9D6E6; }
 
 /* ============================================================
    Base: sin zoom, sin selección, sin scroll de la página
@@ -374,6 +383,17 @@ a { color: inherit; }
 @keyframes sunPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 @keyframes shore { from { transform: translateX(0); } to { transform: translateX(28px); } }
 .lvl-art.beach img:nth-of-type(1) { left: 20%; } .lvl-art.beach img:nth-of-type(2) { left: 54%; }
+.lvl-art.snow { background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 116%22 preserveAspectRatio=%22xMidYMax slice%22%3E%3Cpath d=%22M0 60 L52 26 L92 48 L150 10 L206 46 L250 22 L300 50 L352 18 L400 44 V116 H0Z%22 fill=%22%23B4C9E2%22/%3E%3Cpath d=%22M52 26 L36.7 36 L43 33 L50 37 L57 33 L63 36 L70.2 36Z M150 10 L131.7 22 L138 19 L144 24 L151 19 L158 23 L168.7 22Z M250 22 L231.7 32 L238 29 L245 33 L252 29 L259 32 L267.9 32Z M352 18 L334.1 29 L340 26 L347 30 L354 26 L362 29 L372.3 29Z%22 fill=%22%23FFFFFF%22/%3E%3Cpath d=%22M0 78 L70 50 L120 68 L190 40 L260 66 L330 44 L400 70 V116 H0Z%22 fill=%22%2393AED0%22/%3E%3Cpath d=%22M190 40 L176 50 L182 48 L189 52 L196 47 L203 50 L210 49Z M330 44 L316 53 L322 51 L329 55 L336 50 L345 52Z M70 50 L58 55 L64 54 L70 57 L77 53 L84 55Z%22 fill=%22%23FFFFFF%22/%3E%3Cpath d=%22M0 80 C60 70 130 86 200 76 S330 68 400 78 V116 H0Z%22 fill=%22%23F7FBFF%22/%3E%3Cpath d=%22M28.0 70.5L18.1 84.0H37.9Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M28.0 62.4L20.4 75.9H35.6Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M28.0 54.3L22.8 67.8H33.2Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M28.0 54.3l-3.1 4.5h6.1Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%2226.6%22 y=%2284.0%22 width=%222.9%22 height=%224.5%22 fill=%22%2380604A%22/%3E%3Cpath d=%22M54.0 73.5L41.9 90.0H66.1Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M54.0 63.6L44.8 80.1H63.2Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M54.0 53.7L47.6 70.2H60.4Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M54.0 53.7l-3.7 5.5h7.5Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%2252.2%22 y=%2290.0%22 width=%223.5%22 height=%225.5%22 fill=%22%2380604A%22/%3E%3Cpath d=%22M352.0 70.2L340.4 86.0H363.6Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M352.0 60.8L343.2 76.5H360.8Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M352.0 51.3L345.9 67.1H358.1Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M352.0 51.4l-3.6 5.2h7.1Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%22350.3%22 y=%2286.0%22 width=%223.4%22 height=%225.2%22 fill=%22%2380604A%22/%3E%3Cpath d=%22M378.0 70.0L369.2 82.0H386.8Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M378.0 62.8L371.3 74.8H384.7Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M378.0 55.6L373.4 67.6H382.6Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M378.0 55.6l-2.7 4.0h5.4Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%22376.7%22 y=%2282.0%22 width=%222.6%22 height=%224.0%22 fill=%22%2380604A%22/%3E%3C/svg%3E") center bottom / cover no-repeat, linear-gradient(180deg, #BFD8F0, #E7F1FB 60%, #F7FBFF); }
+.lvl-art.snow::after {
+  content: ""; position: absolute; left: 0; right: 0; top: -116px; height: 232px; animation: snowfall 7s linear infinite; filter: drop-shadow(0 0 1px rgba(80, 115, 170, 0.45));
+  background-image: radial-gradient(1.6px 1.6px at 8% 12%, #fff 98%, transparent), radial-gradient(1.2px 1.2px at 22% 48%, #fff 98%, transparent),
+    radial-gradient(2px 2px at 37% 20%, #fff 98%, transparent), radial-gradient(1.3px 1.3px at 49% 70%, #fff 98%, transparent),
+    radial-gradient(1.8px 1.8px at 63% 34%, #fff 98%, transparent), radial-gradient(1.2px 1.2px at 74% 82%, #fff 98%, transparent),
+    radial-gradient(2px 2px at 86% 16%, #fff 98%, transparent), radial-gradient(1.4px 1.4px at 94% 58%, #fff 98%, transparent);
+  background-size: 100% 116px;
+}
+@keyframes snowfall { to { transform: translateY(116px); } }
+.lvl-art.snow img:nth-of-type(1) { left: 24%; } .lvl-art.snow img:nth-of-type(2) { left: 58%; }
 .lvl-art.soon { background: repeating-linear-gradient(135deg, var(--field) 0 12px, var(--field-hi) 12px 24px); display: grid; place-items: center; height: 80px; }
 .lvl-art.soon span { font-size: 26px; font-weight: 900; color: var(--muted); letter-spacing: 0.1em; }
 .lvl-body { padding: 14px 16px 16px; }
@@ -786,7 +806,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.14.0";
+const VERSION = "0.15.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -805,6 +825,7 @@ for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia e
 const LEVELS = [
   { id: "void",  name: "The Void",  coinMult: 1 },
   { id: "beach", name: "The Beach", coinMult: 2, smush: 5000, cost: 10000 },
+  { id: "snow",  name: "The Slopes", coinMult: 4, smush: 15000, cost: 35000 },
 ];
 // En pantallas angostas (celular) los marcianitos se ven un poco más chicos
 const PHONE_SCALE = 0.82, PHONE_WIDTH = 520;
@@ -823,7 +844,8 @@ const SPAWN = {
 };
 
 // Herramientas. price = compra; upgrades = precio de cada nivel siguiente (arreglo) o función del nivel actual.
-// max = nivel máximo (3 si no se dice). world = nivel donde se desbloquea (0 = The Void, 1 = The Beach).
+// max = nivel máximo (3 si no se dice). world = nivel donde se desbloquea (0 = The Void, 1 = The Beach, 2 = The Slopes).
+// only = solo existe en ese nivel (el tsunami necesita el mar).
 const TOOLS = {
   // The Void
   finger: { price: 0,     upgrades: [150, 600],    radius: [0, 45, 70], slop: 10 }, // nivel 1: uno a la vez; luego aplasta un área
@@ -833,12 +855,14 @@ const TOOLS = {
   bomb:   { price: 8000,  world: 1, max: 10, upgrades: (l) => Math.round(2500 * 1.35 ** (l - 1)) }, // nivel = cuántas bombas puedes poner
   acid:   { price: 20000, world: 1, upgrades: [35000, 60000], radius: [60, 75, 90], rate: [5, 7, 9], damage: 1 }, // mantén y mueve: la nube te sigue
   meteor: { price: 15000, world: 1, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
-  wave:   { price: 30000, world: 1, upgrades: [60000, 120000], cooldown: [8, 6.5, 5], dur: [1.8, 1.55, 1.3] }, // tsunami: baja desde el mar y arrastra a todos
+  wave:   { price: 30000, world: 1, only: 1, upgrades: [60000, 120000], cooldown: [8, 6.5, 5], dur: [1.8, 1.55, 1.3] }, // tsunami: baja desde el mar y arrastra a todos
 };
 const TOOL_ORDER = ["finger", "bolt", "spray", "bomb", "acid", "meteor", "wave"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
 const toolWorld = (id) => TOOLS[id].world || 0;
+const toolGone = (id) => TOOLS[id].only != null && save.level > TOOLS[id].only; // ya no existe en este nivel
+const toolHere = (id) => toolWorld(id) <= save.level && !toolGone(id);
 
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
 const UP = {
@@ -848,6 +872,8 @@ const UP = {
   // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
   jet:   { tab: "helpers", world: 1, max: 6, cost: [10000, 6000, 10000, 16000, 25000, 40000] }, // jet bombardero
   acidH: { tab: "helpers", world: 1, max: 6, cost: [15000, 8000, 13000, 20000, 30000, 45000] }, // tormenta ácida
+  // Ayudante de The Slopes
+  aval:  { tab: "helpers", world: 2, max: 6, cost: [40000, 20000, 32000, 50000, 75000, 110000] }, // avalancha
   // Mejoras
   speed: { tab: "boosts",  max: 5,  cost: [150, 350, 700, 1300, 2200] },     // los ayudantes tocan más seguido
   power: { tab: "boosts",  max: 2,  cost: [1200, 4000] },                     // los ayudantes pegan más fuerte
@@ -856,7 +882,7 @@ const UP = {
   luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
   night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
 };
-const UP_ORDER = ["hire", "boltH", "jet", "acidH", "speed", "power", "value", "crowd", "luck", "night"];
+const UP_ORDER = ["hire", "boltH", "jet", "acidH", "aval", "speed", "power", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
   helperInterval: (l) => 2.5 * 0.82 ** l,   // s entre toques de cada ayudante
@@ -869,6 +895,7 @@ const FX = {
   nightHours: (l) => [0.5, 1, 2, 4, 8][l],  // horas que trabajan los ayudantes mientras no estás
   jetEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)],  // s entre que cae una bomba y pasa el siguiente jet
   acidEvery: (l) => [5, 4.2, 3.5, 2.8, 2.2, 1.6][Math.max(0, l - 1)], // s entre una tormenta y la siguiente
+  avalEvery: (l) => [12, 10.5, 9, 7.5, 6.2, 5][Math.max(0, l - 1)],  // s entre una avalancha y la siguiente
 };
 // Tipos de ayudante: every = multiplica la pausa entre golpes; targets = a cuántos alcanza en promedio
 const HELPER_KIND = {
@@ -908,11 +935,12 @@ const ICONS = {
   luck:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M12 3.2l2.7 5.4 6 .9-4.3 4.2 1 5.9L12 16.8l-5.4 2.8 1-5.9-4.3-4.2 6-.9z"/>`),
   night:  svgI(`<path ${SOFT} d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z"/><path d="M17 3.5v3M15.5 5h3M20.5 9v2M19.5 10h2" stroke-width="1.6"/>`),
   levels: svgI(`<path ${SOFT} d="M4 20 9 9l4 6 3-4 4 9z"/><circle cx="16.5" cy="6" r="2"/>`),
+  aval:   svgI(`<path ${SOFT} d="M2.5 20 10 7l4 6 2.5-3.5L21.5 20z"/><path d="M10 7l-1.8 3.2 1.6-.6 1.4 1.3"/><circle cx="7" cy="17.5" r="2.4"/><circle cx="11.6" cy="18.3" r="1.7"/>`),
 };
 // El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
 const HUE = {
   finger: "#7D8AA3", boot: "#4F86E8", spray: "#F0642E", bolt: "#F0A12E", bomb: "#4A5068", acid: "#6FB23A", meteor: "#EE7537", wave: "#2C9FC2",
-  jet: "#5C7CFA", acidH: "#6FB23A",
+  jet: "#5C7CFA", acidH: "#6FB23A", aval: "#5E9BE0",
   hire: "#8E99AE", boltH: "#6C7FA8", speed: "#22B07D", power: "#E5534B",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
 };
@@ -923,6 +951,7 @@ const HELPER_ART = {
   jet:    { svg: "<svg width=\"130\" height=\"80\" viewBox=\"0 0 130 80\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"jb\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#C3CCDA\"/></linearGradient> <linearGradient id=\"jw\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\"><stop offset=\"0\" stop-color=\"#BFC9D8\"/><stop offset=\"1\" stop-color=\"#EEF2F7\"/></linearGradient> <linearGradient id=\"jg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#B9DCFA\"/><stop offset=\"1\" stop-color=\"#3E6FB8\"/></linearGradient></defs> <g stroke=\"#4A5468\" stroke-opacity=\".28\" stroke-width=\"1.2\" stroke-linejoin=\"round\"> <path d=\"M58 35 L38 5 Q37 3 40 3 L49 3 Q51 3 52 5 L80 35 Z\" fill=\"url(#jw)\"/> <path d=\"M58 45 L38 75 Q37 77 40 77 L49 77 Q51 77 52 75 L80 45 Z\" fill=\"url(#jw)\"/> <path d=\"M20 36 L9 21 L16 21 L31 36 Z\" fill=\"url(#jw)\"/> <path d=\"M20 44 L9 59 L16 59 L31 44 Z\" fill=\"url(#jw)\"/> <path d=\"M7 40 C7 35 13 33 23 33 L100 33 C114 33 124 37 127 40 C124 43 114 47 100 47 L23 47 C13 47 7 45 7 40 Z\" fill=\"url(#jb)\"/> </g> <path d=\"M30 40 H95\" stroke=\"#4F86E8\" stroke-width=\"2.6\" stroke-linecap=\"round\"/> <path d=\"M44 12 L50 12 M44 68 L50 68\" stroke=\"#4F86E8\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\".7\"/> <ellipse cx=\"105\" cy=\"40\" rx=\"9.5\" ry=\"4.4\" fill=\"url(#jg)\"/> <ellipse cx=\"102\" cy=\"38.6\" rx=\"4\" ry=\"1.4\" fill=\"#FFFFFF\" opacity=\".7\"/> </svg>", w: 130, h: 80, ax: 65, ay: 40, size: 200 },
   bomb:   { svg: "<svg width=\"60\" height=\"66\" viewBox=\"0 0 60 66\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><radialGradient id=\"bb\" cx=\".36\" cy=\".32\" r=\".78\"><stop offset=\"0\" stop-color=\"#727A92\"/><stop offset=\".5\" stop-color=\"#363B50\"/><stop offset=\"1\" stop-color=\"#1A1C26\"/></radialGradient> <linearGradient id=\"bc\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9AFC0\"/><stop offset=\"1\" stop-color=\"#5B6174\"/></linearGradient></defs> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#B88C55\" stroke-width=\"3.4\" stroke-linecap=\"round\"/> <path d=\"M31 16 C34 8 42 5 49 9\" fill=\"none\" stroke=\"#7C5A32\" stroke-width=\"3.4\" stroke-linecap=\"round\" stroke-dasharray=\"2 4\" opacity=\".6\"/> <circle cx=\"28\" cy=\"41\" r=\"22\" fill=\"url(#bb)\"/> <rect x=\"21\" y=\"13\" width=\"14\" height=\"9\" rx=\"3\" fill=\"url(#bc)\" transform=\"rotate(14 28 17.5)\"/> <ellipse cx=\"19.5\" cy=\"31.5\" rx=\"7\" ry=\"4.2\" fill=\"#FFFFFF\" opacity=\".33\" transform=\"rotate(-38 19.5 31.5)\"/> </svg>", w: 60, h: 66, ax: 28, ay: 63, size: 66 },
   acid:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"ac\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#C7D3C0\"/><stop offset=\".6\" stop-color=\"#7C8C74\"/><stop offset=\"1\" stop-color=\"#55654D\"/></linearGradient></defs> <g fill=\"url(#ac)\"><circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/><rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/></g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/> <path d=\"M26 76h80\" stroke=\"#9BE15D\" stroke-opacity=\".75\" stroke-width=\"3.5\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 66, ay: 78, size: 200 },
+  aval:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs><linearGradient id=\"am\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#A9C0DD\"/><stop offset=\"1\" stop-color=\"#6E8DB5\"/></linearGradient> <radialGradient id=\"as\" cx=\".38\" cy=\".32\" r=\".75\"><stop offset=\"0\" stop-color=\"#FFFFFF\"/><stop offset=\"1\" stop-color=\"#D3E1F1\"/></radialGradient></defs> <path d=\"M6 80 L58 8 L84 44 L97 28 L126 80 Z\" fill=\"url(#am)\"/> <path d=\"M58 8 L46 25 L51 22 L55 27 L60 22 L65 26 L71 25 Z M97 28 L89.5 38 L93 36 L96.5 39 L100 36 L103 38 Z\" fill=\"#FFFFFF\"/> <g fill=\"#B9CBE2\"><circle cx=\"43\" cy=\"64\" r=\"16\"/><circle cx=\"65\" cy=\"72\" r=\"14\"/><circle cx=\"24\" cy=\"74\" r=\"12\"/><circle cx=\"85\" cy=\"78\" r=\"10\"/></g> <g fill=\"url(#as)\"><circle cx=\"41\" cy=\"61\" r=\"16\"/><circle cx=\"63\" cy=\"69\" r=\"14\"/><circle cx=\"22\" cy=\"71\" r=\"12\"/><circle cx=\"83\" cy=\"75\" r=\"10\"/><rect x=\"10\" y=\"70\" width=\"84\" height=\"16\" rx=\"8\"/></g> <circle cx=\"72\" cy=\"46\" r=\"7\" fill=\"#FFFFFF\" opacity=\".75\"/><circle cx=\"60\" cy=\"40\" r=\"5\" fill=\"#FFFFFF\" opacity=\".6\"/> <path d=\"M31 53a12 12 0 0 1 14-6\" stroke=\"#FFFFFF\" stroke-width=\"3.2\" fill=\"none\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90, ax: 65, ay: 80, size: 90 },
   bolt:   { svg: "<svg width=\"130\" height=\"90\" viewBox=\"0 0 130 90\" xmlns=\"http://www.w3.org/2000/svg\"> <defs> <linearGradient id=\"cl\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F4F6FB\"/><stop offset=\"1\" stop-color=\"#9AA6BE\"/></linearGradient> </defs> <g fill=\"url(#cl)\"> <circle cx=\"38\" cy=\"50\" r=\"24\"/><circle cx=\"66\" cy=\"38\" r=\"30\"/><circle cx=\"94\" cy=\"50\" r=\"23\"/> <rect x=\"16\" y=\"48\" width=\"100\" height=\"30\" rx=\"15\"/> </g> <path d=\"M46 30a22 22 0 0 1 28-10\" stroke=\"#FFFFFF\" stroke-width=\"5\" stroke-linecap=\"round\" fill=\"none\" opacity=\".9\"/> <path d=\"M28 78h76\" stroke=\"#8C97AE\" stroke-opacity=\".5\" stroke-width=\"3\" stroke-linecap=\"round\"/> </svg>", w: 130, h: 90,  ax: 66,   ay: 78,  size: 28 },
 };
 
@@ -939,7 +968,7 @@ const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, bolt: 0, spray: 0, bomb: 0, acid: 0, meteor: 0, wave: 0 }, // 0 = sin comprar; 1+ = nivel
-  up: { hire: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
+  up: { hire: 0, boltH: 0, jet: 0, acidH: 0, aval: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 2, // versión del guardado
   level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
@@ -1030,7 +1059,7 @@ const STR = {
   how3: ["Switch tools anytime from the bar below. Hold and drag to use the Flamethrower.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar el Lanzallamas."],
   how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 25.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 25."],
   how5: ["Hire helper fingers and shock clouds: they keep smushing even while you're away.", "Contrata dedos ayudantes y nubes eléctricas: siguen aplastando aunque no estés."],
-  how7: ["Smush 5,000 aliens and pay 10,000 coins to travel to The Beach. You start fresh there: only your coins come with you.", "Aplasta 5,000 marcianitos y paga 10,000 monedas para viajar a The Beach. Ahí empiezas de cero: solo viajan tus monedas."],
+  how7: ["Smush enough aliens and pay the trip to travel to a new level, where every alien is worth more. You start fresh there: only your coins come with you.", "Aplasta suficientes marcianitos y paga el viaje para llegar a un nivel nuevo, donde cada marcianito vale más. Ahí empiezas de cero: solo viajan tus monedas."],
   how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
@@ -1054,6 +1083,7 @@ const STR = {
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a row of 6 big bombs where the crowd is biggest.", "Pasa volando y suelta una fila de 6 bombas grandes donde hay más marcianitos."],
+  aval: ["Avalanche", "Avalancha"], avalD: ["Snow breaks loose from the peaks and rolls down the slope, burying every alien in its path.", "La nieve se desprende de los picos y baja rodando por la ladera, sepultando a todos los marcianitos a su paso."],
   acidH: ["Acid storm", "Tormenta ácida"], acidHD: ["A storm cloud drifts across the beach, raining acid on its own.", "Una nube cruza la playa lloviendo ácido sola."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
@@ -1061,13 +1091,14 @@ const STR = {
   boltD: ["Zaps an alien and arcs to its neighbors.", "Electrocuta a un marcianito y salta a los cercanos."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
-  secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"],
+  secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"], secSnow: ["The Slopes", "The Slopes"],
   secTeam: ["Your team", "Tu equipo"], secTraining: ["Training", "Entrenamiento"],
   lvShort: ["Lv", "Nv"], maxShort: ["Max", "Máx."], needMore: ["Need", "Faltan"],
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
   beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, Acid rain, Meteors and the Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, Lluvia ácida, Meteoritos y el Tsunami."],
+  snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and the Avalanche joins your team. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y la Avalancha se une a tu equipo. Aquí no hay mar, así que no hay Tsunami."],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Smush aliens here", "Aplasta marcianitos aquí"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
@@ -1127,9 +1158,9 @@ function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
     case "hire": return short ? String(l) : es ? `${l} ${l === 1 ? "dedo" : "dedos"}` : `${l} ${l === 1 ? "finger" : "fingers"}`;
-    case "jet": case "acidH": {
+    case "jet": case "acidH": case "aval": {
       if (!l) return tx("notHired");
-      const s = n(k === "jet" ? FX.jetEvery(l) : FX.acidEvery(l));
+      const s = n(k === "jet" ? FX.jetEvery(l) : k === "aval" ? FX.avalEvery(l) : FX.acidEvery(l));
       return short ? `${s} s` : es ? `Pasa cada ${s} s` : `Every ${s}s`;
     }
     case "boltH": return short ? String(l) : es ? `${l} ${l === 1 ? "nube" : "nubes"}` : `${l} ${l === 1 ? "cloud" : "clouds"}`;
@@ -1366,6 +1397,9 @@ const Sound = (() => {
     wave() { breath({ dur: 0.6, vol: 0.05, from: 900, to: 300 }); tone(55, { dur: 1.2, vol: 0.09, attack: 0.35, slide: 1.3 }); },
     // …y la ola rompe: un rugido de agua que se va apagando
     waveCrash() { noise({ dur: 1.4, vol: 0.09, freq: 700, q: 0.4, attack: 0.08, kind: "lowpass", sweep: 0.5 }); breath({ dur: 1.2, vol: 0.06, from: 1600, to: 400 }); thump({ vol: 0.14 }); },
+    // Avalancha: un retumbo grave que crece y un soplo de nieve; al final, un golpe sordo
+    avalanche() { tone(46, { dur: 2.4, vol: 0.1, attack: 0.5, slide: 0.85 }); noise({ dur: 2.6, vol: 0.07, freq: 380, q: 0.4, attack: 0.6, kind: "lowpass", sweep: 0.7 }); breath({ t: 0.4, dur: 1.8, vol: 0.05, from: 1400, to: 350 }); },
+    avalancheEnd() { thump({ vol: 0.12 }); breath({ dur: 0.9, vol: 0.04, from: 900, to: 300 }); },
     bubbleMiss() { breath({ dur: 0.35, vol: 0.02, from: 900, to: 500 }); },
     // Intro del estudio: el oso aparece con un soplo y una nota grave, golpecitos suaves por letra
     studio(from = 0) {
@@ -1433,7 +1467,7 @@ function readPalette() {
   PAL.dark = v("--is-dark") === "1";
   PAL.onDark = v("--field-dark") === "1"; // el piso es oscuro (tema oscuro)
   PAL.text = PAL.onDark ? v("--text") : "#242521"; PAL.mist = v("--mist");
-  PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : "rgba(60,52,30,0.13)";
+  PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : document.documentElement.dataset.level === "snow" ? "rgba(60,95,150,0.15)" : "rgba(60,52,30,0.13)";
   PAL.boltCore = PAL.onDark ? "rgba(255,255,255," : "rgba(84,116,214,";
   PAL.boltGlow = PAL.onDark ? "rgba(150,178,255," : "rgba(126,160,242,";
   PAL.finger = PAL.dark ? "#E8E5DE" : "#FFFFFF";
@@ -1554,7 +1588,7 @@ function keepInside(b) {
   b.y = clamp(b.y, T.top, Math.max(T.top, H - T.bottom));
 }
 // En la playa, el borde de arriba es la orilla del mar: ahí no se puede entrar ni salir (0 = sin límite)
-const shoreY = (T) => (lvl().id === "beach" ? seaH + T.r * 0.5 : 0);
+const shoreY = (T) => (lvl().id === "beach" || lvl().id === "snow" ? seaH + T.r * 0.5 : 0);
 // ¿Se ve completo? ¿Ya salió por completo?
 const isInside = (b) => b.x - b.T.side >= 0 && b.x + b.T.side <= W && b.y - b.T.top >= 0 && b.y + b.T.bottom <= H;
 const isOut = (b) => b.x + b.T.side < 0 || b.x - b.T.side > W || b.y + b.T.bottom < 0 || b.y - b.T.top > H;
@@ -1587,12 +1621,13 @@ function spawnBall(inside) {
   }
   if (type === "yellow") lastYellow = time;
   // Variación de velocidad: ±15 % (los naranjas solo hacia arriba, para que nunca bajen al paso de los demás)
-  const sp = T.speed * (type === "orange" ? rand(1, 1.15) : rand(0.85, 1.15));
+  const ride = type === "orange" && isSnow() ? (Math.random() < 0.5 ? "ski" : "board") : null;
+  const sp = T.speed * (type === "orange" ? rand(1, 1.15) : rand(0.85, 1.15)) * (ride ? 1.12 : 1);
   const face = Math.cos(a) >= 0 ? 1 : -1;
   balls.push({
     type, T, x, y, r: T.r, hp: T.hp, heading: a, goal: a, speed: sp, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
     f1: rand(0.3, 0.8), f2: rand(0.9, 1.7), f3: rand(0.2, 0.5), p1: rand(0, TAU), p2: rand(0, TAU), p3: rand(0, TAU),
-    turn: rand(0.6, 1.1), state: inside ? "in" : "live", t: 0, squash: 0, flash: 0, lastSpray: -99, lastLaser: -99,
+    turn: rand(0.6, 1.1) * (ride ? 1.5 : 1), ride, lean: 0, lastH: a, lt: null, state: inside ? "in" : "live", t: 0, squash: 0, flash: 0, lastSpray: -99, lastLaser: -99,
     face, flip: face, walk: rand(0, TAU), claimed: null, entered: !!inside, pull: null, suck: 1,
   });
 }
@@ -1652,7 +1687,9 @@ function updateBalls(dt) {
     b.flip += (b.face - b.flip) * Math.min(1, dt * 14);
     // Pasitos: el paso va más rápido si caminan más rápido
     b.walk += dt * (5 + Math.hypot(b.vx, b.vy) * 0.09);
+    if (b.ride) rideStep(b, dt);
   }
+  updateTracks(dt);
   // Separación suave para que no se encimen
   const push = Math.min(1, dt * 8);
   for (let i = 0; i < balls.length; i++) {
@@ -2042,7 +2079,8 @@ function helperRate() {
   for (const k of helperKinds()) taps += HELPER_KIND[k].targets / (iv0 * HELPER_KIND[k].every);
   let rate = taps * coinsPerTap(FX.helperDamage(save.up.power));
   // Jets y tormentas (solo en The Beach): ~3 marcianitos por bomba, ~6 por tormenta
-  if (lvl().id === "beach") {
+  if (save.level >= 1) {
+    if (save.level >= 2 && save.up.aval) rate += (12 / (FX.avalEvery(save.up.aval) + 3.5)) * avgReward();
     if (save.up.jet) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
     if (save.up.acidH) rate += (6 / (FX.acidEvery(save.up.acidH) + 7)) * avgReward();
   }
@@ -2173,7 +2211,7 @@ const lvl = () => LEVELS[save.level];
 const nextLvl = () => LEVELS[save.level + 1];
 const ALIEN_URL = {};
 const alienUrl = (k) => ALIEN_URL[k] || (ALIEN_URL[k] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ALIENS[k].svg));
-const ART_ALIENS = { void: ["green", "purple"], beach: ["orange", "yellow"] };
+const ART_ALIENS = { void: ["green", "purple"], beach: ["orange", "yellow"], snow: ["orange", "green"] };
 const levelArt = (id, n, big) => `<div class="lvl-art ${id}${big ? " big" : ""}">${n ? `<span class="num">${tx("level")} ${n}</span>` : ""}${(ART_ALIENS[id] || []).map((k) => `<img alt="" src="${alienUrl(k)}">`).join("")}</div>`;
 const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>';
 
@@ -2258,7 +2296,7 @@ function travel() {
   const fresh = freshSave();
   save.tools = fresh.tools; save.up = fresh.up; save.tool = "finger";
   helpers.length = 0; syncHelpers();
-  jetClock = 3; acidClock = 4;
+  jetClock = 3; acidClock = 4; avalClock = 6;
   for (const k in cdEnd) delete cdEnd[k];
   writeSave();
   shopTab = "tools";
@@ -2266,7 +2304,7 @@ function travel() {
   playTrip(from, n, save.level + 1, () => {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; bolts.length = 0;
-    meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0;
+    meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
     if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
@@ -2313,7 +2351,27 @@ function playTrip(from, to, num, onSwitch) {
   ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: "ease", fill: "forwards" });
 
   function island(kind, x, y, r, t) {
-    if (kind === "beach") {
+    if (kind === "snow") {
+      // Isla nevada: agua helada, nieve, un pico con su capa blanca, pinos y dos marcianitos
+      g.fillStyle = "rgba(205,232,248,0.8)"; g.beginPath(); g.arc(x, y, r * 1.3, 0, TAU); g.fill();
+      g.strokeStyle = "rgba(255,255,255,0.85)"; g.lineWidth = r * 0.03;
+      g.beginPath(); for (let i = 0; i <= 60; i++) { const a = (i / 60) * TAU, rr = r * (1.15 + 0.02 * Math.sin(a * 9 + t * 2)); i ? g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.92) : g.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.92); } g.stroke();
+      const sg = g.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.1, x, y, r);
+      sg.addColorStop(0, "#FFFFFF"); sg.addColorStop(1, "#D6E4F2");
+      g.fillStyle = sg; g.beginPath();
+      for (let i = 0; i <= 60; i++) { const a = (i / 60) * TAU, rr = r * (1 + 0.04 * Math.sin(a * 5) + 0.02 * Math.sin(a * 11)); i ? g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.9) : g.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.9); }
+      g.closePath(); g.fill();
+      const mx = x + r * 0.15, my = y - r * 0.08;
+      g.fillStyle = "#93AED0"; g.beginPath(); g.moveTo(mx - r * 0.5, my + r * 0.14); g.lineTo(mx, my - r * 0.6); g.lineTo(mx + r * 0.5, my + r * 0.14); g.closePath(); g.fill();
+      g.fillStyle = "#FFFFFF"; g.beginPath(); g.moveTo(mx, my - r * 0.6); g.lineTo(mx - r * 0.21, my - r * 0.35); g.lineTo(mx - r * 0.1, my - r * 0.4); g.lineTo(mx - r * 0.02, my - r * 0.32); g.lineTo(mx + r * 0.08, my - r * 0.4); g.lineTo(mx + r * 0.21, my - r * 0.35); g.closePath(); g.fill();
+      paintPine(g, x - r * 0.52, y + r * 0.06, r * 0.42, false);
+      paintPine(g, x + r * 0.62, y + r * 0.22, r * 0.32, false);
+      for (const [k, dx, dy, s] of [["orange", -0.22, 0.42, 0.24], ["green", 0.2, 0.5, 0.27]]) {
+        const im = img(k); if (!im) continue;
+        const w = r * s * (im.width / im.height), hgt = r * s, bob = Math.abs(Math.sin(t * 5 + dx * 9)) * r * 0.02;
+        g.drawImage(im, x + r * dx - w / 2, y + r * dy - hgt - bob, w, hgt);
+      }
+    } else if (kind === "beach") {
       // Agua clarita alrededor, arena con orilla ondulada, palmera y dos marcianitos
       g.fillStyle = "rgba(175,232,244,0.75)"; g.beginPath(); g.arc(x, y, r * 1.32, 0, TAU); g.fill();
       g.strokeStyle = "rgba(255,255,255,0.8)"; g.lineWidth = r * 0.03;
@@ -2451,14 +2509,16 @@ function playTrip(from, to, num, onSwitch) {
 // Fondo de cada mundo: The Void tiene estrellas que titilan (y una fugaz de vez en cuando);
 // The Beach tiene mar con olas, espuma, destellos, conchitas y estrellas de mar en la arena.
 let bgLayer = null, stars = [], shooting = null, shootClock = 8, seaH = 0;
-const seaTop = () => (lvl().id === "beach" ? seaH : 0);
+const seaTop = () => (lvl().id === "beach" || lvl().id === "snow" ? seaH : 0);
 function buildBackground() {
   if (!W) return;
-  seaH = clamp(H * 0.12, 42, 84);
+  const snowy = isSnow();
+  seaH = snowy ? clamp(H * 0.15, 54, 100) : clamp(H * 0.12, 42, 84);
   stars = [];
   const n = Math.round((W * H) / 7000);
   for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(0.6, 1.5), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
-  bgLayer = null;
+  bgLayer = null; pines = []; flakes = []; glints = [];
+  if (snowy) { buildSnow(); return; }
   if (lvl().id !== "beach") return;
   // Detalles fijos de la arena (se pintan una vez)
   const c = document.createElement("canvas");
@@ -2490,6 +2550,7 @@ function buildBackground() {
   bgLayer = c;
 }
 function drawBackground(dt) {
+  if (isSnow()) { drawSnowBg(); return; }
   if (lvl().id === "beach") {
     if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
     // Mar arriba: la orilla sube y baja despacio (la marea) y las olas se mueven
@@ -2543,6 +2604,355 @@ function drawBackground(dt) {
     }
   }
   ctx.globalAlpha = 1;
+}
+
+/* ---------- The Slopes: nieve, pinos, copos, esquiadores con su huella y la avalancha ---------- */
+const isSnow = () => lvl().id === "snow";
+let pines = [], flakes = [], glints = [];
+const tracks = [];
+const TRACK_LIFE = 0.9; // s que dura la huella de los esquís antes de borrarse
+// Un pino con nieve en las ramas. (x, y) = la base del tronco; h = alto total
+function paintPine(g, x, y, h, dark) {
+  const w = h * 0.64;
+  g.fillStyle = dark ? "#4A3B33" : "#80604A";
+  g.fillRect(x - h * 0.045, y - h * 0.17, h * 0.09, h * 0.17);
+  for (let i = 0; i < 4; i++) {
+    const u = i / 3, tw = (w * (1 - u * 0.6)) / 2, base = y - h * 0.13 - i * h * 0.19, th = h * (0.34 - u * 0.04), top = base - th;
+    const gr = g.createLinearGradient(x - tw, 0, x + tw, 0);
+    if (dark) { gr.addColorStop(0, "#1E4237"); gr.addColorStop(0.55, "#2B5A4A"); gr.addColorStop(1, "#3B7060"); }
+    else { gr.addColorStop(0, "#2E6A53"); gr.addColorStop(0.55, "#3F8465"); gr.addColorStop(1, "#62A585"); }
+    g.fillStyle = gr;
+    g.beginPath(); g.moveTo(x, top);
+    g.quadraticCurveTo(x - tw * 0.4, top + th * 0.55, x - tw, base);
+    for (let k = 0; k < 3; k++) { const x0 = x - tw + (2 * tw * k) / 3, x1 = x - tw + (2 * tw * (k + 1)) / 3; g.quadraticCurveTo((x0 + x1) / 2, base - h * 0.045, x1, base); }
+    g.quadraticCurveTo(x + tw * 0.4, top + th * 0.55, x, top);
+    g.closePath(); g.fill();
+    // Nieve sobre las ramas: una capa blanca con la orilla ondulada
+    const sy = top + th * 0.5;
+    g.fillStyle = dark ? "#D5E0EE" : "#FFFFFF";
+    g.beginPath(); g.moveTo(x, top - h * 0.012);
+    g.quadraticCurveTo(x - tw * 0.3, top + th * 0.3, x - tw * 0.62, sy + th * 0.08);
+    g.quadraticCurveTo(x - tw * 0.38, sy - th * 0.06, x - tw * 0.16, sy + th * 0.04);
+    g.quadraticCurveTo(x + tw * 0.08, sy - th * 0.1, x + tw * 0.3, sy - th * 0.02);
+    g.quadraticCurveTo(x + tw * 0.46, sy - th * 0.12, x + tw * 0.56, sy - th * 0.04);
+    g.quadraticCurveTo(x + tw * 0.28, top + th * 0.25, x, top - h * 0.012);
+    g.closePath(); g.fill();
+    // Puntitas nevadas en las orillas de cada rama
+    for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * tw * 0.9, base - h * 0.014, h * 0.05, h * 0.02, -s * 0.3, 0, TAU); g.fill(); }
+  }
+}
+// Cada pino se pinta una vez en su propio canvas
+function makePine(h, dark) {
+  const pad = 4, w = h * 0.72 + pad * 2, hh = h + pad * 2, c = document.createElement("canvas");
+  c.width = Math.ceil(w * DPR); c.height = Math.ceil(hh * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR);
+  paintPine(g, w / 2, h + pad, h, dark);
+  return { c, w, h: hh, ax: w / 2, ay: h + pad };
+}
+// Esquís o snowboard bajo los pies. ang = hacia dónde se desliza (ya con perspectiva)
+function drawRide(g, x, y, ang, r, ride, alpha) {
+  const dx = Math.cos(ang), dy = Math.sin(ang), px = -dy, py = dx * 0.6;
+  g.lineCap = "round";
+  const strip = (ox, oy, len, lw, col) => { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x + ox - dx * len, y + oy - dy * len); g.lineTo(x + ox + dx * len, y + oy + dy * len); g.stroke(); };
+  if (ride === "ski") {
+    const L = r * 1.3, o = r * 0.27;
+    for (const s of [-1, 1]) { g.globalAlpha = alpha * 0.18; strip(px * o * s, py * o * s + 2, L, r * 0.24, "#000000"); }
+    for (const s of [-1, 1]) {
+      g.globalAlpha = alpha; strip(px * o * s, py * o * s, L, r * 0.22, "#3D7BD9");
+      // La punta curvada, un poco más clara
+      g.strokeStyle = "#8DB8F2"; g.lineWidth = r * 0.22; g.beginPath(); g.moveTo(x + px * o * s + dx * L * 0.75, y + py * o * s + dy * L * 0.75); g.lineTo(x + px * o * s + dx * L, y + py * o * s + dy * L); g.stroke();
+    }
+  } else {
+    const L = r * 1.15;
+    g.globalAlpha = alpha * 0.18; strip(0, 2.5, L, r * 0.64, "#000000");
+    g.globalAlpha = alpha; strip(0, 0, L, r * 0.6, "#E0574A");
+    strip(0, 0, L * 0.82, r * 0.16, "#FF9F92");
+    // Fijaciones
+    g.fillStyle = "#3A2F2C";
+    for (const s of [-1, 1]) { g.beginPath(); g.arc(x + dx * L * 0.38 * s, y + dy * L * 0.38 * s, r * 0.1, 0, TAU); g.fill(); }
+  }
+  g.globalAlpha = alpha;
+}
+// Fondo nevado: picos al fondo (como el mar en la playa, ahí no se puede entrar), nieve con textura y pinos
+function buildSnow() {
+  const dark = PAL.dark, top = seaH, small = W < PHONE_WIDTH;
+  // Pinos: a los lados, para que no estorben en medio
+  const n = W * H > 420000 ? 6 : W * H > 260000 ? 5 : 4;
+  for (let tries = 0; pines.length < n && tries < 200; tries++) {
+    const left = pines.length % 2 === 0, x = left ? rand(18, W * 0.2) : rand(W * 0.8, W - 18), y = rand(top + 70, H - 26);
+    if (pines.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < 90)) continue;
+    const h = rand(56, 84) * (small ? 0.82 : 1);
+    pines.push({ x, y, h, ph: rand(0, TAU), spr: makePine(h, dark) });
+  }
+  pines.sort((a, b) => a.y - b.y);
+  const c = document.createElement("canvas");
+  c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
+  const g = c.getContext("2d"); g.scale(DPR, DPR);
+  // --- La nieve del campo
+  // Lomas: sombras azuladas y zonas más iluminadas, para que el piso se sienta ondulado
+  for (let i = 0; i < Math.round((W * H) / 40000) + 4; i++) {
+    const x = rand(0, W), y = rand(top, H), r = rand(60, 170), sh = i % 3 !== 0;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    const col = sh ? (dark ? "0,0,0" : "110,145,200") : "255,255,255", a = sh ? (dark ? 0.14 : 0.1) : dark ? 0.04 : 0.6;
+    gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gr; g.save(); g.translate(x, y); g.scale(1, 0.45); g.translate(-x, -y); g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.restore();
+  }
+  // Montoncitos de nieve que el viento dejó: una sombra abajo y un brillo arriba
+  g.lineCap = "round";
+  for (let i = 0; i < Math.round((W * H) / 13000); i++) {
+    const x = rand(0, W), y = rand(top + 24, H), w = rand(26, 70), b = rand(4, 8);
+    g.strokeStyle = dark ? "rgba(0,0,0,0.22)" : "rgba(110,140,190,0.17)"; g.lineWidth = 2.6;
+    g.beginPath(); g.moveTo(x - w / 2, y); g.quadraticCurveTo(x, y - b, x + w / 2, y); g.stroke();
+    g.strokeStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)"; g.lineWidth = 1.6;
+    g.beginPath(); g.moveTo(x - w * 0.42, y - 2); g.quadraticCurveTo(x, y - b - 2, x + w * 0.42, y - 2); g.stroke();
+  }
+  // Grano fino de la nieve
+  for (let i = 0; i < Math.round((W * H) / 260); i++) {
+    const x = rand(0, W), y = rand(top, H), w = Math.random() < 0.5;
+    g.fillStyle = w ? (dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)") : dark ? "rgba(0,0,0,0.12)" : "rgba(110,140,190,0.08)";
+    g.fillRect(x, y, w ? 1.4 : 1, w ? 1.4 : 1);
+  }
+  // Piedritas asomándose
+  for (let i = 0; i < 3; i++) {
+    const x = rand(W * 0.25, W * 0.75), y = rand(top + 60, H - 30), r = rand(5, 9);
+    g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.14)"; g.beginPath(); g.ellipse(x + 2, y + 2, r * 1.2, r * 0.45, 0, 0, TAU); g.fill();
+    g.fillStyle = dark ? "#4B5568" : "#9AA5B4"; g.beginPath(); g.ellipse(x, y, r, r * 0.62, 0, Math.PI, TAU); g.ellipse(x, y, r, r * 0.22, 0, 0, Math.PI); g.fill();
+    g.fillStyle = dark ? "#C9D5E4" : "#FFFFFF"; g.beginPath(); g.ellipse(x - r * 0.1, y - r * 0.48, r * 0.72, r * 0.24, 0, 0, TAU); g.fill();
+  }
+  // Sombras de los pinos sobre la nieve
+  for (const p of pines) {
+    g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(70,105,160,0.14)";
+    g.beginPath(); g.ellipse(p.x + p.h * 0.16, p.y + 1, p.h * 0.34, p.h * 0.09, 0.08, 0, TAU); g.fill();
+  }
+  // --- Los picos, al fondo
+  const sky = g.createLinearGradient(0, 0, 0, top);
+  if (dark) { sky.addColorStop(0, "#151C2A"); sky.addColorStop(1, "#283750"); } else { sky.addColorStop(0, "#BFD8F0"); sky.addColorStop(1, "#E7F1FB"); }
+  g.fillStyle = sky; g.fillRect(0, 0, W, top + 2);
+  const range = (base, amp, step, col, cap) => {
+    const peaks = [];
+    for (let x = -rand(0, step); x < W + step; x += step * rand(0.75, 1.25)) peaks.push({ x, y: base - amp * rand(0.55, 1), v: base - amp * rand(0.08, 0.3) });
+    g.fillStyle = col; g.beginPath(); g.moveTo(-10, base + 4);
+    peaks.forEach((p, i) => { g.lineTo(p.x, p.y); const nx = peaks[i + 1] ? (p.x + peaks[i + 1].x) / 2 : p.x + step / 2; g.lineTo(nx, p.v); });
+    g.lineTo(W + 10, base + 4); g.closePath(); g.fill();
+    // Capas de nieve en cada pico, con la orilla en zigzag
+    g.fillStyle = cap;
+    peaks.forEach((p, i) => {
+      const prev = peaks[i - 1] ? (peaks[i - 1].x + p.x) / 2 : p.x - step / 2, next = peaks[i + 1] ? (p.x + peaks[i + 1].x) / 2 : p.x + step / 2;
+      const pv = peaks[i - 1] ? peaks[i - 1].v : base, nv = p.v, d = amp * rand(0.24, 0.34), k = d / Math.max(1, p.v - p.y);
+      const lx = p.x + (prev - p.x) * Math.min(1, d / Math.max(1, pv - p.y)), rx = p.x + (next - p.x) * Math.min(1, k), y = p.y + d;
+      g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(lx, y);
+      const teeth = 4;
+      for (let t = 1; t <= teeth; t++) { const xx = lx + ((rx - lx) * t) / teeth; g.lineTo(xx - (rx - lx) / teeth / 2, y + (t % 2 ? -d * 0.3 : d * 0.12)); g.lineTo(xx, y); }
+      g.closePath(); g.fill();
+    });
+  };
+  range(top * 0.8, top * 0.62, 78, dark ? "#2E3C54" : "#B4C9E2", dark ? "rgba(170,185,210,0.85)" : "#F3F8FD");
+  range(top * 0.98, top * 0.5, 104, dark ? "#394A66" : "#93AED0", dark ? "#C2D0E2" : "#FFFFFF");
+  // Pinitos sobre la cresta (siluetas)
+  for (let x = rand(0, 18); x < W; x += rand(12, 30)) {
+    const h = rand(top * 0.14, top * 0.26), y = top + rand(-3, 1);
+    g.fillStyle = dark ? "#21403A" : "#3D6F60";
+    for (let k = 0; k < 3; k++) { const ty = y - k * h * 0.28, tw = h * (0.32 - k * 0.07); g.beginPath(); g.moveTo(x, ty - h * 0.45); g.lineTo(x - tw, ty); g.lineTo(x + tw, ty); g.closePath(); g.fill(); }
+    g.fillStyle = dark ? "#C2D0E2" : "#FFFFFF"; g.beginPath(); g.moveTo(x, y - h * 1.01); g.lineTo(x - h * 0.08, y - h * 0.82); g.lineTo(x + h * 0.08, y - h * 0.82); g.closePath(); g.fill();
+  }
+  // Banco de nieve: donde empieza el campo (con su sombrita)
+  const edge = (x, off) => top + off + Math.sin(x * 0.045) * 2.5 + Math.sin(x * 0.013 + 1) * 3.5;
+  g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(90,120,170,0.13)";
+  g.beginPath(); g.moveTo(0, top); for (let x = 0; x <= W + 10; x += 10) g.lineTo(x, edge(x, 14)); g.lineTo(W, top); g.closePath(); g.fill();
+  const bank = g.createLinearGradient(0, top - 8, 0, top + 12);
+  if (dark) { bank.addColorStop(0, "#3A4862"); bank.addColorStop(1, "#2C374B"); } else { bank.addColorStop(0, "#FFFFFF"); bank.addColorStop(1, "#F1F6FB"); }
+  g.fillStyle = bank;
+  g.beginPath(); for (let x = 0; x <= W + 10; x += 10) x ? g.lineTo(x, edge(x, -6)) : g.moveTo(x, edge(x, -6)); for (let x = W + 10; x >= -10; x -= 10) g.lineTo(x, edge(x + 37, 9)); g.closePath(); g.fill();
+  bgLayer = c;
+  // Destellos de la nieve y copos que caen
+  for (let i = 0; i < Math.round((W * H) / 9000); i++) glints.push({ x: rand(0, W), y: rand(top + 10, H), ph: rand(0, TAU), sp: rand(0.5, 1.4) });
+  for (let i = 0; i < Math.round((W * H) / 6500); i++) { const r = rand(0.8, 2.4); flakes.push({ x: rand(0, W), y: rand(-10, H), r, sp: 14 + r * 13, ph: rand(0, TAU), sw: rand(6, 16) }); }
+}
+function drawSnowBg() {
+  if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+  // Neblina que pasa despacio frente a las montañas
+  for (let i = 0; i < 2; i++) {
+    const x = ((time * (7 + i * 4) + i * W * 0.6) % (W + 360)) - 180, y = seaH * (0.55 + i * 0.2), r = 150;
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, PAL.dark ? "rgba(200,215,235,0.10)" : "rgba(255,255,255,0.55)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.save(); ctx.translate(x, y); ctx.scale(1, 0.22); ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.restore();
+  }
+  // Destellos: la nieve brilla aquí y allá
+  ctx.fillStyle = PAL.dark ? "#E6EEFA" : "#7FAAE0";
+  for (const s of glints) {
+    const k = Math.pow(Math.max(0, Math.sin(time * s.sp + s.ph)), 14);
+    if (k < 0.05) continue;
+    ctx.globalAlpha = k * (PAL.dark ? 0.75 : 0.7);
+    const r = 0.8 + 2.6 * k;
+    ctx.fillRect(s.x - r, s.y - 0.5, r * 2, 1); ctx.fillRect(s.x - 0.5, s.y - r, 1, r * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+function drawPine(p) {
+  const S = p.spr;
+  ctx.globalAlpha = 1;
+  ctx.save(); ctx.translate(p.x, p.y);
+  if (!reduceMotion) ctx.transform(1, 0, Math.sin(time * 0.8 + p.ph) * 0.02, 1, 0, 0); // se mece apenitas
+  ctx.drawImage(S.c, -S.ax, -S.ay, S.w, S.h);
+  ctx.restore();
+}
+// Huellas: dos rayitas (esquís) o una ancha (snowboard) que se borran justo detrás
+function drawTracks() {
+  const dark = PAL.onDark;
+  ctx.lineCap = "butt";
+  for (const s of tracks) {
+    const u = s.t / TRACK_LIFE, a = (1 - u) * (1 - u);
+    const dx = s.x1 - s.x0, dy = s.y1 - s.y0, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = (dx / len) * 0.6;
+    if (s.ride === "ski") {
+      const o = s.w * 0.27;
+      ctx.globalAlpha = a * (dark ? 0.45 : 0.42); ctx.strokeStyle = dark ? "#0B1019" : "#6F8FBF"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (const g of [-1, 1]) { ctx.moveTo(s.x0 + nx * o * g, s.y0 + ny * o * g); ctx.lineTo(s.x1 + nx * o * g, s.y1 + ny * o * g); }
+      ctx.stroke();
+      ctx.globalAlpha = a * (dark ? 0.14 : 0.95); ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      for (const g of [-1, 1]) { ctx.moveTo(s.x0 + nx * o * g, s.y0 + ny * o * g + 1.4); ctx.lineTo(s.x1 + nx * o * g, s.y1 + ny * o * g + 1.4); }
+      ctx.stroke();
+    } else {
+      // Snowboard: una franja ancha con las orillas marcadas
+      ctx.globalAlpha = a * (dark ? 0.25 : 0.14); ctx.strokeStyle = dark ? "#0B1019" : "#6F8FBF"; ctx.lineWidth = s.w * 0.6;
+      ctx.beginPath(); ctx.moveTo(s.x0, s.y0); ctx.lineTo(s.x1, s.y1); ctx.stroke();
+      const o = s.w * 0.3;
+      ctx.globalAlpha = a * (dark ? 0.45 : 0.38); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (const g of [-1, 1]) { ctx.moveTo(s.x0 + nx * o * g, s.y0 + ny * o * g); ctx.lineTo(s.x1 + nx * o * g, s.y1 + ny * o * g); }
+      ctx.stroke();
+      ctx.globalAlpha = a * (dark ? 0.12 : 0.9); ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(s.x0 + nx * s.w * 0.3, s.y0 + ny * s.w * 0.3 + 1); ctx.lineTo(s.x1 + nx * s.w * 0.3, s.y1 + ny * s.w * 0.3 + 1); ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+// Esquiadores: se inclinan en las curvas, dejan su huella y levantan nieve al virar
+function rideStep(b, dt) {
+  const turn = angDiff(b.heading, b.lastH) / Math.max(dt, 1e-3);
+  b.lastH = b.heading;
+  b.lean += (clamp(turn * 0.12, -0.3, 0.3) - b.lean) * Math.min(1, dt * 5);
+  const gx = b.x, gy = b.y + b.T.bottom - 1;
+  if (!b.lt) b.lt = { x: gx, y: gy };
+  const dx = gx - b.lt.x, dy = gy - b.lt.y;
+  if (dx * dx + dy * dy > 30) { tracks.push({ x0: b.lt.x, y0: b.lt.y, x1: gx, y1: gy, t: 0, ride: b.ride, w: b.r }); b.lt.x = gx; b.lt.y = gy; }
+  if (Math.abs(turn) > 0.9 && !lowFx && Math.random() < dt * 14) part(gx, gy, -b.vx * 0.15 + rand(-25, 25), -rand(25, 70), rand(1.4, 2.6), rand(0.35, 0.55), PAL.dark ? "#E6EEF8" : "#C4D8EF", "dot", 3, 160, 0.95);
+}
+function updateTracks(dt) { for (let i = tracks.length - 1; i >= 0; i--) if ((tracks[i].t += dt) > TRACK_LIFE) tracks.splice(i, 1); }
+// Copos que caen despacio (encima de todo, como el clima)
+function drawSnowfall(dt) {
+  if (!flakes.length || !isSnow()) return;
+  const n = lowFx || reduceMotion ? flakes.length >> 1 : flakes.length, k = reduceMotion ? 0.4 : 1;
+  for (let i = 0; i < n; i++) {
+    const f = flakes[i];
+    f.y += f.sp * k * dt; f.x += Math.sin(time * 0.9 + f.ph) * f.sw * k * dt;
+    if (f.y > H + 4) { f.y = -4; f.x = rand(0, W); }
+    if (f.x < -4) f.x = W + 4; else if (f.x > W + 4) f.x = -4;
+  }
+  // En claro, una sombrita azul para que se vean sobre la nieve
+  if (!PAL.dark) {
+    ctx.globalAlpha = 0.22; ctx.fillStyle = "#5F82B8"; ctx.beginPath();
+    for (let i = 0; i < n; i++) { const f = flakes[i]; ctx.moveTo(f.x + f.r + 0.6, f.y + 0.7); ctx.arc(f.x, f.y + 0.7, f.r + 0.6, 0, TAU); }
+    ctx.fill();
+  }
+  ctx.globalAlpha = PAL.dark ? 0.8 : 1; ctx.fillStyle = "#FFFFFF"; ctx.beginPath();
+  for (let i = 0; i < n; i++) { const f = flakes[i]; ctx.moveTo(f.x + f.r, f.y); ctx.arc(f.x, f.y, f.r, 0, TAU); }
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// Avalancha (ayudante de The Slopes): la nieve se desprende de los picos, baja rodando como una pared
+// de bolas de nieve con una nube de polvo, se lleva a todos los marcianitos y luego se asienta y se derrite.
+const AVAL_BACK = 1.4;
+let avalClock = 6;
+const avalCrest = (w, x) => w.front + Math.sin(x * 0.028 + w.t * 1.8) * 9 + Math.sin(x * 0.083 - w.t * 2.6) * 4;
+const crestAt = (w, x) => (w.kind === "aval" ? avalCrest(w, x) : waveCrest(w, x));
+function launchAval() {
+  waves.push({ kind: "aval", t: 0, dur: 2.3, id: ++waveId, front: seaH - 30, caught: [], puffs: [] });
+  Sound.avalanche(); buzz([14, 50, 20, 50, 26]);
+}
+const puff = (x, y, s) => ({ x, y, r: rand(14, 30) * s, t: 0, life: rand(0.8, 1.3), vx: rand(-14, 14), vy: rand(10, 45) });
+function updatePuffs(w, dt) {
+  for (let i = w.puffs.length - 1; i >= 0; i--) { const p = w.puffs[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.t >= p.life) w.puffs.splice(i, 1); }
+}
+function drawAval(w) {
+  const tr = w.t - WAVE_PREP, dark = PAL.dark;
+  let back = 0;
+  if (tr >= w.dur) back = Math.min(1, (tr - w.dur) / AVAL_BACK);
+  if (tr >= 0 && back > 0) {
+    // La nieve se asienta y se derrite poco a poco
+    ctx.globalAlpha = (1 - back) * 0.88; ctx.fillStyle = dark ? "#3A4760" : "#FAFCFE";
+    ctx.fillRect(0, seaH, W, H - seaH);
+    for (let i = 0; i < 16; i++) {
+      const x = (i * 97 + 31) % W, y = seaH + 30 + ((i * 137) % Math.max(60, H - seaH - 40)), r = 18 + (i % 4) * 8;
+      ctx.globalAlpha = (1 - back) * 0.5; ctx.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(110,145,200,0.25)";
+      ctx.beginPath(); ctx.ellipse(x + 3, y + 4, r, r * 0.42, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = dark ? "#4A5874" : "#FFFFFF"; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.42, 0, 0, TAU); ctx.fill();
+    }
+  } else if (tr >= 0) {
+    const front = w.front, crest = (x) => avalCrest(w, x), top = seaH * 0.55;
+    // La sombra que el frente proyecta sobre la nieve
+    ctx.globalAlpha = dark ? 0.4 : 0.18; ctx.fillStyle = dark ? "#000000" : "#4A6FA5";
+    ctx.beginPath(); for (let x = -12; x <= W + 12; x += 12) x > -12 ? ctx.lineTo(x, crest(x) - 6) : ctx.moveTo(x, crest(x) - 6);
+    for (let x = W + 12; x >= -12; x -= 12) ctx.lineTo(x, crest(x) + 18); ctx.closePath(); ctx.fill();
+    // El cuerpo: nieve que baja, más densa y azulada arriba
+    const g = ctx.createLinearGradient(0, top, 0, Math.max(top + 1, front));
+    if (dark) { g.addColorStop(0, "rgba(110,128,158,0.97)"); g.addColorStop(1, "rgba(196,210,230,0.98)"); }
+    else { g.addColorStop(0, "rgba(206,221,240,0.98)"); g.addColorStop(1, "rgba(247,250,254,0.99)"); }
+    ctx.globalAlpha = 1; ctx.fillStyle = g;
+    ctx.beginPath(); ctx.moveTo(-12, top); for (let x = -12; x <= W + 12; x += 16) ctx.lineTo(x, top + Math.sin(x * 0.05 + w.t * 3) * 4);
+    for (let x = W + 12; x >= -12; x -= 12) ctx.lineTo(x, crest(x)); ctx.closePath(); ctx.fill();
+    // Vetas que bajan con la nieve
+    ctx.lineCap = "round"; ctx.strokeStyle = dark ? "rgba(255,255,255,0.22)" : "rgba(120,150,195,0.32)"; ctx.lineWidth = 2;
+    const span = Math.max(40, front - top - 20);
+    for (let i = 0; i < 16; i++) {
+      const x = (i * 97 + 13) % W, y = top + ((i * 61 + tr * 360) % span);
+      ctx.globalAlpha = Math.min(1, (front - y) / 40);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 6, y + 10, x + 2, y + 22); ctx.stroke();
+    }
+    // Terrones que ruedan adentro
+    for (let i = 0; i < 14; i++) {
+      const x = (i * 71 + 29) % W, y = top + ((i * 89 + tr * 300) % span), r = 3 + (i % 4) * 1.6;
+      ctx.globalAlpha = Math.min(1, (front - y) / 30);
+      ctx.fillStyle = dark ? "rgba(70,86,112,0.8)" : "rgba(160,185,220,0.7)"; ctx.beginPath(); ctx.arc(x + 1, y + 1.6, r, 0, TAU); ctx.fill();
+      ctx.fillStyle = dark ? "#D5DFEC" : "#FFFFFF"; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
+    // El frente: bolas grandes de nieve que van rodando
+    ctx.globalAlpha = 1;
+    for (let x = -10, i = 0; x < W + 30; x += 24, i++) {
+      const r = 13 + ((i * 7) % 5) * 2.6 + Math.sin(w.t * 3 + i) * 1.5, cy = crest(x) - r * 0.35;
+      ctx.fillStyle = dark ? "#7E90AE" : "#BFD0E6"; ctx.beginPath(); ctx.arc(x + 1.5, cy + 2.5, r, 0, TAU); ctx.fill();
+      const bg = ctx.createRadialGradient(x - r * 0.35, cy - r * 0.4, r * 0.1, x, cy, r);
+      bg.addColorStop(0, "#FFFFFF"); bg.addColorStop(1, dark ? "#C3D0E3" : "#E1EBF6");
+      ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(x, cy, r, 0, TAU); ctx.fill();
+      const a = -w.t * 6 + i * 1.3;
+      ctx.fillStyle = dark ? "#9FB0CA" : "#C9D9EC"; ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 0.55, cy + Math.sin(a) * r * 0.55, r * 0.13, 0, TAU); ctx.fill();
+    }
+  }
+  // Nube de polvo de nieve (también en los picos, antes de que baje): bocanadas suaves, sin orillas
+  const S = puffSprite(dark);
+  for (const p of w.puffs) {
+    const u = p.t / p.life, r = p.r * (0.7 + u * 1.1);
+    ctx.globalAlpha = (1 - u) * Math.min(1, u * 4) * (dark ? 0.55 : 0.95);
+    ctx.drawImage(S, p.x - r, p.y - r, r * 2, r * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+// Una bocanada de polvo de nieve: blanca al centro, se desvanece hacia afuera con un tono azulado abajo
+const puffSprites = {};
+function puffSprite(dark) {
+  const k = dark ? "d" : "l";
+  if (puffSprites[k]) return puffSprites[k];
+  const c = document.createElement("canvas"); c.width = c.height = 96;
+  const g = c.getContext("2d");
+  const sh = g.createRadialGradient(50, 56, 0, 50, 56, 46);
+  sh.addColorStop(0, dark ? "rgba(20,28,44,0.35)" : "rgba(120,150,200,0.28)"); sh.addColorStop(1, "rgba(120,150,200,0)");
+  g.fillStyle = sh; g.fillRect(0, 0, 96, 96);
+  const gr = g.createRadialGradient(46, 44, 0, 48, 48, 46);
+  gr.addColorStop(0, dark ? "rgba(225,233,245,1)" : "rgba(255,255,255,1)"); gr.addColorStop(0.5, dark ? "rgba(210,222,238,0.75)" : "rgba(250,252,255,0.8)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 96, 96);
+  return (puffSprites[k] = c);
 }
 
 /* ---------- Herramientas y ayudantes de The Beach: bombas, lluvia ácida, jets y tormentas ácidas ---------- */
@@ -2763,7 +3173,9 @@ function launchJet() {
   Sound.jet();
 }
 function updateSky(dt) {
-  const beach = lvl().id === "beach";
+  const beach = save.level >= 1; // jets y tormentas: de The Beach en adelante
+  // Avalancha (The Slopes): baja una, y la siguiente espera a que termine
+  if (save.level >= 2 && save.up.aval > 0 && playing && !waves.some((w) => w.kind === "aval")) { avalClock -= dt; if (avalClock <= 0) { launchAval(); avalClock = FX.avalEvery(save.up.aval); } }
   // Jets
   if (beach && save.up.jet > 0 && playing && !jets.length && !falling.length) { jetClock -= dt; if (jetClock <= 0) launchJet(); }
   for (let i = jets.length - 1; i >= 0; i--) {
@@ -2837,36 +3249,41 @@ function smushCarried(b) { b.pull = null; b.carried = false; b.tumble = 0; hit(b
 function updateWaves(dt) {
   let shift = 0;
   for (let i = waves.length - 1; i >= 0; i--) {
-    const w = waves[i];
+    const w = waves[i], aval = w.kind === "aval", start = aval ? seaH - 30 : -60;
     w.t += dt;
+    if (aval) updatePuffs(w, dt);
     const tr = w.t - WAVE_PREP;
     if (tr < 0) {
-      // 1) El mar se retira (se ve la orilla bajar) mientras la ola toma fuerza
-      shift = Math.min(shift, -24 * easeOut(w.t / WAVE_PREP));
-      w.front = -60;
+      // 1) Tsunami: el mar se retira mientras la ola toma fuerza. Avalancha: la nieve se desprende de los picos
+      if (aval) { if (Math.random() < dt * 40) w.puffs.push(puff(rand(0, W), seaH - rand(0, 18), 0.6)); }
+      else shift = Math.min(shift, -24 * easeOut(w.t / WAVE_PREP));
+      w.front = start;
     } else if (tr < w.dur) {
-      // 2) La ola baja: lenta al principio, rápida a la mitad, y se frena al final
+      // 2) Baja: lenta al principio, rápida a la mitad, y se frena al final
       const u = tr / w.dur, k = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
-      w.front = -60 + (H + 140) * k;
-      if (!w.crashed && w.front > seaH) { w.crashed = true; Sound.waveCrash(); buzz([24, 50, 30]); }
-      if (!lowFx) for (let j = 0; j < 3; j++) { const x = rand(0, W); part(x, waveCrest(w, x), rand(-50, 50), rand(40, 170), rand(1.5, 3.2), rand(0.4, 0.7), "#FFFFFF", "dot", 3, 120, 0.9); }
+      w.front = aval ? start + (H + 90 - start) * k : -60 + (H + 140) * k;
+      if (!w.crashed && w.front > seaH) { w.crashed = true; if (aval) buzz([20, 40, 24, 40, 28]); else { Sound.waveCrash(); buzz([24, 50, 30]); } }
+      const spray = aval ? (PAL.dark ? "#DCE5F1" : "#F2F7FD") : "#FFFFFF";
+      if (!lowFx) for (let j = 0; j < 3; j++) { const x = rand(0, W); part(x, crestAt(w, x), rand(-50, 50), rand(40, 170), rand(1.5, 3.2), rand(0.4, 0.7), spray, "dot", 3, 120, 0.9); }
+      if (aval && Math.random() < dt * (lowFx ? 10 : 26)) { const x = rand(-20, W + 20); w.puffs.push(puff(x, crestAt(w, x) - rand(0, 26), 1)); }
       // Atrapa a los que alcanza la cresta
       for (const b of balls) {
         if (b.state === "die" || b.pull) continue;
-        if (b.y - b.T.top * 0.4 <= waveCrest(w, b.x)) {
+        if (b.y - b.T.top * 0.4 <= crestAt(w, b.x)) {
           b.pull = w; b.carried = true; b.cOff = rand(4, 26); b.tumble = 0;
           b.spin = rand(3, 7) * (Math.random() < 0.5 ? -1 : 1);
           if (b.claimed) { b.claimed.target = null; b.claimed = null; }
           w.caught.push(b);
-          for (let j = 0; j < 4; j++) part(b.x, b.y, rand(-60, 60), rand(-80, -20), rand(1.6, 3), 0.5, "#FFFFFF", "dot", 3, 200, 0.85);
+          for (let j = 0; j < 4; j++) part(b.x, b.y, rand(-60, 60), rand(-80, -20), rand(1.6, 3), 0.5, spray, "dot", 3, 200, 0.85);
         }
       }
     } else {
-      // 3) Revienta abajo y regresa al mar
+      // 3) Revienta abajo (el agua regresa al mar; la nieve se asienta)
       w.front = H + 80;
       if (!w.broke) {
         w.broke = true;
-        for (let j = 0; j < 22; j++) { const x = rand(0, W); part(x, H - rand(0, 12), rand(-70, 70), -rand(80, 240), rand(1.8, 3.6), rand(0.5, 0.8), "#FFFFFF", "dot", 2.5, 380, 0.9); }
+        for (let j = 0; j < 22; j++) { const x = rand(0, W); part(x, H - rand(0, 12), rand(-70, 70), -rand(80, 240), rand(1.8, 3.6), rand(0.5, 0.8), aval ? (PAL.dark ? "#DCE5F1" : "#E9F1FB") : "#FFFFFF", "dot", 2.5, 380, 0.9); }
+        if (aval) { Sound.avalancheEnd(); for (let j = 0; j < 10; j++) w.puffs.push(puff(rand(0, W), H - rand(0, 30), 1.3)); }
       }
     }
     // Los atrapados viajan en la cresta dando vueltas; al llegar al fondo, revientan
@@ -2878,11 +3295,12 @@ function updateWaves(dt) {
       b.tumble += b.spin * dt;
       if (b.y > H - b.T.bottom * 0.5 || w.broke) smushCarried(b);
     }
-    if (tr > w.dur + WAVE_BACK) waves.splice(i, 1);
+    if (tr > w.dur + (aval ? AVAL_BACK : WAVE_BACK)) waves.splice(i, 1);
   }
   seaShift += (shift - seaShift) * Math.min(1, dt * 8);
 }
 function drawWave(w) {
+  if (w.kind === "aval") { drawAval(w); return; }
   const tr = w.t - WAVE_PREP;
   if (tr < 0) return;
   let front = w.front, alpha = 1, back = 0;
@@ -2952,7 +3370,7 @@ function afterBuy(was, card) {
 }
 function buyTool(id) {
   const price = priceOf(id);
-  if (price == null || toolWorld(id) > save.level) return;
+  if (price == null || !toolHere(id)) return;
   if (save.coins < price) { Sound.nope(); return; }
   const was = save.tools[id];
   save.coins -= price; save.spent += price; save.tools[id] = was + 1;
@@ -2983,7 +3401,7 @@ function tweenCoins(dt) {
   if (t !== shownText) { shownText = t; coinsEl.textContent = t; }
 }
 let coinBump = false, bumpAnim = null, shopTab = "tools";
-const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p && toolWorld(id) <= save.level; };
+const canTool = (id) => { const p = priceOf(id); return p != null && p > 0 && save.coins >= p && toolHere(id); };
 const canUp = (k) => { const p = upPrice(k); return p != null && save.coins >= p && upReady(k); };
 function updateUI() {
   uiDirty = false;
@@ -3021,8 +3439,8 @@ const pips = (n, max = 3) => Array.from({ length: max }, (_, i) => `<i class="${
 const fmtShort = (n) => (n >= 10000 ? new Intl.NumberFormat(loc(), { notation: "compact", maximumFractionDigits: 1 }).format(n) : fmt(n));
 const toolEls = {};
 function renderToolbar() {
-  const vis = TOOL_ORDER.filter((id) => save.tools[id] > 0 && toolWorld(id) <= save.level);
-  const next = TOOL_ORDER.find((id) => !save.tools[id] && toolWorld(id) <= save.level);
+  const vis = TOOL_ORDER.filter((id) => save.tools[id] > 0 && toolHere(id));
+  const next = TOOL_ORDER.find((id) => !save.tools[id] && toolHere(id));
   if (next) vis.push(next);
   const bar = $("#tools");
   bar.style.setProperty("--n", vis.length);
@@ -3083,11 +3501,11 @@ function toolCard(id) {
 function upCard(k) {
   const l = save.up[k], u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
   const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
-  const hireLike = k === "hire" || k === "boltH" || ((k === "jet" || k === "acidH") && l === 0);
+  const hireLike = k === "hire" || k === "boltH" || ((k === "jet" || k === "acidH" || k === "aval") && l === 0);
   const btn = !ready
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
     : buyButton("up", k, price, hireLike ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade"));
-  const art = { hire: "finger", boltH: "bolt", jet: "jet", acidH: "acid" }[k];
+  const art = { hire: "finger", boltH: "bolt", jet: "jet", acidH: "acid", aval: "aval" }[k];
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
   return shopCard({
     key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : ""), icon, name: tx(k),
@@ -3101,10 +3519,11 @@ function renderShop(animate) {
   let html = "";
   if (shopTab === "tools") {
     html = sect("secVoid") + ["finger", "bolt", "spray"].map(toolCard).join("")
-      + sect("secBeach") + ["bomb", "acid", "meteor", "wave"].map(toolCard).join("");
+      + sect("secBeach") + ["bomb", "acid", "meteor", "wave"].filter((id) => !toolGone(id)).map(toolCard).join("");
   } else if (shopTab === "helpers") {
     html = sect("secTeam") + ["hire", "boltH"].map(upCard).join("")
-      + sect("secBeach") + ["jet", "acidH"].map(upCard).join("");
+      + sect("secBeach") + ["jet", "acidH"].map(upCard).join("")
+      + sect("secSnow") + ["aval"].map(upCard).join("");
   } else {
     html = sect("secBoostWorld") + ["value", "crowd", "luck", "night"].map(upCard).join("")
       + sect("secBoostHelp") + ["speed", "power"].map(upCard).join("");
@@ -3178,7 +3597,7 @@ function applyLang() {
 function applyTheme() {
   const root = document.documentElement;
   if (settings.theme === "auto") delete root.dataset.theme; else root.dataset.theme = settings.theme;
-  readPalette(); if (W) buildSprites();
+  readPalette(); if (W) { buildSprites(); buildBackground(); }
   syncThemeColor();
 }
 function nativeBar() {
@@ -3219,7 +3638,7 @@ confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]
 $("#btn-reset-yes").addEventListener("click", () => {
   save = freshSave(); writeSave();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; timers.length = 0;
-  helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0;
+  helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
   applyLevel(); updateDetonate();
   for (const k in cdEnd) delete cdEnd[k];
@@ -3294,6 +3713,10 @@ function drawAlien(b) {
     const u = b.t / DIE;
     if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.38 * k; sy = 1 - 0.55 * k; }
     else { const k = (u - 0.35) / 0.65; sx = 1.38 * (1 - 0.35 * k); sy = 0.45 * (1 - 0.6 * k); alpha = 1 - k; }
+  } else if (b.ride && !b.carried) {
+    // Esquiando: sin pasitos; se inclina en las curvas y flexiona un poquito las piernas
+    tilt = b.lean * (reduceMotion ? 0.4 : 1);
+    sy = 1 - 0.03 * (0.5 + 0.5 * Math.sin(time * 3 + b.p1));
   } else {
     // Caminata: rebotito suave y un balanceo de lado a lado
     const st = Math.sin(b.walk);
@@ -3308,6 +3731,7 @@ function drawAlien(b) {
     ctx.globalAlpha = alpha * (0.5 + 0.3 * Math.sin(time * 3.2));
     ctx.drawImage(haloSprite.c, b.x - haloSprite.size / 2, b.y - haloSprite.size / 2, haloSprite.size, haloSprite.size);
   }
+  if (b.ride && b.state !== "die" && !b.carried && !b.pull) drawRide(ctx, b.x, gy, Math.atan2(b.vy * 0.6, b.vx), b.r * hpScale * sx, b.ride, alpha);
   ctx.globalAlpha = alpha;
   ctx.save();
   ctx.translate(b.x, gy - lift);
@@ -3332,6 +3756,8 @@ function render(dt) {
     ctx.beginPath(); ctx.ellipse(s.x, s.y, s.rx * (1 + u * 0.15), s.rx * 0.32, 0, 0, TAU); ctx.fill();
     for (let i = 0; i < 4; i++) { const a = s.seed + i * 1.7, d = s.rx * (1.25 + (i % 2) * 0.3); ctx.beginPath(); ctx.ellipse(s.x + Math.cos(a) * d, s.y + Math.sin(a) * d * 0.32, 3 + (i % 3), 1.6 + (i % 2), 0, 0, TAU); ctx.fill(); }
   }
+  // Huellas de los esquiadores
+  if (tracks.length) drawTracks();
   // Niebla del spray (en el piso, detrás de los marcianitos)
   for (const p of parts) {
     if (p.kind !== "mist") continue;
@@ -3377,7 +3803,12 @@ function render(dt) {
   for (const w of waves) drawWave(w);
   // Marcianitos, del fondo hacia el frente
   balls.sort((a, b) => a.y - b.y);
-  for (const b of balls) drawAlien(b);
+  if (pines.length) {
+    // Los pinos se acomodan entre los marcianitos según su profundidad (se puede pasar por detrás)
+    let pi = 0;
+    for (const b of balls) { const gy = b.y + b.T.bottom; while (pi < pines.length && pines[pi].y <= gy) drawPine(pines[pi++]); drawAlien(b); }
+    while (pi < pines.length) drawPine(pines[pi++]);
+  } else for (const b of balls) drawAlien(b);
   // Anillos (pisotón, aplastado, toque al aire)
   for (const g of rings) {
     const u = g.t / g.dur, k = easeOut(u), r = g.r0 + (g.r1 - g.r0) * k;
@@ -3443,6 +3874,7 @@ function render(dt) {
   // Lo que va en el cielo, encima de todo lo demás: nubes de ácido y sus gotas, jets y bombas cayendo
   drawRainsSky();
   drawSky();
+  drawSnowfall(dt || 0);
   // Burbuja del multiplicador (siempre visible para poder tocarla)
   drawBubble();
   // Cursor dibujado (solo con mouse)
@@ -3522,6 +3954,7 @@ const Hero = (() => {
   const cvh = $("#home-cv"), g = cvh.getContext("2d");
   let hraf = 0, hlast = 0, t = 0, w = 0, hh = 0, actors = [], pops = [], popClock = 2.2;
   const KINDS = ["green", "orange", "purple", "green", "yellow", "orange"];
+  const HERO_PINES = [[-0.66, -0.32, 1], [0.48, -0.6, 1.15], [0.8, -0.04, 0.78], [-0.24, -0.78, 0.8]]; // x, y (en radios de la isla) y alto
   const ground = () => ({ cx: w / 2, cy: hh * 0.56, rx: Math.min(w * 0.38, 190), ry: Math.min(hh * 0.25, 78) });
   function size() {
     const r = cvh.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
@@ -3530,7 +3963,7 @@ const Hero = (() => {
   }
   function make(k, fromEdge) {
     const e = ground(), a = rand(0, TAU), d = fromEdge ? 0.95 : Math.sqrt(Math.random()) * 0.75;
-    return { k, x: e.cx + Math.cos(a) * e.rx * d, y: e.cy + Math.sin(a) * e.ry * d, h: a + Math.PI + rand(-0.6, 0.6), sp: BALL_TYPES[k].speed * 0.5, walk: rand(0, TAU), face: 1, flip: 1, born: 0, die: 0 };
+    return { k, ride: k === "orange" ? (Math.random() < 0.5 ? "ski" : "board") : null, x: e.cx + Math.cos(a) * e.rx * d, y: e.cy + Math.sin(a) * e.ry * d, h: a + Math.PI + rand(-0.6, 0.6), sp: BALL_TYPES[k].speed * 0.5, walk: rand(0, TAU), face: 1, flip: 1, born: 0, die: 0 };
   }
   function start() {
     size();
@@ -3574,8 +4007,25 @@ const Hero = (() => {
   }
   function draw(e) {
     g.clearRect(0, 0, w, hh);
-    const dark = PAL.dark, beach = lvl().id === "beach";
-    if (beach) {
+    const dark = PAL.dark, lid = lvl().id, beach = lid === "beach";
+    if (lid === "snow") {
+      // Una islita nevada en agua helada: nieve con sombras azules, brillo en la orilla y pinos
+      const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
+      g.save(); g.translate(e.cx, e.cy); g.scale(1, gs);
+      const ice = g.createRadialGradient(0, 0, Math.min(e.rx * 0.9, GR * 0.7), 0, 0, GR);
+      ice.addColorStop(0, dark ? "#2C4A68" : "#BFDDF4"); ice.addColorStop(1, dark ? "rgba(44,74,104,0)" : "rgba(191,221,244,0)");
+      g.fillStyle = ice; g.beginPath(); g.arc(0, 0, GR, 0, TAU); g.fill(); g.restore();
+      g.fillStyle = dark ? "rgba(150,190,230,0.2)" : "rgba(255,255,255,0.65)";
+      g.beginPath(); g.ellipse(e.cx, e.cy + 2, e.rx * 1.06, e.ry * 1.1, 0, 0, TAU); g.fill();
+      const sn = g.createRadialGradient(e.cx - e.rx * 0.3, e.cy - e.ry * 0.4, 4, e.cx, e.cy, e.rx);
+      sn.addColorStop(0, dark ? "#46546E" : "#FFFFFF"); sn.addColorStop(1, dark ? "#2E3A50" : "#D9E6F4");
+      g.fillStyle = sn; g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "rgba(0,0,0,0.16)" : "rgba(110,145,200,0.1)";
+      g.beginPath(); g.ellipse(e.cx + e.rx * 0.25, e.cy + e.ry * 0.3, e.rx * 0.45, e.ry * 0.25, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(e.cx - e.rx * 0.4, e.cy - e.ry * 0.1, e.rx * 0.3, e.ry * 0.18, 0, 0, TAU); g.fill();
+      g.strokeStyle = dark ? "rgba(220,235,255,0.35)" : "rgba(255,255,255,0.95)"; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(e.cx, e.cy, e.rx + 1, e.ry + 1, 0, 0, TAU); g.stroke();
+    } else if (beach) {
       // Una islita en el mar: agua alrededor, una franja de agua clara y espuma que va y viene
       // El brillo del agua se apaga antes de llegar a la orilla del canvas (nunca se ve cortado)
       const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
@@ -3605,14 +4055,23 @@ const Hero = (() => {
       g.globalAlpha = 1;
     }
     // Marcianitos, del fondo hacia el frente, con su sombra
-    const list = actors.slice().sort((a, b) => a.y - b.y);
+    const list = actors.slice();
+    // En la nieve, los pinos se acomodan entre los marcianitos según la profundidad
+    if (lid === "snow") for (const [px, py, ph] of HERO_PINES) list.push({ pine: true, x: e.cx + px * e.rx, y: e.cy + py * e.ry, h: ph * Math.min(e.ry, 70) });
+    list.sort((a, b) => a.y - b.y);
     for (const a of list) {
+      if (a.pine) {
+        g.globalAlpha = dark ? 0.35 : 0.12; g.fillStyle = "#000000"; g.beginPath(); g.ellipse(a.x + a.h * 0.14, a.y + 1, a.h * 0.32, a.h * 0.08, 0, 0, TAU); g.fill();
+        g.globalAlpha = 1; paintPine(g, a.x, a.y, a.h, dark); continue;
+      }
       const T = BALL_TYPES[a.k], im = alienImg[a.k];
       if (!im) continue;
       const hgt = T.baseR * 2.9, wid = hgt * (im.width / im.height);
       let sx = 1, sy = 1, al = a.born;
       if (a.die) { const u = a.die / 0.7; if (u < 0.3) { const k = easeOut(u / 0.3); sx = 1 + 0.4 * k; sy = 1 - 0.55 * k; } else { const k = (u - 0.3) / 0.7; sx = 1.4 * (1 - 0.4 * k); sy = 0.45 * (1 - 0.6 * k); al = 1 - k; } }
-      const bob = a.die ? 0 : Math.abs(Math.sin(a.walk)) * 2.2, tilt = a.die ? 0 : Math.sin(a.walk) * 0.045;
+      const ski = lid === "snow" && a.ride && !a.die;
+      const bob = a.die || ski ? 0 : Math.abs(Math.sin(a.walk)) * 2.2, tilt = a.die ? 0 : ski ? Math.sin(t * 1.3 + a.walk) * 0.12 : Math.sin(a.walk) * 0.045;
+      if (ski) drawRide(g, a.x, a.y, Math.atan2(Math.sin(a.h) * 0.33, Math.cos(a.h)), T.baseR * 0.82, a.ride, al);
       g.globalAlpha = al * (dark ? 0.4 : 0.14); g.fillStyle = "#000000";
       g.beginPath(); g.ellipse(a.x, a.y + 1, T.baseR * 0.95 * sx, T.baseR * 0.26, 0, 0, TAU); g.fill();
       g.globalAlpha = al;
@@ -3631,6 +4090,16 @@ const Hero = (() => {
       for (const d of p.dots) { g.globalAlpha = 1 - u; g.beginPath(); g.arc(p.x + Math.cos(d.a) * d.s * u, p.y + Math.sin(d.a) * d.s * u + 120 * u * u, 2.6 * (1 - u * 0.5), 0, TAU); g.fill(); }
     }
     g.globalAlpha = 1;
+    // Copos cayendo sobre la isla nevada
+    if (lid === "snow") {
+      g.fillStyle = "#FFFFFF";
+      for (let i = 0; i < 30; i++) {
+        const r = 0.9 + (i % 3) * 0.55, x = ((i * 53.7) % w) + Math.sin(t * 0.8 + i) * 8, y = ((i * 97.3 + t * (14 + r * 10)) % (hh + 20)) - 10;
+        if (!dark) { g.globalAlpha = 0.25; g.fillStyle = "#5F82B8"; g.beginPath(); g.arc(x, y + 0.7, r + 0.6, 0, TAU); g.fill(); g.fillStyle = "#FFFFFF"; }
+        g.globalAlpha = dark ? 0.8 : 1; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+      }
+      g.globalAlpha = 1;
+    }
   }
   return { start, stop, size };
 })();
