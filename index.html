@@ -80,14 +80,15 @@
 
 /* Tema de The Beach (nivel 2): arena, mar y cielo cálido. De noche (tema oscuro), playa de luna */
 :root { --lvl: #7C5CE0; --lvl-soft: rgba(124, 92, 224, 0.14); }
+:root[data-level] { --speck: transparent; } /* del nivel 2 en adelante, sin los puntitos del piso */
 :root[data-level="beach"] {
-  --bg: #FAF6EE; --field: #EEDCB7; --field-hi: #F8EDD4; --speck: rgba(160, 120, 60, 0.11);
+  --bg: #FBF8F1; --field: #F6EBD3; --field-hi: #FCF6E9; --speck: transparent;
   --lvl: #2FA3C4; --lvl-soft: rgba(47, 163, 196, 0.14); --mist: #B7A68A;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1A1915; --field: #37301F; --field-hi: #433A27; --speck: rgba(255, 230, 180, 0.05); --mist: #CFC3A8; }
+  :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
 }
-:root[data-level="beach"][data-theme="dark"] { --bg: #1A1915; --field: #37301F; --field-hi: #433A27; --speck: rgba(255, 230, 180, 0.05); --mist: #CFC3A8; }
+:root[data-level="beach"][data-theme="dark"] { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
 
 /* ============================================================
    Base: sin zoom, sin selección, sin scroll de la página
@@ -632,7 +633,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.6.0";
+const VERSION = "0.6.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -679,7 +680,7 @@ const TOOLS = {
   vortex: { price: 8000,  upgrades: [15000, 30000], radius: [110, 140, 170], cooldown: [2.4, 1.9, 1.4], life: 1.5 }, // se los traga
   // Herramientas de The Beach (nivel 2): world = nivel en el que se desbloquean (0 = The Void)
   sun:    { price: 15000, upgrades: [30000, 60000], world: 1, radius: [70, 85, 100], interval: [0.2, 0.16, 0.12], damage: 2 }, // mantén y mueve
-  wave:   { price: 30000, upgrades: [60000, 120000], world: 1, damage: [3, 4, 5], cooldown: [8, 6.5, 5], dur: 1.3 },          // barre la pantalla
+  wave:   { price: 30000, upgrades: [60000, 120000], world: 1, cooldown: [8, 6.5, 5], dur: [1.8, 1.55, 1.3] },          // baja desde el mar y arrastra a todos
   meteor: { price: 15000, upgrades: [30000, 60000], count: [5, 7, 9], radius: 52, damage: 3, spread: 120, cooldown: [3, 2.5, 2] },
 };
 const TOOL_ORDER = ["finger", "boot", "spray", "bolt", "laser", "vortex", "meteor", "sun", "wave"];
@@ -868,7 +869,7 @@ const STR = {
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
   sun: ["Sunbeam", "Rayo de sol"], sunD: ["Hold and move: a scorching circle of sunlight that melts everything under it.", "Mantén y mueve: un círculo de sol ardiente que derrite todo lo que está debajo."],
-  wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave sweeps the whole screen. Nobody stays dry.", "Una ola gigante barre toda la pantalla. Nadie queda seco."],
+  wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
@@ -914,7 +915,7 @@ function statText(id, lvl) {
   if (id === "laser") { const w = TOOLS.laser.width[i], d = TOOLS.laser.damage[i]; return es ? `Rayo de ${w} px · ${d} de daño` : `${w} px beam · ${d} damage`; }
   if (id === "vortex") { const r = TOOLS.vortex.radius[i], c = TOOLS.vortex.cooldown[i]; return es ? `Radio ${r} px · cada ${c} s` : `${r} px pull · every ${c}s`; }
   if (id === "sun") { const r = TOOLS.sun.radius[i], v = TOOLS.sun.interval[i]; return es ? `Radio ${r} px · cada ${v} s` : `${r} px · burns every ${v}s`; }
-  if (id === "wave") { const d = TOOLS.wave.damage[i], c = TOOLS.wave.cooldown[i]; return es ? `${d} de daño · cada ${c} s` : `${d} damage · every ${c}s`; }
+  if (id === "wave") { const c = TOOLS.wave.cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
 }
 function statShort(id, lvl) {
@@ -927,7 +928,7 @@ function statShort(id, lvl) {
   if (id === "laser") return `${TOOLS.laser.width[i]} px · ${TOOLS.laser.damage[i]}`;
   if (id === "vortex") return `${TOOLS.vortex.radius[i]} px · ${TOOLS.vortex.cooldown[i]}${s}`;
   if (id === "sun") return `${TOOLS.sun.radius[i]} px · ${TOOLS.sun.interval[i]}${s}`;
-  if (id === "wave") return `${TOOLS.wave.damage[i]} · ${TOOLS.wave.cooldown[i]}${s}`;
+  if (id === "wave") return `${TOOLS.wave.cooldown[i]}${s}`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
@@ -1154,7 +1155,10 @@ const Sound = (() => {
       breath({ t: 0.05, dur: 1.6, vol: 0.04, from: 300, to: 1200 });
     },
     sizzle() { noise({ dur: 0.22, vol: 0.025, freq: vary(3000, 0.1), q: 0.7, attack: 0.05 }); },
-    wave() { breath({ dur: 1.4, vol: 0.07, from: 260, to: 900 }); noise({ t: 0.25, dur: 1, vol: 0.05, freq: 600, q: 0.4, attack: 0.35, kind: "lowpass" }); },
+    // Tsunami: el mar se retira (soplo que baja y un retumbo grave)…
+    wave() { breath({ dur: 0.6, vol: 0.05, from: 900, to: 300 }); tone(55, { dur: 1.2, vol: 0.09, attack: 0.35, slide: 1.3 }); },
+    // …y la ola rompe: un rugido de agua que se va apagando
+    waveCrash() { noise({ dur: 1.4, vol: 0.09, freq: 700, q: 0.4, attack: 0.08, kind: "lowpass", sweep: 0.5 }); breath({ dur: 1.2, vol: 0.06, from: 1600, to: 400 }); thump({ vol: 0.14 }); },
     bubbleMiss() { breath({ dur: 0.35, vol: 0.02, from: 900, to: 500 }); },
     // Intro del estudio: el oso aparece con un soplo y una nota grave, golpecitos suaves por letra
     studio(from = 0) {
@@ -1592,7 +1596,7 @@ function useTool(x, y) {
   } else if (id === "wave") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
     startCd(id, TOOLS.wave.cooldown[L]);
-    waves.push({ dir: x < W / 2 ? 1 : -1, t: 0, dur: TOOLS.wave.dur, id: ++waveId, dmg: TOOLS.wave.damage[L], front: 0 });
+    waves.push({ t: 0, dur: TOOLS.wave.dur[L], id: ++waveId, front: -60, caught: [] });
     Sound.wave(); buzz([12, 60, 18, 60, 24]);
   } else if (id === "spray" || id === "laser" || id === "sun") {
     // El daño continuo lo aplica el bucle mientras el dedo siga presionado (sprayTick / laserTick)
@@ -2036,7 +2040,7 @@ function buildBackground() {
   g.lineCap = "round";
   for (let i = 0; i < Math.round(W * H / 16000); i++) {
     const x = rand(0, W), y = rand(seaH + 30, H), w = rand(18, 40);
-    g.strokeStyle = sand + "0.09)"; g.lineWidth = 1.3;
+    g.strokeStyle = sand + "0.06)"; g.lineWidth = 1.2;
     g.beginPath(); g.moveTo(x - w / 2, y); g.quadraticCurveTo(x, y - 4, x + w / 2, y); g.stroke();
   }
   const items = Math.max(4, Math.round(W * H / 45000));
@@ -2062,7 +2066,7 @@ function drawBackground(dt) {
     if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
     // Mar arriba: la orilla sube y baja despacio (la marea) y las olas se mueven
     const tide = Math.sin(time * 0.35) * 4 * (reduceMotion ? 0.3 : 1);
-    const edge = (x, off, ph) => seaH + tide + off + Math.sin(x * 0.035 + time * 1.3 + ph) * 3 + Math.sin(x * 0.013 - time * 0.7 + ph) * 2.5;
+    const edge = (x, off, ph) => seaH + tide + seaShift + off + Math.sin(x * 0.035 + time * 1.3 + ph) * 3 + Math.sin(x * 0.013 - time * 0.7 + ph) * 2.5;
     // arena mojada
     ctx.globalAlpha = 1; ctx.fillStyle = PAL.dark ? "rgba(0,0,0,0.12)" : "rgba(140,100,50,0.10)";
     ctx.beginPath(); ctx.moveTo(0, 0); for (let x = 0; x <= W + 12; x += 12) ctx.lineTo(x, edge(x, 12, 1.5)); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
@@ -2138,41 +2142,96 @@ function drawSun(p) {
   for (let i = 0; i < 12; i++) { ctx.rotate(TAU / 12); ctx.beginPath(); ctx.moveTo(-3, R * 0.45); ctx.lineTo(0, R * 1.08); ctx.lineTo(3, R * 0.45); ctx.closePath(); ctx.fill(); }
   ctx.restore();
 }
-// Tsunami: una ola cruza toda la pantalla desde la orilla más cercana al toque
+// Tsunami: el mar se retira, una ola enorme baja desde arriba (donde está el mar), arrastra a todos
+// los marcianitos que alcanza dando vueltas en la cresta, revienta abajo y el agua regresa al mar.
 const waves = [];
-let waveId = 0;
+let waveId = 0, seaShift = 0;
+const WAVE_PREP = 0.45, WAVE_BACK = 0.9; // s que el mar se retira antes / que tarda en regresar
+const waveCrest = (w, x) => w.front + Math.sin(x * 0.045 + w.t * 7) * 6 + Math.sin(x * 0.014 - w.t * 3.2) * 9;
+function smushCarried(b) { b.pull = null; b.carried = false; b.tumble = 0; hit(b, 999, b.x, b.y - 20, true); }
 function updateWaves(dt) {
+  let shift = 0;
   for (let i = waves.length - 1; i >= 0; i--) {
     const w = waves[i];
     w.t += dt;
-    const u = Math.min(1, w.t / w.dur), k = u * u * (3 - 2 * u);
-    w.front = w.dir > 0 ? -90 + (W + 180) * k : W + 90 - (W + 180) * k;
-    if (u < 1) for (const b of balls) {
-      if (b.state === "die" || b.pull || b.waveHit === w.id) continue;
-      if (w.dir > 0 ? b.x <= w.front : b.x >= w.front) {
-        b.waveHit = w.id; b.vx += w.dir * 120;
-        for (let j = 0; j < 3; j++) part(b.x, b.y, w.dir * rand(40, 120), -rand(40, 110), rand(1.6, 3), 0.6, "#FFFFFF", "dot", 3, 200, 0.85);
-        hit(b, w.dmg, b.x - w.dir * 20, b.y, true);
+    const tr = w.t - WAVE_PREP;
+    if (tr < 0) {
+      // 1) El mar se retira (se ve la orilla bajar) mientras la ola toma fuerza
+      shift = Math.min(shift, -24 * easeOut(w.t / WAVE_PREP));
+      w.front = -60;
+    } else if (tr < w.dur) {
+      // 2) La ola baja: lenta al principio, rápida a la mitad, y se frena al final
+      const u = tr / w.dur, k = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      w.front = -60 + (H + 140) * k;
+      if (!w.crashed && w.front > seaH) { w.crashed = true; Sound.waveCrash(); buzz([24, 50, 30]); }
+      if (!lowFx) for (let j = 0; j < 3; j++) { const x = rand(0, W); part(x, waveCrest(w, x), rand(-50, 50), rand(40, 170), rand(1.5, 3.2), rand(0.4, 0.7), "#FFFFFF", "dot", 3, 120, 0.9); }
+      // Atrapa a los que alcanza la cresta
+      for (const b of balls) {
+        if (b.state === "die" || b.pull) continue;
+        if (b.y - b.T.top * 0.4 <= waveCrest(w, b.x)) {
+          b.pull = w; b.carried = true; b.cOff = rand(4, 26); b.tumble = 0;
+          b.spin = rand(3, 7) * (Math.random() < 0.5 ? -1 : 1);
+          if (b.claimed) { b.claimed.target = null; b.claimed = null; }
+          w.caught.push(b);
+          for (let j = 0; j < 4; j++) part(b.x, b.y, rand(-60, 60), rand(-80, -20), rand(1.6, 3), 0.5, "#FFFFFF", "dot", 3, 200, 0.85);
+        }
+      }
+    } else {
+      // 3) Revienta abajo y regresa al mar
+      w.front = H + 80;
+      if (!w.broke) {
+        w.broke = true;
+        for (let j = 0; j < 22; j++) { const x = rand(0, W); part(x, H - rand(0, 12), rand(-70, 70), -rand(80, 240), rand(1.8, 3.6), rand(0.5, 0.8), "#FFFFFF", "dot", 2.5, 380, 0.9); }
       }
     }
-    if (w.t > w.dur + 0.7) waves.splice(i, 1);
+    // Los atrapados viajan en la cresta dando vueltas; al llegar al fondo, revientan
+    for (const b of w.caught) {
+      if (b.state === "die" || !b.carried) continue;
+      const ty = Math.min(w.front, H + 40) - b.cOff;
+      b.y += (ty - b.y) * Math.min(1, dt * 10);
+      b.x = clamp(b.x + Math.sin(time * 2.5 + b.p1) * 30 * dt, b.T.side, W - b.T.side);
+      b.tumble += b.spin * dt;
+      if (b.y > H - b.T.bottom * 0.5 || w.broke) smushCarried(b);
+    }
+    if (tr > w.dur + WAVE_BACK) waves.splice(i, 1);
   }
+  seaShift += (shift - seaShift) * Math.min(1, dt * 8);
 }
 function drawWave(w) {
-  const fade = w.t > w.dur ? 1 - (w.t - w.dur) / 0.7 : 1;
-  if (fade <= 0) return;
-  const from = w.dir > 0 ? -20 : W + 20, f = w.front;
-  const edgeX = (y) => f + Math.sin(y * 0.045 + w.t * 9) * 7 + Math.sin(y * 0.017 - w.t * 4) * 6;
-  const g = ctx.createLinearGradient(from, 0, f, 0);
-  g.addColorStop(0, PAL.dark ? "rgba(40,110,140,0.05)" : "rgba(80,175,210,0.08)"); g.addColorStop(1, PAL.dark ? "rgba(60,150,180,0.55)" : "rgba(80,185,220,0.55)");
-  ctx.globalAlpha = fade; ctx.fillStyle = g;
-  ctx.beginPath(); ctx.moveTo(from, -10);
-  for (let y = -10; y <= H + 10; y += 14) ctx.lineTo(edgeX(y), y);
-  ctx.lineTo(from, H + 10); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.globalAlpha = 0.9 * fade;
-  ctx.beginPath(); for (let y = -10; y <= H + 10; y += 14) y > -10 ? ctx.lineTo(edgeX(y), y) : ctx.moveTo(edgeX(y), y); ctx.stroke();
-  ctx.lineWidth = 2; ctx.globalAlpha = 0.45 * fade;
-  ctx.beginPath(); for (let y = -10; y <= H + 10; y += 14) { const x = edgeX(y) - w.dir * 16; y > -10 ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+  const tr = w.t - WAVE_PREP;
+  if (tr < 0) return;
+  let front = w.front, alpha = 1, back = 0;
+  if (tr >= w.dur) { back = Math.min(1, (tr - w.dur) / WAVE_BACK); front = H + 20 - (H + 20 - seaH) * easeOut(back); alpha = 1 - back; }
+  const t = w.t, crest = (x) => front + Math.sin(x * 0.045 + t * 7) * 6 + Math.sin(x * 0.014 - t * 3.2) * 9;
+  // Arena mojada que deja el agua al regresar
+  if (back > 0) { ctx.globalAlpha = 0.12 * (1 - back); ctx.fillStyle = PAL.dark ? "#000000" : "#8C6A3A"; ctx.fillRect(0, front, W, H - front); }
+  // Cuerpo de la ola: más profundo arriba, más claro cerca de la cresta
+  const g = ctx.createLinearGradient(0, 0, 0, Math.max(1, front));
+  if (PAL.dark) { g.addColorStop(0, "rgba(22,70,92,0.92)"); g.addColorStop(1, "rgba(48,128,155,0.82)"); }
+  else { g.addColorStop(0, "rgba(46,148,188,0.9)"); g.addColorStop(1, "rgba(120,208,230,0.8)"); }
+  ctx.globalAlpha = alpha; ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(W, -10);
+  for (let x = W; x >= -12; x -= 12) ctx.lineTo(x, crest(x));
+  ctx.closePath(); ctx.fill();
+  // Corrientes: rayitas que bajan con el agua
+  ctx.strokeStyle = "#FFFFFF"; ctx.lineCap = "round"; ctx.lineWidth = 2;
+  for (let i = 0; i < 12; i++) {
+    const span = Math.max(40, front - 20), y = (i * 53 + tr * 280) % span, x = (i * 97) % W;
+    ctx.globalAlpha = 0.22 * alpha * Math.min(1, (front - y) / 40);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 14, y + 4, x + 30, y); ctx.stroke();
+  }
+  // Labio de la ola: una franja clara justo arriba de la espuma
+  ctx.globalAlpha = 0.5 * alpha; ctx.fillStyle = PAL.dark ? "rgba(120,200,220,0.6)" : "rgba(205,242,250,0.9)";
+  ctx.beginPath(); for (let x = -12; x <= W + 12; x += 12) x > -12 ? ctx.lineTo(x, crest(x) - 18) : ctx.moveTo(x, crest(x) - 18);
+  for (let x = W + 12; x >= -12; x -= 12) ctx.lineTo(x, crest(x)); ctx.closePath(); ctx.fill();
+  // Espuma: un trazo grueso, uno más fino adentro y burbujitas que se mueven
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "#FFFFFF"; ctx.globalAlpha = 0.95 * alpha; ctx.lineWidth = 7;
+  ctx.beginPath(); for (let x = -12; x <= W + 12; x += 12) x > -12 ? ctx.lineTo(x, crest(x)) : ctx.moveTo(x, crest(x)); ctx.stroke();
+  ctx.globalAlpha = 0.5 * alpha; ctx.lineWidth = 3;
+  ctx.beginPath(); for (let x = -12; x <= W + 12; x += 12) { const y = crest(x) - 12 + Math.sin(x * 0.08 + t * 5) * 2; x > -12 ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+  ctx.fillStyle = "#FFFFFF"; ctx.globalAlpha = 0.9 * alpha;
+  for (let x = 4; x < W; x += 15) { const r = 3 + 2 * Math.sin(x * 0.3 + t * 6); ctx.beginPath(); ctx.arc(x, crest(x) + 3 + Math.sin(x + t * 4) * 2, Math.max(1, r), 0, TAU); ctx.fill(); }
   ctx.globalAlpha = 1;
 }
 
@@ -2578,7 +2637,8 @@ function drawAlien(b) {
   ctx.globalAlpha = alpha;
   ctx.save();
   ctx.translate(b.x, gy - lift);
-  if (b.pull) { ctx.translate(0, -T.bottom); ctx.rotate(b.walk * 0.4); ctx.scale(b.suck, b.suck); ctx.translate(0, T.bottom); }
+  if (b.carried) { ctx.translate(0, -T.bottom); ctx.rotate(b.tumble); ctx.translate(0, T.bottom); }
+  else if (b.pull) { ctx.translate(0, -T.bottom); ctx.rotate(b.walk * 0.4); ctx.scale(b.suck, b.suck); ctx.translate(0, T.bottom); }
   ctx.rotate(tilt);
   // Se voltea a la izquierda o a la derecha con un giro rápido (nunca se ve como una rayita)
   const fx = Math.sign(b.flip || 1) * Math.max(0.45, Math.abs(b.flip));
@@ -2637,6 +2697,8 @@ function render(dt) {
       ctx.beginPath(); ctx.ellipse(b.x, gy, rx, ry, 0, rot + i * seg + 0.3, rot + (i + 1) * seg - 0.3); ctx.stroke();
     }
   }
+  // Tsunami: el agua va debajo; los marcianitos atrapados se ven encima, dando vueltas en la cresta
+  for (const w of waves) drawWave(w);
   // Marcianitos, del fondo hacia el frente
   balls.sort((a, b) => a.y - b.y);
   for (const b of balls) drawAlien(b);
@@ -2668,8 +2730,7 @@ function render(dt) {
       ctx.beginPath(); bo.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
     }
   }
-  // Tsunami y rayo de sol (encima de los marcianitos)
-  for (const w of waves) drawWave(w);
+  // Rayo de sol (encima de los marcianitos)
   if (save.tool === "sun") for (const p of pointers.values()) drawSun(p);
   // Estela del láser: un brillo rosado y un hilo blanco
   drawBeam();
