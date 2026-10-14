@@ -344,6 +344,13 @@ a { color: inherit; }
 .item p { margin: 2px 0 0; font-size: 13px; font-weight: 550; color: var(--muted); }
 .item .stat { margin-top: 5px; font-size: 12.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .item .stat span { color: var(--muted); font-weight: 650; }
+/* Interruptor de cada ayudante */
+.item .hsw { display: flex; align-items: center; gap: 8px; margin-top: 9px; font-size: 12px; font-weight: 750; color: var(--muted); }
+.switch.sm { width: 38px; height: 23px; border-radius: 12px; }
+.switch.sm::after { top: 2px; left: 2px; width: 19px; height: 19px; }
+.switch.sm[aria-checked="true"]::after { transform: translateX(15px); }
+.item.off .ic { opacity: 0.45; filter: grayscale(0.7); }
+.item .ic { transition: opacity 0.25s ease, filter 0.25s ease; }
 .buy {
   min-width: 92px; height: 42px; padding: 0 14px; border: 0; border-radius: 21px;
   background: var(--accent); color: var(--on-accent); display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
@@ -806,7 +813,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.15.2";
+const VERSION = "0.15.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -882,6 +889,9 @@ const UP = {
   luck:  { tab: "boosts",  max: 4,  cost: [200, 450, 900, 1600] },          // más dorados
   night: { tab: "boosts",  max: 4,  cost: [300, 700, 1500, 3000] },          // más horas fuera
 };
+const HELPER_KEYS = ["hire", "boltH", "jet", "acidH"]; // los que se pueden apagar
+// Cuántos trabajan de verdad: los contratados, salvo que estén apagados
+const active = (k) => (save.off[k] ? 0 : save.up[k]);
 const UP_ORDER = ["hire", "boltH", "jet", "acidH", "speed", "power", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
@@ -973,6 +983,7 @@ const freshSave = () => ({
   v: 2, // versión del guardado
   level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
+  off: {}, // ayudantes apagados con su interruptor (siguen contratados, solo no trabajan)
 });
 function loadSave() {
   const d = freshSave();
@@ -1014,6 +1025,7 @@ function loadSave() {
     d.lvlSmushed = Number.isFinite(s.lvlSmushed) ? Math.floor(num(s.lvlSmushed)) : d.smushed;
     if (TOOLS[s.tool] && d.tools[s.tool] > 0) d.tool = s.tool;
     d.hinted = !!s.hinted;
+    if (s.off && typeof s.off === "object") for (const k of HELPER_KEYS) if (s.off[k] === true) d.off[k] = true;
     if (Number.isFinite(s.lastSeen)) d.lastSeen = s.lastSeen;
     if (s.pending && Number.isFinite(s.pending.coins) && s.pending.coins > 0) d.pending = { coins: Math.floor(s.pending.coins), aliens: Math.floor(num(s.pending.aliens)), away: num(s.pending.away), secs: num(s.pending.secs) };
   } catch (e) {}
@@ -1039,7 +1051,8 @@ const STR = {
   shop: ["Shop", "Tienda"],
   tabTools: ["Tools", "Herramientas"], tabHelpers: ["Helpers", "Ayudantes"], tabBoosts: ["Boosts", "Mejoras"],
   noteTools: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
-  noteHelpers: ["Helpers smush aliens on their own, even while you're away.", "Los ayudantes aplastan marcianitos solos, incluso cuando no estás."],
+  noteHelpers: ["Helpers smush aliens on their own, even while you're away. Use the switch to turn any of them off.", "Los ayudantes aplastan marcianitos solos, incluso cuando no estás. Con el interruptor puedes apagar cualquiera."],
+  working: ["Working", "Trabajando"], turnedOff: ["Off", "Apagado"],
   noteBoosts: ["Permanent upgrades that make every smush count more.", "Mejoras permanentes para que cada aplastón rinda más."],
   settings: ["Settings", "Ajustes"],
   sound: ["Sound", "Sonido"],
@@ -1977,9 +1990,9 @@ const helpers = [];
 const helperImg = {};
 // Cuántos de cada tipo: las botas y nubes son dedos convertidos
 function helperKinds() {
-  const u = save.up, out = [];
-  for (let i = 0; i < u.boltH; i++) out.push("bolt");
-  for (let i = 0; i < u.hire; i++) out.push("finger");
+  const out = [];
+  for (let i = 0; i < active("boltH"); i++) out.push("bolt");
+  for (let i = 0; i < active("hire"); i++) out.push("finger");
   return out;
 }
 function syncHelpers() {
@@ -2085,8 +2098,8 @@ function helperRate() {
   let rate = taps * coinsPerTap(FX.helperDamage(save.up.power));
   // Jets y tormentas (solo en The Beach): ~3 marcianitos por bomba, ~6 por tormenta
   if (save.level >= 1) {
-    if (save.up.jet) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
-    if (save.up.acidH) rate += (6 / (FX.acidEvery(save.up.acidH) + 7)) * avgReward();
+    if (active("jet")) rate += (8 / (FX.jetEvery(save.up.jet) + 2.5)) * avgReward();
+    if (active("acidH")) rate += (6 / (FX.acidEvery(save.up.acidH) + 7)) * avgReward();
   }
   return rate;
 }
@@ -2098,7 +2111,7 @@ function avgReward() {
 // Al volver: cuánto hicieron los ayudantes mientras no estabas (con el límite del Turno de noche)
 function checkAway(since) {
   const away = (Date.now() - since) / 1000;
-  if (!(away >= OFFLINE_MIN) || !save.up.hire) return;
+  if (!(away >= OFFLINE_MIN) || !(helperRate() > 0)) return;
   const secs = Math.min(away, FX.nightHours(save.up.night) * 3600);
   const coins = Math.floor(helperRate() * secs * OFFLINE_RATE);
   if (coins < 1) return;
@@ -2298,7 +2311,7 @@ function travel() {
   save.level++; save.lvlSmushed = 0;
   // Nivel nuevo, desde cero: herramientas, ayudantes y mejoras se reinician. Solo viajan tus monedas.
   const fresh = freshSave();
-  save.tools = fresh.tools; save.up = fresh.up; save.tool = "finger";
+  save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.tool = "finger";
   helpers.length = 0; syncHelpers();
   jetClock = 3; acidClock = 4;
   for (const k in cdEnd) delete cdEnd[k];
@@ -3178,7 +3191,7 @@ function launchJet() {
 function updateSky(dt) {
   const beach = save.level >= 1; // jets y tormentas: de The Beach en adelante
   // Jets
-  if (beach && save.up.jet > 0 && playing && !jets.length && !falling.length) { jetClock -= dt; if (jetClock <= 0) launchJet(); }
+  if (beach && active("jet") > 0 && playing && !jets.length && !falling.length) { jetClock -= dt; if (jetClock <= 0) launchJet(); }
   for (let i = jets.length - 1; i >= 0; i--) {
     const j = jets[i];
     j.t += dt; j.x += j.vx * dt; j.y += j.vy * dt;
@@ -3199,7 +3212,7 @@ function updateSky(dt) {
     if (f.t >= f.dur) { falling.splice(i, 1); explode(f.x1, f.y1, JET_R, true); jetClock = FX.jetEvery(save.up.jet); }
   }
   // Tormentas ácidas
-  if (beach && save.up.acidH > 0 && playing && !rains.some((r) => r.storm)) {
+  if (beach && active("acidH") > 0 && playing && !rains.some((r) => r.storm)) {
     acidClock -= dt;
     if (acidClock <= 0) {
       const dir = Math.random() < 0.5 ? 1 : -1, R = 96, top = Math.max(shoreY(BALL_TYPES.green) + R * 0.6, H * 0.3);
@@ -3479,10 +3492,10 @@ function buyButton(kind, key, price, label, blocked) {
 // Barra de niveles de cada tarjeta (un segmento por nivel)
 const segs = (n, max) => `<div class="segs">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</div>`;
 // Una tarjeta de la Tienda: ícono de color, nombre, nivel, descripción, qué mejora y el botón
-function shopCard({ key, cls = "", icon, name, tags = "", lv = "", desc, stat, bar = "", btn }) {
+function shopCard({ key, cls = "", icon, name, tags = "", lv = "", desc, stat, bar = "", btn, extra = "" }) {
   return `<div class="item${cls}" data-key="${key}" style="--c:${HUE[key] || "#8A94A6"}">
     <div class="ic">${icon}</div>
-    <div class="info"><h3><span class="nm">${name}</span>${lv}${tags}</h3><p>${desc}</p><div class="stat">${stat}</div>${bar}</div>
+    <div class="info"><h3><span class="nm">${name}</span>${lv}${tags}</h3><p>${desc}</p><div class="stat">${stat}</div>${bar}${extra}</div>
     <div class="cta">${btn}<span class="need"></span></div></div>`;
 }
 const sect = (k) => `<div class="sect">${tx(k)}</div>`;
@@ -3508,8 +3521,10 @@ function upCard(k) {
     : buyButton("up", k, price, hireLike ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade"));
   const art = { hire: isSnow() ? "fingerSnow" : "finger", boltH: "bolt", jet: "jet", acidH: "acid" }[k];
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
+  const on = !save.off[k], canOff = HELPER_KEYS.includes(k) && l > 0 && ready;
+  const extra = canOff ? `<div class="hsw"><button class="switch sm" type="button" role="switch" aria-checked="${on}" data-off="${k}" aria-label="${tx(k)}"></button><span>${tx(on ? "working" : "turnedOff")}</span></div>` : "";
   return shopCard({
-    key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : ""), icon, name: tx(k),
+    key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : "") + (canOff && !on ? " off" : ""), icon, name: tx(k), extra,
     tags: wl ? `<span class="tag">${LEVELS[wl].name}</span>` : "",
     lv: `<span class="lv">${tx("lvShort")} ${l}/${u.max}</span>`, desc: tx(k + "D"), stat, bar: segs(l, u.max), btn,
   });
@@ -3626,6 +3641,18 @@ $("#btn-menu").addEventListener("click", () => { Sound.unlock(); Sound.tick(); s
 document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) { Sound.tick(); closeSheet(s); } }));
 $("#shop-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === shopTab) return; shopTab = b.dataset.tab; renderShop(true); $("#shop-body").scrollTop = 0; Sound.tick(); });
 $("#shop-list").addEventListener("click", (e) => {
+  // Encender o apagar un ayudante (sigue contratado; solo deja de trabajar)
+  const sw = e.target.closest("[data-off]");
+  if (sw) {
+    const k = sw.dataset.off;
+    if (save.off[k]) delete save.off[k]; else save.off[k] = true;
+    syncHelpers(); markSave(); Sound.toggle(!save.off[k]); buzz(10);
+    sw.setAttribute("aria-checked", !save.off[k]);
+    sw.nextElementSibling.textContent = tx(save.off[k] ? "turnedOff" : "working");
+    sw.closest(".item").classList.toggle("off", !!save.off[k]);
+    uiDirty = true;
+    return;
+  }
   const b = e.target.closest(".buy[data-key]"); if (!b || b.disabled) return;
   if (b.dataset.kind === "tool") buyTool(b.dataset.key); else buyUp(b.dataset.key);
 });
