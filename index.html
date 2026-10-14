@@ -898,7 +898,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.21.8";
+const VERSION = "0.21.9";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -4888,6 +4888,27 @@ function renderHow() {
   list.classList.add("enter");
   [...list.children].forEach((c, i) => c.style.setProperty("--i", i));
 }
+
+/* ---------- Actualización: el navegador (sobre todo Safari) a veces muestra una copia vieja del juego.
+   Al abrir y al volver a la app, se revisa si hay una versión nueva publicada y, si la hay, se recarga una vez. ---------- */
+function checkUpdate() {
+  if (isNative() || location.protocol === "file:") return;
+  fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" })
+    .then((r) => (r.ok ? r.text() : ""))
+    .then((t) => {
+      const m = /const VERSION = "([^"]+)"/.exec(t);
+      if (!m || m[1] === VERSION) return;
+      let tried = "";
+      try { tried = sessionStorage.getItem("smush-updated") || ""; } catch (e) {}
+      if (tried === m[1]) return; // ya lo intentamos con esta versión: no recargar en bucle
+      try { sessionStorage.setItem("smush-updated", m[1]); } catch (e) {}
+      writeSave();
+      location.replace(location.pathname + "?v=" + encodeURIComponent(m[1])); // la dirección nueva evita la copia guardada
+    })
+    .catch(() => {});
+}
+setTimeout(checkUpdate, 1500);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkUpdate(); });
 
 /* ---------- 14. Intros: BluBer (4 s, sobre blanco) y luego la de SMUSH! ---------- */
 // Intro del estudio, copiada de Cube Swipe: el oso aparece, "BluBer" sube letra por letra, "GAMES" se abre, brillo y parpadeo
