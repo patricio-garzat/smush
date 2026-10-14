@@ -151,18 +151,37 @@ h1, h2, h3, .coins, .home-title, #splash .word, .play-txt b, .hc-t b, .shop-txt 
    Layout: encabezado · área de juego · barra de herramientas
    ============================================================ */
 #app { position: absolute; inset: 0; height: 100dvh; display: flex; flex-direction: column; }
+/* El encabezado flota sobre la franja de arriba del campo (el cielo, el mar, los picos, el dosel), que los marcianitos
+   nunca pisan. Todo es de vidrio esmerilado teñido apenas con el color del nivel, para que combine con cada mundo */
+:root { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 90%, var(--lvl)) 76%, transparent); --glass-line: rgba(255, 255, 255, 0.5); --glass-shadow: 0 4px 16px rgba(20, 20, 40, 0.12); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 88%, var(--lvl)) 72%, transparent); --glass-line: rgba(255, 255, 255, 0.09); --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); } }
+:root[data-theme="dark"] { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 88%, var(--lvl)) 72%, transparent); --glass-line: rgba(255, 255, 255, 0.09); --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); }
 #top {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 9px;
-  width: 100%; max-width: 1100px; margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 18px) 12px calc(env(safe-area-inset-left) + 18px);
+  position: absolute; top: 0; left: 0; right: 0; z-index: 4; pointer-events: none;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 8px;
+  padding: 10px 10px 0;
 }
-.wallet { min-width: 0; }
-.coins { display: flex; align-items: center; gap: 9px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
-.coins .coin { font-size: 20px; }
+#top > * { pointer-events: auto; }
+.wallet { min-width: 0; justify-self: start; display: inline-flex; align-items: center; height: 40px; padding: 0 14px 0 10px; border-radius: 20px;
+  background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); }
+#top .icon-btn, #top #lvl-chip { background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); }
+#top .icon-btn { width: 40px; height: 40px; }
+#top #lvl-chip { height: 40px; border-radius: 20px; }
+.coins { display: flex; align-items: center; gap: 7px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.coins .coin { font-size: 16px; }
+.panel-head .coins, .wallet .coins { white-space: nowrap; }
+/* En compu (pantalla ancha) todo en una sola fila: monedas · nivel y viaje · ajustes e inicio */
+@media (min-width: 760px) {
+  #top { grid-template-columns: auto minmax(0, 1fr) auto; padding: 12px 12px 0; }
+  #top .wallet { grid-column: 1; grid-row: 1; }
+  #top .sub { grid-column: 2; grid-row: 1; justify-content: center; }
+  #top .actions { grid-column: 3; grid-row: 1; }
+  #top #trip { flex: 0 1 460px; }
+}
 #coin-egg { position: relative; cursor: pointer; }
 #coin-egg::after { content: ""; position: absolute; inset: -12px; } /* área de toque más grande que la monedita */
 #coins { display: inline-block; transform-origin: left center; }
-#coins.long { font-size: 25px; } #coins.xlong { font-size: 21px; } /* con muchos dígitos se achica para que siempre quepa */
+#coins.long { font-size: 19px; } #coins.xlong { font-size: 16px; } /* con muchos dígitos se achica para que siempre quepa */
 .sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* Chip del nivel: un puntito de su color y el nombre (abre Niveles) */
 #lvl-chip {
@@ -176,7 +195,8 @@ h1, h2, h3, .coins, .home-title, #splash .word, .play-txt b, .hc-t b, .shop-txt 
 #trip {
   --p: 0; --fill: var(--lvl-soft);
   position: relative; display: flex; flex: 1; min-width: 0; align-items: center; gap: 9px; height: 40px; padding: 0 12px 0 8px; border: 0; border-radius: 20px;
-  background: linear-gradient(90deg, var(--fill) calc(var(--p) * 100%), var(--card) 0); box-shadow: var(--shadow); color: var(--text); text-align: left;
+  background: linear-gradient(90deg, var(--fill) calc(var(--p) * 100%), var(--glass) 0); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); color: var(--text); text-align: left;
+  -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5);
   transition: transform 0.14s ease;
 }
 #trip[hidden] { display: none; }
@@ -256,8 +276,8 @@ body::before {
 /* El área de juego: un "suelo" claro con un puntito muy sutil, como la superficie de un planeta */
 #field {
   position: relative; flex: 1; min-height: 0; overflow: hidden;
-  width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 1076px;
-  margin: 0 auto; border-radius: 28px;
+  width: calc(100% - 20px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 1076px;
+  margin: calc(env(safe-area-inset-top) + 8px) auto 0; border-radius: 28px;
   /* Marco: un borde claro y un halo del color del nivel, como un tablero */
   --frame: 0 0 0 4px color-mix(in srgb, var(--card) 70%, transparent), 0 0 0 5px color-mix(in srgb, var(--lvl) 22%, transparent), 0 18px 40px -16px color-mix(in srgb, var(--lvl) 50%, transparent);
   background:
@@ -272,7 +292,7 @@ body::before {
 }
 #hint.on { opacity: 1; }
 /* Acomodar un ayudante: una pastilla arriba del campo */
-#place-hint { position: absolute; top: 14px; left: 50%; z-index: 3; padding: 9px 16px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 750; white-space: nowrap; pointer-events: none;
+#place-hint { position: absolute; top: calc(var(--hud-h, 0px) + 8px); left: 50%; z-index: 3; padding: 9px 16px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 750; white-space: nowrap; pointer-events: none;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18); opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.22, 0.8, 0.24, 1); }
 #place-hint.on { opacity: 1; transform: translate(-50%, 0); animation: placePulse 1.8s ease-in-out infinite; }
 @keyframes placePulse { 50% { box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18), 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent); } }
@@ -297,7 +317,7 @@ body::before {
 .tool .count { font-size: 11px; font-weight: 800; opacity: 0.75; font-variant-numeric: tabular-nums; }
 /* Multiplicador activo: una pastilla arriba del campo con el tiempo que le queda, y un borde dorado (o violeta en ×4) */
 #mult-hud {
-  position: absolute; top: 12px; left: 50%; display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 13px;
+  position: absolute; top: calc(var(--hud-h, 0px) + 8px); left: 50%; display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 13px;
   border-radius: 16px; background: var(--card); box-shadow: var(--shadow); pointer-events: none;
   font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; color: #C9962A;
   opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.22, 0.8, 0.24, 1);
@@ -311,19 +331,24 @@ body::before {
 #field.boosted { box-shadow: var(--frame), inset 0 0 0 2px rgba(241, 200, 77, 0.7), inset 0 0 40px rgba(241, 200, 77, 0.12); }
 #field.boosted.x4 { box-shadow: var(--frame), inset 0 0 0 2px rgba(165, 132, 232, 0.75), inset 0 0 40px rgba(165, 132, 232, 0.14); }
 
+#dock {
+  display: flex; align-items: stretch; gap: 8px; flex: none;
+  width: calc(100% - 20px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 640px;
+  margin: 10px auto calc(env(safe-area-inset-bottom) + 10px);
+}
 #tools {
-  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 4px;
-  width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 640px;
-  margin: 14px auto 8px; padding: 6px; border-radius: 26px;
+  flex: 1; min-width: 0; display: flex; gap: 4px; padding: 5px; border-radius: 22px; margin: 0;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; touch-action: pan-x; scrollbar-width: none;
   background: var(--card); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(36, 37, 33, 0.1);
 }
+#tools::-webkit-scrollbar { display: none; }
 .tool {
-  position: relative; height: 66px; border: 0; border-radius: 20px; background: transparent; color: var(--text);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0;
+  position: relative; flex: 1 0 58px; max-width: 100px; height: 56px; border: 0; border-radius: 17px; background: transparent; color: var(--text); scroll-snap-align: start;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0;
   transition: background 0.25s ease, color 0.25s ease, transform 0.14s ease, box-shadow 0.25s ease;
 }
-.tool svg { width: 26px; height: 26px; color: var(--tc, currentColor); transition: opacity 0.25s, color 0.25s; }
-.tool .name { font-size: 12px; font-weight: 700; }
+.tool svg { width: 23px; height: 23px; color: var(--tc, currentColor); transition: opacity 0.25s, color 0.25s; }
+.tool .name { font-size: 10.5px; font-weight: 750; white-space: nowrap; }
 .pips { display: flex; gap: 3px; height: 5px; }
 .pips i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.18; transition: opacity 0.3s; }
 .pips i.on { opacity: 0.85; }
@@ -342,10 +367,9 @@ body::before {
 /* Con muchas herramientas la barra se desliza de lado (solo la barra, nunca la pantalla) */
 /* Tienda: botón grande y alegre debajo de las herramientas; cuenta cuántas cosas te alcanzan */
 #btn-shop {
-  position: relative; display: flex; align-items: center; gap: 12px; flex: none; overflow: hidden;
-  width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 640px; height: 58px;
-  margin: 0 auto calc(env(safe-area-inset-bottom) + 10px); padding: 0 14px 0 8px; border: 0; border-radius: 22px; color: #FFFFFF; text-align: left;
-  background: linear-gradient(120deg, #FFB24A 0%, #FF7A59 52%, #F2557A 100%);
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; flex: none; overflow: hidden;
+  width: 66px; margin: 0; padding: 0; border: 0; border-radius: 22px; color: #FFFFFF;
+  background: linear-gradient(140deg, #FFB24A 0%, #FF7A59 52%, #F2557A 100%);
   box-shadow: 0 10px 24px rgba(255, 110, 80, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: transform 0.14s ease;
 }
@@ -354,24 +378,15 @@ body::before {
   background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.38), transparent); }
 #btn-shop.has::after { animation: shopSheen 4s ease-in-out infinite; }
 @keyframes shopSheen { 0%, 62% { left: -60%; } 100% { left: 130%; } }
-.shop-ic { width: 42px; height: 42px; flex: none; border-radius: 15px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
-.shop-ic svg { width: 23px; height: 23px; }
-.shop-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
-.shop-txt b { font-size: 17px; font-weight: 850; letter-spacing: -0.01em; }
-.shop-txt small { font-size: 12.5px; font-weight: 650; opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.shop-count { display: none; min-width: 26px; height: 26px; padding: 0 8px; border-radius: 13px; background: #FFFFFF; color: #EF5F3E; font-size: 13.5px; font-weight: 850; font-variant-numeric: tabular-nums; place-items: center; box-shadow: 0 2px 6px rgba(160, 40, 30, 0.25); }
+.shop-ic { width: 34px; height: 34px; flex: none; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.shop-ic svg { width: 20px; height: 20px; }
+.shop-txt { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.shop-txt b { font-size: 11px; font-weight: 850; letter-spacing: 0.01em; }
+.shop-txt small, .shop-go { display: none; }
+.shop-count { position: absolute; top: 5px; right: 5px; display: none; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: #FFFFFF; color: #EF5F3E; font-size: 11px; font-weight: 850; font-variant-numeric: tabular-nums; place-items: center; box-shadow: 0 2px 6px rgba(160, 40, 30, 0.25); }
 .shop-count.on { display: inline-grid; }
-.shop-go svg { width: 20px; height: 20px; opacity: 0.85; display: block; }
-@media (max-height: 700px) { #btn-shop { height: 50px; border-radius: 19px; } .shop-ic { width: 36px; height: 36px; border-radius: 13px; } #tools { margin-top: 10px; } }
+
 @media (prefers-reduced-motion: reduce) { #btn-shop.has::after { animation: none; } }
-#tools.strip { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; touch-action: pan-x; scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); }
-#tools.strip::-webkit-scrollbar { display: none; }
-#tools.strip .tool { flex: 0 0 48px; scroll-snap-align: center; }
-#tools.compact { gap: 6px; }
-#tools.compact .tool { height: 58px; border-radius: 18px; }
-#tools.compact .tool .name { display: none; }
-#tools.compact .tool svg { width: 24px; height: 24px; }
 /* Herramientas premium: un toque de color violeta */
 /* Espera (agujero negro, meteoritos): un reloj que se vacía sobre el botón */
 .tool .cd { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.2s;
@@ -709,6 +724,8 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
 <body>
 
 <div id="app">
+  <main id="field">
+    <canvas id="cv" aria-label="Game area"></canvas>
   <header id="top">
     <div class="wallet">
       <div class="coins"><span class="coin" id="coin-egg"></span><span id="coins">0</span></div>
@@ -723,13 +740,12 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
     </div>
       <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><i class="lvl-dot"></i><span id="lvl-name">The Void</span></button><button id="trip" type="button"><span class="trip-ic" id="trip-ic"></span><span class="trip-body"><small id="trip-cap"></small><b id="trip-title"></b></span><span id="trip-count"></span></button><button id="visit-btn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span id="visit-txt"></span></button></div>
   </header>
-  <main id="field">
-    <canvas id="cv" aria-label="Game area"></canvas>
     <div id="hint" data-i18n="hint">Tap the aliens to smush them</div>
     <div id="place-hint" aria-live="polite"></div>
     <button id="detonate" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="14.5" r="6.5" fill="currentColor" fill-opacity=".3"/><path d="M14.8 9.6 16.6 7.8M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6"/><circle cx="20.6" cy="5.4" r="1.3" fill="currentColor" stroke="none"/></svg><span data-i18n="detonate">Detonate</span><b id="bomb-count">0/1</b></button>
     <div id="mult-hud" aria-live="polite"><span id="mult-x">×2</span><i><b id="mult-bar"></b></i></div>
   </main>
+  <div id="dock">
   <nav id="tools" aria-label="Tools"></nav>
   <button id="btn-shop" type="button">
     <span class="shop-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z" fill="currentColor" fill-opacity=".25"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg></span>
@@ -737,6 +753,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
     <span class="shop-count" id="shop-count"></span>
     <span class="shop-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>
   </button>
+  </div>
 </div>
 
 <!-- Inicio: el menú de la app -->
@@ -968,7 +985,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.35.1";
+const VERSION = "0.36.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2119,7 +2136,7 @@ function keepInside(b) {
   b.y = clamp(b.y, T.top, Math.max(T.top, H - T.bottom));
 }
 // En la playa, el borde de arriba es la orilla del mar: ahí no se puede entrar ni salir (0 = sin límite)
-const shoreY = (T) => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" || lvl().id === "void" ? seaH + T.r * 0.5 : 0);
+const shoreY = (T) => seaH + T.r * 0.5; // todos los niveles tienen su franja de arriba (ahí flota el encabezado)
 // ¿Se ve completo? ¿Ya salió por completo?
 const isInside = (b) => b.x - b.T.side >= 0 && b.x + b.T.side <= W && b.y - b.T.top >= 0 && b.y + b.T.bottom <= H;
 const isOut = (b) => b.x + b.T.side < 0 || b.x - b.T.side > W || b.y + b.T.bottom < 0 || b.y - b.T.top > H;
@@ -2150,7 +2167,7 @@ function spawnBall(inside) {
       // En la ciudad solo se entra por las calles (las esquinas son edificios)
       const mx = T.side * 0.7 + 6, gx = () => rand(city.bxL + mx, city.bxR - mx), gy = () => rand(city.byT + 8, H - 6) - T.bottom;
       const k = Math.random();
-      if (k < 0.3) { x = rand(T.side, W - T.side); y = H + T.top + 2; } else if (k < 0.5) { x = gx(); y = -T.bottom - 2; }
+      if (k < 0.4) { x = rand(T.side, W - T.side); y = H + T.top + 2; }
       else if (k < 0.75) { x = -T.side - 2; y = gy(); } else { x = W + T.side + 2; y = gy(); }
     }
     else if (r < W) { x = rand(T.side, W - T.side); y = H + T.top + 2; }
@@ -3841,11 +3858,19 @@ function playTrip(from, to, num, onSwitch, kicker) {
 // Fondo de cada mundo: The Void tiene estrellas que titilan (y una fugaz de vez en cuando);
 // The Beach tiene mar con olas, espuma, destellos, conchitas y estrellas de mar en la arena.
 let bgLayer = null, stars = [], shooting = null, shootClock = 8, seaH = 0;
-const seaTop = () => (lvl().id === "beach" || lvl().id === "snow" || lvl().id === "jungle" || lvl().id === "void" ? seaH : 0);
+const seaTop = () => seaH;
+// Qué tanto ocupa el encabezado sobre el campo (más un respiro): la franja de arriba nunca es más chica que eso
+function hudBand() {
+  const t = $("#top"); if (!t) return 0;
+  const b = t.getBoundingClientRect().bottom - field.getBoundingClientRect().top;
+  return b > 0 ? Math.ceil(b) + 10 : 0;
+}
 function buildBackground() {
   if (!W) return;
   const snowy = isSnow();
-  seaH = snowy ? clamp(H * 0.15, 54, 100) : isJungle() ? clamp(H * 0.13, 48, 90) : clamp(H * 0.12, 42, 84);
+  const hb = hudBand();
+  field.style.setProperty("--hud-h", Math.max(0, hb - 10) + "px");
+  seaH = isCity() ? hb : Math.max(hb + (snowy ? 14 : 6), snowy ? clamp(H * 0.15, 54, 100) : isJungle() ? clamp(H * 0.13, 48, 90) : clamp(H * 0.12, 42, 84));
   stars = [];
   const n = Math.round((W * H) / 7000);
   for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(0.6, 1.5), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
@@ -5562,6 +5587,12 @@ function buildCity() {
 }
 function drawCityBg() {
   if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+  // Arriba, una neblina suave del color del fondo: ahí flota el encabezado y no pasan los marcianitos
+  if (seaH > 0) {
+    const fg = ctx.createLinearGradient(0, 0, 0, seaH + 26), c0 = PAL.dark ? "21,23,28" : "245,244,241";
+    fg.addColorStop(0, `rgba(${c0},0.88)`); fg.addColorStop(0.7, `rgba(${c0},0.55)`); fg.addColorStop(1, `rgba(${c0},0)`);
+    ctx.globalAlpha = 1; ctx.fillStyle = fg; ctx.fillRect(0, 0, W, seaH + 26);
+  }
   drawRoadkill();
   // Vapor que sale despacito de una alcantarilla
   const s = city && city.steam;
