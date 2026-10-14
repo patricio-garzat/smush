@@ -106,9 +106,8 @@ button { font: inherit; color: inherit; cursor: pointer; -webkit-user-select: no
 button:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
 a { color: inherit; }
 .coin {
-  display: inline-block; flex: none; width: 1em; height: 1em; border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #FCEBB4 0%, #F1C84D 52%, #D6A92F 100%);
-  box-shadow: inset 0 0 0 0.08em rgba(120, 86, 0, 0.12);
+  display: inline-block; flex: none; width: 1em; height: 1em;
+  background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216.8%22 r=%2215.2%22 fill=%22%23D08E1C%22/%3E%3Ccircle cx=%2216%22 cy=%2215.2%22 r=%2215.2%22 fill=%22%23F0B636%22/%3E%3Ccircle cx=%2216%22 cy=%2215.2%22 r=%2211.6%22 fill=%22%23FBD35A%22/%3E%3Cpath d=%22M8.6 11.6a8.4 8.4 0 0 1 4.6-4.6%22 fill=%22none%22 stroke=%22%23FFEFB0%22 stroke-width=%221.8%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M16 8.2v14.2M19.6 11.3c-.7-1-2-1.6-3.6-1.6-2.1 0-3.6 1.1-3.6 2.7s1.4 2.2 3.6 2.7 3.6 1.2 3.6 2.8-1.5 2.8-3.6 2.8c-1.7 0-3.1-.6-3.8-1.7%22 fill=%22none%22 stroke=%22%23C9871A%22 stroke-width=%222.3%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 /* ============================================================
@@ -137,6 +136,11 @@ a { color: inherit; }
 #lvl-chip .ring .bg { stroke: var(--field); }
 #lvl-chip .ring .fg { stroke: var(--lvl); stroke-linecap: round; stroke-dasharray: 50.27; stroke-dashoffset: 50.27; transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 0.8, 0.24, 1); }
 #lvl-prog { color: var(--muted); font-weight: 650; }
+/* Meta del nivel: la pastilla se llena con el color del nivel conforme avanzas */
+#smushed-pill.goal { --p: 0; background: linear-gradient(90deg, var(--lvl-soft) calc(var(--p) * 100%), var(--card) 0); }
+#smushed-pill.goal.done { background: var(--lvl-soft); }
+#goal-of { color: var(--muted); font-weight: 650; }
+@media (max-width: 430px) { #goal-lbl.to { display: none; } }
 #lvl-chip .badge { top: -2px; right: -2px; background: var(--lvl); }
 #lvl-chip.ready { animation: chipGlow 2.4s ease-in-out infinite; }
 @keyframes chipGlow { 0%, 100% { box-shadow: var(--shadow), 0 0 0 0 var(--lvl-soft); } 50% { box-shadow: var(--shadow), 0 0 0 5px var(--lvl-soft); } }
@@ -562,7 +566,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg>
       </button>
     </div>
-      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="smushed-pill" class="mini"><img id="smushed-ic" alt=""><b id="smushed">0</b><span class="lbl" data-i18n="smushed">smushed</span></span><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
+      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="smushed-pill" class="mini"><img id="smushed-ic" alt=""><b id="smushed">0</b><span id="goal-of"></span><span class="lbl" id="goal-lbl">smushed</span></span><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
   </header>
   <main id="field">
     <canvas id="cv" aria-label="Game area"></canvas>
@@ -2188,12 +2192,32 @@ function renderLevelChip() {
   if (key === levelShown) return;
   levelShown = key;
   $("#lvl-name").textContent = lvl().name;
-  $("#lvl-prog").textContent = n ? `${Math.floor((done / n.smush) * 100)}%` : "";
+  $("#lvl-prog").textContent = "";
   const pct = n ? done / n.smush : 1;
   $("#lvl-ring").style.strokeDashoffset = String(50.27 * (1 - pct));
   const ready = !!n && done >= n.smush;
   $("#lvl-chip").classList.toggle("ready", ready);
   $("#lvl-badge").classList.toggle("on", ready && save.coins >= n.cost);
+}
+// Pastilla de la meta: cuántos llevas de los que pide el siguiente nivel (en el último, el total)
+function renderGoal() {
+  const n = nextLvl(), pill = $("#smushed-pill");
+  pill.classList.toggle("goal", !!n);
+  if (n) {
+    const done = Math.min(save.lvlSmushed, n.smush);
+    $("#smushed").textContent = fmt(done);
+    $("#goal-of").textContent = `/ ${fmt(n.smush)}`;
+    $("#goal-lbl").textContent = done >= n.smush ? "✓" : `→ ${n.name}`;
+    $("#goal-lbl").classList.toggle("to", done < n.smush);
+    pill.style.setProperty("--p", (done / n.smush).toFixed(4));
+    pill.classList.toggle("done", done >= n.smush);
+  } else {
+    $("#smushed").textContent = fmt(save.smushed);
+    $("#goal-of").textContent = "";
+    $("#goal-lbl").textContent = tx("smushed");
+    $("#goal-lbl").classList.remove("to");
+    pill.classList.remove("done");
+  }
 }
 function renderLevels(animate) {
   const list = $("#levels-list");
@@ -2987,7 +3011,7 @@ function updateUI() {
     const need = el.parentNode.querySelector(".need");
     if (need) need.textContent = ready && save.coins < p ? `${tx("needMore")} ${fmtShort(Math.ceil(p - save.coins))}` : "";
   });
-  const sp = $("#smushed"); if (sp) sp.textContent = fmt(save.smushed);
+  renderGoal();
   if (!$("#sheet-records").hidden) renderRecords();
   if (!homeEl.hidden) renderHome();
 }
