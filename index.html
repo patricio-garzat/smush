@@ -968,7 +968,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.35.0";
+const VERSION = "0.35.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -7464,6 +7464,8 @@ const homeEl = $("#home");
 let inGame = false, homeAt = 0;
 // El escenario del Inicio: una islita con el tema del nivel y marcianitos paseando; de vez en cuando uno se aplasta
 const Hero = (() => {
+  // En la islita del Inicio los marcianitos van más chiquitos que en el juego
+  const HK = 0.72, hr = (k) => BALL_TYPES[k].baseR * HK;
   const cvh = $("#home-cv"), hg = cvh.getContext("2d");
   // Mientras cambias de isla, las islas y los que se caen se pintan en una capa que cubre todo el Inicio (de la altura
   // del escenario hacia abajo): así nada se corta en la orilla del escenario, la isla se desvanece al irse de lado
@@ -7653,7 +7655,7 @@ const Hero = (() => {
       if (f.sq) f.sq = Math.max(0, f.sq - dt * 5);
       // Rebotan en los botones de abajo: brincan hacia afuera (para irse cayendo de botón en botón) y el botón se hunde tantito
       if (f.vy > 0 && (f.b || 0) < 6) for (const q of fxRects) {
-        const hw = BALL_TYPES[f.k].baseR * 0.8;
+        const hw = hr(f.k) * 0.8;
         if (py > q.y + 2 || f.y < q.y || f.x + hw < q.x + 8 || f.x - hw > q.x + q.w - 8) continue;
         const out = f.x < q.x + q.w / 2 ? -1 : 1;
         f.y = q.y; f.b = (f.b || 0) + 1; f.sq = 1;
@@ -7673,7 +7675,7 @@ const Hero = (() => {
     for (const f of fallers) {
       const T = BALL_TYPES[f.k], S = (f.skin && SKIN_SPR[f.skin]) || T.spr;
       if (!S || !S.img) continue;
-      const hgt = T.baseR * 2.9, kk = hgt / S.vhPx, wob = Math.sin(f.t * 22 + f.ph) * 0.1;
+      const hgt = (T.baseR * HK) * 2.9, kk = hgt / S.vhPx, wob = Math.sin(f.t * 22 + f.ph) * 0.1;
       g.globalAlpha = 1; g.save(); g.translate(f.x, f.y - hgt * 0.45); g.rotate(f.rot);
       const sq = (f.sq || 0) * 0.28;
       g.scale(Math.sign(f.flip) * (1 + wob + sq) * kk, (1 - wob - sq) * kk); g.translate(0, S.ground - S.cy);
@@ -7681,8 +7683,8 @@ const Hero = (() => {
       if (f.t < 0.42) {
         const k = Math.min(1, f.t / 0.08) * (1 - Math.max(0, (f.t - 0.3) / 0.12));
         g.globalAlpha = k; g.fillStyle = PAL.dark ? "#FFFFFF" : "#242521";
-        g.font = `800 ${Math.round(T.baseR * 0.9)}px Outfit, -apple-system, system-ui, sans-serif`; g.textAlign = "center"; g.textBaseline = "bottom";
-        g.fillText("!", f.x + T.baseR * 0.6, f.y - hgt * 1.05);
+        g.font = `800 ${Math.round((T.baseR * HK) * 0.9)}px Outfit, -apple-system, system-ui, sans-serif`; g.textAlign = "center"; g.textBaseline = "bottom";
+        g.fillText("!", f.x + (T.baseR * HK) * 0.6, f.y - hgt * 1.05);
       }
     }
     g.globalAlpha = 1;
@@ -7748,7 +7750,7 @@ const Hero = (() => {
     // Que no se enciman: se empujan suave entre ellos y le sacan la vuelta a los pinos
     const solid = actors.filter((a) => !a.die && !(a.wait > 0) && !(a.dropY > 0));
     for (let i = 0; i < solid.length; i++) for (let j = i + 1; j < solid.length; j++) {
-      const A = solid[i], B = solid[j], dx = B.x - A.x, dy = (B.y - A.y) * 1.6, min = (BALL_TYPES[A.k].baseR + BALL_TYPES[B.k].baseR) * 1.2, d = Math.hypot(dx, dy) || 0.01;
+      const A = solid[i], B = solid[j], dx = B.x - A.x, dy = (B.y - A.y) * 1.6, min = (hr(A.k) + hr(B.k)) * 1.2, d = Math.hypot(dx, dy) || 0.01;
       if (d >= min) continue;
       // Se separan de inmediato (no se atraviesan) y cada uno voltea suave hacia el otro lado
       const o = (min - d) * 0.5, nx = dx / d, ny = dy / d / 1.6, k = Math.min(1, dt * 5), aw = Math.atan2(ny, nx);
@@ -7758,7 +7760,7 @@ const Hero = (() => {
     if (lvl().id === "snow") for (const [px, py, ph] of HERO_PINES) {
       const x = e.cx + px * e.rx, y = e.cy + py * e.ry, pr = ph * Math.min(e.ry, 70) * 0.3;
       for (const a of solid) {
-        const dx = a.x - x, dy = (a.y - y) * 1.6, min = pr + BALL_TYPES[a.k].baseR * 0.8, d = Math.hypot(dx, dy);
+        const dx = a.x - x, dy = (a.y - y) * 1.6, min = pr + hr(a.k) * 0.8, d = Math.hypot(dx, dy);
         if (d >= min || d < 0.01) continue;
         a.x += (dx / d) * (min - d) * Math.min(1, dt * 12); a.y += ((dy / d) * (min - d) * Math.min(1, dt * 12)) / 1.6;
         a.h += angDiff(Math.atan2(dy, dx), a.h) * Math.min(1, dt * 4);
@@ -7767,13 +7769,13 @@ const Hero = (() => {
     // Los charquitos (nieve y selva) no se pisan: se rodean
     const hp = lvl().id === "snow" ? [e.cx + e.rx * 0.18, e.cy + e.ry * 0.12, e.rx * 0.2] : lvl().id === "jungle" ? [e.cx + e.rx * 0.2, e.cy + e.ry * 0.15, e.rx * 0.17] : null;
     if (hp) for (const a of solid) {
-      const m = BALL_TYPES[a.k].baseR * 0.7, ex = hp[2] + m, ey = hp[2] * 0.44 + m * 0.5, dx = a.x - hp[0], dy = a.y - hp[1], d = Math.hypot(dx / ex, dy / ey);
+      const m = hr(a.k) * 0.7, ex = hp[2] + m, ey = hp[2] * 0.44 + m * 0.5, dx = a.x - hp[0], dy = a.y - hp[1], d = Math.hypot(dx / ex, dy / ey);
       if (d >= 1 || d < 0.001) continue;
       a.x = hp[0] + dx / d; a.y = hp[1] + dy / d; a.h += angDiff(Math.atan2(dy / ey, dx / ex), a.h) * Math.min(1, dt * 6);
     }
     // Las cositas de la isla (palmera, castillo, muñeco de nieve, cristales…) no se atraviesan
     for (const P of heroProps(lvl().id, e)) for (const a of solid) {
-      const dx = a.x - P.x, dy = (a.y - P.y) * 1.6, min = P.rr + BALL_TYPES[a.k].baseR * 0.75, d = Math.hypot(dx, dy) || 0.01;
+      const dx = a.x - P.x, dy = (a.y - P.y) * 1.6, min = P.rr + hr(a.k) * 0.75, d = Math.hypot(dx, dy) || 0.01;
       if (d >= min) continue;
       a.x += (dx / d) * (min - d); a.y += ((dy / d) * (min - d)) / 1.6;
       a.h += angDiff(Math.atan2(dy, dx), a.h) * Math.min(1, dt * 4);
@@ -7782,7 +7784,7 @@ const Hero = (() => {
     if (lvl().id === "city") {
       const C = heroCity(e);
       for (const a of solid) {
-        const R0 = BALL_TYPES[a.k].baseR * 0.8;
+        const R0 = hr(a.k) * 0.8;
         for (const B of C.blds) {
           if (a.x + R0 <= B.x0 || a.x - R0 >= B.x1 || a.y + 3 <= B.y0 || a.y - 3 >= B.y1) continue;
           const pl = a.x + R0 - B.x0, pr = B.x1 - (a.x - R0), pt = a.y + 3 - B.y0, pb = B.y1 - (a.y - 3), m = Math.min(pl, pr, pt, pb);
@@ -7792,7 +7794,7 @@ const Hero = (() => {
           else { a.y += pb; if (Math.sin(a.h) < 0) a.h = -a.h; }
         }
         for (const L of C.lamps) {
-          const dx = a.x - L.x, dy = (a.y - L.y) * 1.6, min = 4 + BALL_TYPES[a.k].baseR * 0.7, d = Math.hypot(dx, dy) || 0.01;
+          const dx = a.x - L.x, dy = (a.y - L.y) * 1.6, min = 4 + hr(a.k) * 0.7, d = Math.hypot(dx, dy) || 0.01;
           if (d < min) { a.x += (dx / d) * (min - d); a.y += ((dy / d) * (min - d)) / 1.6; a.h += angDiff(Math.atan2(dy, dx), a.h) * Math.min(1, dt * 4); }
         }
       }
@@ -7806,7 +7808,7 @@ const Hero = (() => {
         a.die = 0.0001;
         const T = BALL_TYPES[a.k];
         const C = (a.skin && SKIN_COLOR[a.skin]) || T;
-        gooBurst({ T: { color: C.color, light: C.light, bottom: 0 }, r: T.baseR, x: a.x, y: a.y - 2, type: a.k }, hgoos);
+        gooBurst({ T: { color: C.color, light: C.light, bottom: 0 }, r: (T.baseR * HK), x: a.x, y: a.y - 2, type: a.k }, hgoos);
       }
     }
     updateGoos(dt, hgoos);
@@ -8086,16 +8088,16 @@ const Hero = (() => {
       const T = BALL_TYPES[a.k], S = (a.skin && SKIN_SPR[a.skin]) || T.spr;
       if (!S || !S.img || a.wait > 0) continue;
       const lift = a.dropY || 0;
-      const hgt = T.baseR * 2.9, kk = hgt / S.vhPx;
+      const hgt = (T.baseR * HK) * 2.9, kk = hgt / S.vhPx;
       let sx = 1, sy = 1, al = a.born;
       if (a.land) { const k = Math.sin(Math.min(1, a.land / 0.24) * Math.PI); sx *= 1 + 0.16 * k; sy *= 1 - 0.2 * k; }
       // Aplastado como en el juego: se aplasta de golpe y se funde con el charco
       if (a.die) { const u = a.die / HDIE; if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.5 * k; sy = 1 - 0.62 * k; } else { const k = easeIn((u - 0.35) / 0.65); sx = 1.5 + 0.3 * k; sy = 0.38 * (1 - 0.75 * k); al = 1 - k; } }
       const ski = lid === "snow" && a.ride && !a.die && !lift; // los esquís aparecen ya que aterrizó
       const bob = a.die || ski ? 0 : Math.abs(Math.sin(a.walk)) * 2.2, tilt = a.die ? 0 : ski ? Math.sin(t * 1.3 + a.walk) * 0.12 : Math.sin(a.walk) * 0.045;
-      if (ski) drawRide(g, a.x, a.y, Math.atan2(Math.sin(a.h) * 0.33, Math.cos(a.h)), T.baseR * 0.82, a.ride, al);
+      if (ski) drawRide(g, a.x, a.y, Math.atan2(Math.sin(a.h) * 0.33, Math.cos(a.h)), (T.baseR * HK) * 0.82, a.ride, al);
       g.globalAlpha = al * (dark ? 0.4 : 0.14) * Math.max(0.15, 1 - lift / (hh * 0.7)); g.fillStyle = "#000000";
-      g.beginPath(); g.ellipse(a.x, a.y + 1, T.baseR * 0.95 * sx, T.baseR * 0.26, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(a.x, a.y + 1, (T.baseR * HK) * 0.95 * sx, (T.baseR * HK) * 0.26, 0, 0, TAU); g.fill();
       g.globalAlpha = al;
       g.save(); g.translate(a.x, a.y - bob - lift); g.rotate(tilt);
       g.scale(Math.sign(a.flip || 1) * Math.max(0.45, Math.abs(a.flip)) * sx * (0.5 + 0.5 * a.born), sy * (0.5 + 0.5 * a.born));
