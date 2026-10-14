@@ -929,7 +929,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.25.1";
+const VERSION = "0.25.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -959,7 +959,7 @@ const LEVELS = [
 ];
 let city = null; // The City: la geometría del cruce (se arma con el fondo)
 // En pantallas angostas (celular) los marcianitos se ven un poco más chicos
-const PHONE_SCALE = 0.82, PHONE_WIDTH = 520;
+const PHONE_SCALE = 0.6, PHONE_WIDTH = 520;
 
 // Aparición: entre 12 y 20 marcianitos según el tamaño del área y el rendimiento (más con "Planeta lleno").
 // La mayoría aparece en medio (como antes) y otros entran caminando por las orillas; si nadie los aplasta, se van.
@@ -2194,6 +2194,7 @@ const lvlOf = (id) => save.tools[id];
 // El marcianito bajo el punto (con un poco de margen para dedos); si se enciman, gana el de enfrente
 function pick(x, y, slop) {
   let best = null, bs = Infinity;
+  if (W < PHONE_WIDTH) slop += 6; // en el celular son más chiquitos: el toque perdona un poco más
   for (const b of balls) {
     if (b.state === "die") continue;
     const d = Math.hypot(b.x - x, b.y - y);
