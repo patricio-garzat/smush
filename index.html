@@ -426,45 +426,23 @@ body::before {
 
 /* Niveles: tarjetas con una ilustración animada de cada mundo */
 .lvl-card { margin-bottom: 12px; border-radius: 22px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
-.lvl-card.locked .lvl-art { filter: saturate(0.55) brightness(0.92); }
-.lvl-art { position: relative; height: 116px; overflow: hidden; }
-.lvl-art .num { position: absolute; left: 14px; top: 12px; padding: 3px 9px; border-radius: 10px; background: rgba(255, 255, 255, 0.85); color: #242521; font-size: 11.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-.lvl-art img { position: absolute; bottom: 10px; height: 46px; animation: artWalk 3.2s ease-in-out infinite; }
-.lvl-art img:nth-of-type(2) { height: 34px; animation-delay: -1.6s; }
-@keyframes artWalk { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
-.lvl-art.void { background: radial-gradient(80% 120% at 75% 10%, rgba(124, 92, 224, 0.55), transparent 60%), linear-gradient(165deg, #1C1A2E, #2E2652 70%, #3A2F68); }
-.lvl-art.void::before, .lvl-art.void::after {
-  content: ""; position: absolute; inset: 0; background-image:
-    radial-gradient(1.2px 1.2px at 12% 30%, #fff, transparent), radial-gradient(1px 1px at 32% 70%, #fff, transparent),
-    radial-gradient(1.4px 1.4px at 58% 22%, #fff, transparent), radial-gradient(1px 1px at 82% 55%, #fff, transparent),
-    radial-gradient(1.2px 1.2px at 92% 18%, #fff, transparent), radial-gradient(1px 1px at 46% 48%, #fff, transparent);
-  animation: twinkle 3s ease-in-out infinite;
+/* Ilustración de cada nivel: una escena pintada en canvas, con etiquetas de vidrio encima */
+.lvl-art { position: relative; height: 150px; overflow: hidden; background: #1C1B2E; }
+.lvl-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: filter 0.3s ease; }
+.lvl-art .num, .lvl-art .mult {
+  position: absolute; top: 12px; z-index: 1; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 13px;
+  background: rgba(16, 14, 34, 0.36); color: #FFFFFF; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  -webkit-backdrop-filter: blur(10px) saturate(1.4); backdrop-filter: blur(10px) saturate(1.4); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
 }
-.lvl-art.void::after { transform: translate(7%, 12%) scale(1.2); animation-delay: -1.5s; opacity: 0.7; }
-@keyframes twinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
-.lvl-art.void img:nth-of-type(1) { left: 22%; } .lvl-art.void img:nth-of-type(2) { left: 52%; }
-.lvl-art.beach { background: linear-gradient(180deg, #A8E0F1 0%, #CDEFF7 34%, #4FB7D3 34%, #63C3DC 52%, #F4E3BF 52%, #EBD3A3 100%); }
-.lvl-art.beach::before { content: ""; position: absolute; right: 16%; top: 10px; width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle, #FFF6CF, #FFD66B 60%, rgba(255, 214, 107, 0) 72%); animation: sunPulse 3.6s ease-in-out infinite; }
-.lvl-art.beach::after {
-  content: ""; position: absolute; left: -40px; right: -40px; top: calc(52% - 7px); height: 14px; animation: shore 4s ease-in-out infinite alternate;
-  background: radial-gradient(15px 4.5px at 14px 7px, rgba(255, 255, 255, 0.8) 96%, transparent) 0 0 / 28px 14px repeat-x; filter: blur(0.6px);
+.lvl-art .num { left: 12px; }
+.lvl-art .mult { right: 12px; font-size: 12.5px; letter-spacing: 0.02em; text-transform: none; }
+.lvl-art .mult .coin { font-size: 14px; }
+.lvl-card.locked .lvl-art canvas { filter: saturate(0.35) brightness(0.78); }
+.lvl-card.locked .lvl-art::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+  background: rgba(16, 14, 34, 0.42) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='3' fill='white' fill-opacity='.25'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / 24px no-repeat;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26), 0 8px 20px rgba(0, 0, 0, 0.25);
 }
-@keyframes sunPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-@keyframes shore { from { transform: translateX(0); } to { transform: translateX(28px); } }
-.lvl-art.beach img:nth-of-type(1) { left: 20%; } .lvl-art.beach img:nth-of-type(2) { left: 54%; }
-.lvl-art.snow { background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 400 116%22 preserveAspectRatio=%22xMidYMax slice%22%3E%3Cpath d=%22M0 60 L52 26 L92 48 L150 10 L206 46 L250 22 L300 50 L352 18 L400 44 V116 H0Z%22 fill=%22%23B4C9E2%22/%3E%3Cpath d=%22M52 26 L36.7 36 L43 33 L50 37 L57 33 L63 36 L70.2 36Z M150 10 L131.7 22 L138 19 L144 24 L151 19 L158 23 L168.7 22Z M250 22 L231.7 32 L238 29 L245 33 L252 29 L259 32 L267.9 32Z M352 18 L334.1 29 L340 26 L347 30 L354 26 L362 29 L372.3 29Z%22 fill=%22%23FFFFFF%22/%3E%3Cpath d=%22M0 78 L70 50 L120 68 L190 40 L260 66 L330 44 L400 70 V116 H0Z%22 fill=%22%2393AED0%22/%3E%3Cpath d=%22M190 40 L176 50 L182 48 L189 52 L196 47 L203 50 L210 49Z M330 44 L316 53 L322 51 L329 55 L336 50 L345 52Z M70 50 L58 55 L64 54 L70 57 L77 53 L84 55Z%22 fill=%22%23FFFFFF%22/%3E%3Cpath d=%22M0 80 C60 70 130 86 200 76 S330 68 400 78 V116 H0Z%22 fill=%22%23F7FBFF%22/%3E%3Cpath d=%22M28.0 70.5L18.1 84.0H37.9Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M28.0 62.4L20.4 75.9H35.6Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M28.0 54.3L22.8 67.8H33.2Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M28.0 54.3l-3.1 4.5h6.1Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%2226.6%22 y=%2284.0%22 width=%222.9%22 height=%224.5%22 fill=%22%2380604A%22/%3E%3Cpath d=%22M54.0 73.5L41.9 90.0H66.1Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M54.0 63.6L44.8 80.1H63.2Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M54.0 53.7L47.6 70.2H60.4Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M54.0 53.7l-3.7 5.5h7.5Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%2252.2%22 y=%2290.0%22 width=%223.5%22 height=%225.5%22 fill=%22%2380604A%22/%3E%3Cpath d=%22M352.0 70.2L340.4 86.0H363.6Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M352.0 60.8L343.2 76.5H360.8Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M352.0 51.3L345.9 67.1H358.1Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M352.0 51.4l-3.6 5.2h7.1Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%22350.3%22 y=%2286.0%22 width=%223.4%22 height=%225.2%22 fill=%22%2380604A%22/%3E%3Cpath d=%22M378.0 70.0L369.2 82.0H386.8Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M378.0 62.8L371.3 74.8H384.7Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M378.0 55.6L373.4 67.6H382.6Z%22 fill=%22%233F8064%22/%3E%3Cpath d=%22M378.0 55.6l-2.7 4.0h5.4Z%22 fill=%22%23FFFFFF%22/%3E%3Crect x=%22376.7%22 y=%2282.0%22 width=%222.6%22 height=%224.0%22 fill=%22%2380604A%22/%3E%3C/svg%3E") center bottom / cover no-repeat, linear-gradient(180deg, #BFD8F0, #E7F1FB 60%, #F7FBFF); }
-.lvl-art.snow::after {
-  content: ""; position: absolute; left: 0; right: 0; top: -116px; height: 232px; animation: snowfall 7s linear infinite; filter: drop-shadow(0 0 1px rgba(80, 115, 170, 0.45));
-  background-image: radial-gradient(1.6px 1.6px at 8% 12%, #fff 98%, transparent), radial-gradient(1.2px 1.2px at 22% 48%, #fff 98%, transparent),
-    radial-gradient(2px 2px at 37% 20%, #fff 98%, transparent), radial-gradient(1.3px 1.3px at 49% 70%, #fff 98%, transparent),
-    radial-gradient(1.8px 1.8px at 63% 34%, #fff 98%, transparent), radial-gradient(1.2px 1.2px at 74% 82%, #fff 98%, transparent),
-    radial-gradient(2px 2px at 86% 16%, #fff 98%, transparent), radial-gradient(1.4px 1.4px at 94% 58%, #fff 98%, transparent);
-  background-size: 100% 116px;
-}
-@keyframes snowfall { to { transform: translateY(116px); } }
-.lvl-art.snow img:nth-of-type(1) { left: 24%; } .lvl-art.snow img:nth-of-type(2) { left: 58%; }
-.lvl-art.soon { background: repeating-linear-gradient(135deg, var(--field) 0 12px, var(--field-hi) 12px 24px); display: grid; place-items: center; height: 80px; }
-.lvl-art.soon span { font-size: 26px; font-weight: 900; color: var(--muted); letter-spacing: 0.1em; }
 .lvl-body { padding: 14px 16px 16px; }
 .lvl-body h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 850; letter-spacing: -0.01em; }
 .lvl-body p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.4; font-weight: 550; color: var(--muted); }
@@ -615,7 +593,7 @@ a.row { text-decoration: none; }
 /* Siguiente nivel listo: la ilustración del nivel arriba, de orilla a orilla */
 #ready .card { padding-top: 0; overflow: hidden; }
 #ready-art { margin: 0 -20px 16px; }
-#ready-art .lvl-art { height: 122px; }
+#ready-art .lvl-art { height: 132px; }
 #ready .kicker { color: #2FA3C4; display: block; margin-bottom: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
 #ready h3 { font-size: 21px; letter-spacing: -0.01em; }
 #ready .btns .go { background: linear-gradient(135deg, #2FA3C4, #57C1DA); color: #FFFFFF; box-shadow: 0 6px 16px rgba(47, 163, 196, 0.28); }
@@ -899,7 +877,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.19.0";
+const VERSION = "0.19.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2554,8 +2532,207 @@ const lvl = () => LEVELS[save.level];
 const nextLvl = () => LEVELS[save.level + 1];
 const ALIEN_URL = {};
 const alienUrl = (k) => ALIEN_URL[k] || (ALIEN_URL[k] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ALIENS[k].svg));
-const ART_ALIENS = { void: ["green", "purple"], beach: ["orange", "yellow"], snow: ["orange", "green"] };
-const levelArt = (id, n, big) => `<div class="lvl-art ${id}${big ? " big" : ""}">${n ? `<span class="num">${tx("level")} ${n}</span>` : ""}${(ART_ALIENS[id] || []).map((k) => `<img alt="" src="${alienUrl(k)}">`).join("")}</div>`;
+const levelArt = (id, n) => {
+  const L = LEVELS.find((l) => l.id === id), m = L ? L.coinMult : 1;
+  return `<div class="lvl-art ${id}"><canvas data-art="${id}" aria-hidden="true"></canvas>${n ? `<span class="num">${tx("level")} ${n}</span>` : ""}${m > 1 ? `<span class="mult"><span class="coin"></span>×${m}</span>` : ""}</div>`;
+};
+// Ilustraciones de los niveles (tarjetas de Niveles y el aviso de nivel listo): escenas pintadas en canvas,
+// con capas de profundidad, luz y un poco de movimiento (estrellas, olas, nieve). Se animan solo mientras se ven.
+const ART_CACHE = {};
+function artRng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const ART_STARS = (() => { const r = artRng(7); return Array.from({ length: 70 }, () => ({ x: r(), y: r(), s: 0.4 + r() * 1.2, p: r() * TAU, sp: 0.8 + r() * 2 })); })();
+const ART_FLAKES = (() => { const r = artRng(11); return Array.from({ length: 46 }, () => ({ x: r(), y: r(), s: 0.7 + r() * 1.6, v: 0.06 + r() * 0.1, p: r() * TAU })); })();
+// Un marcianito parado en (x, y) con su sombra; h = alto
+function artAlien(g, k, x, y, h, t, ph) {
+  const im = alienImg[k]; if (!im) return;
+  const w = h * (im.width / im.height), bob = Math.abs(Math.sin(t * 3 + ph)) * h * 0.04;
+  g.globalAlpha = 0.25; g.fillStyle = "#000000"; g.beginPath(); g.ellipse(x, y + 1, w * 0.36, h * 0.07, 0, 0, TAU); g.fill();
+  g.globalAlpha = 1; g.drawImage(im, x - w / 2, y - h - bob, w, h);
+}
+function artGlow(g, x, y, r, c0, c1 = "rgba(0,0,0,0)") { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, c0); gr.addColorStop(1, c1); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+const ART = {
+  void(g, w, h, t) {
+    const sky = g.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, "#100C2A"); sky.addColorStop(0.55, "#251B52"); sky.addColorStop(1, "#3A2A78");
+    g.fillStyle = sky; g.fillRect(0, 0, w, h);
+    // Nebulosas
+    g.globalCompositeOperation = "lighter";
+    artGlow(g, w * 0.72, h * 0.2, w * 0.5, "rgba(150,110,240,0.42)");
+    artGlow(g, w * 0.18, h * 0.05, w * 0.36, "rgba(255,110,190,0.2)");
+    artGlow(g, w * 0.35, h * 1.05, w * 0.5, "rgba(70,200,220,0.16)");
+    g.globalCompositeOperation = "source-over";
+    // Estrellas que titilan, y algunas con destello en cruz
+    g.fillStyle = "#FFFFFF";
+    ART_STARS.forEach((s, i) => {
+      const a = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.sp + s.p));
+      g.globalAlpha = a; g.beginPath(); g.arc(s.x * w, s.y * h * 0.85, s.s, 0, TAU); g.fill();
+      if (i % 12 === 0) { g.globalAlpha = a * 0.8; const L = 3 + s.s * 3; g.fillRect(s.x * w - L, s.y * h * 0.85 - 0.4, L * 2, 0.8); g.fillRect(s.x * w - 0.4, s.y * h * 0.85 - L, 0.8, L * 2); }
+    });
+    g.globalAlpha = 1;
+    // Planeta con anillo
+    const px = w * 0.86, py = h * 0.3, pr = h * 0.19;
+    g.save(); g.translate(px, py); g.rotate(-0.35);
+    g.strokeStyle = "rgba(220,200,255,0.55)"; g.lineWidth = pr * 0.12;
+    g.beginPath(); g.ellipse(0, 0, pr * 1.75, pr * 0.42, 0, Math.PI, TAU); g.stroke();
+    g.restore();
+    const pg = g.createRadialGradient(px - pr * 0.4, py - pr * 0.45, pr * 0.1, px, py, pr);
+    pg.addColorStop(0, "#E6D9FF"); pg.addColorStop(0.45, "#A584E8"); pg.addColorStop(1, "#4B348F");
+    g.fillStyle = pg; g.beginPath(); g.arc(px, py, pr, 0, TAU); g.fill();
+    g.save(); g.beginPath(); g.arc(px, py, pr, 0, TAU); g.clip();
+    g.strokeStyle = "rgba(255,255,255,0.14)"; g.lineWidth = pr * 0.16;
+    for (const k of [-0.35, 0.1, 0.5]) { g.beginPath(); g.ellipse(px, py + pr * k, pr * 1.2, pr * 0.16, -0.35, 0, TAU); g.stroke(); }
+    g.restore();
+    g.save(); g.translate(px, py); g.rotate(-0.35);
+    g.strokeStyle = "rgba(235,220,255,0.75)"; g.lineWidth = pr * 0.12;
+    g.beginPath(); g.ellipse(0, 0, pr * 1.75, pr * 0.42, 0, 0, Math.PI); g.stroke();
+    g.restore();
+    // Isla flotante con brillo debajo
+    const ix = w * 0.4, iy = h * 0.74 + Math.sin(t * 1.2) * h * 0.012, irx = w * 0.27, iry = h * 0.085;
+    artGlow(g, ix, iy + iry * 2.2, irx * 1.1, "rgba(165,132,232,0.45)");
+    const ug = g.createLinearGradient(0, iy, 0, iy + iry * 3.2);
+    ug.addColorStop(0, "#3B2F72"); ug.addColorStop(1, "#1A1438");
+    g.fillStyle = ug; g.beginPath(); g.moveTo(ix - irx, iy);
+    g.quadraticCurveTo(ix - irx * 0.6, iy + iry * 2.2, ix - irx * 0.1, iy + iry * 3.2); g.quadraticCurveTo(ix + irx * 0.3, iy + iry * 2.4, ix + irx, iy); g.closePath(); g.fill();
+    const tg = g.createLinearGradient(0, iy - iry, 0, iy + iry);
+    tg.addColorStop(0, "#8F7BE0"); tg.addColorStop(1, "#5A48A8");
+    g.fillStyle = tg; g.beginPath(); g.ellipse(ix, iy, irx, iry, 0, 0, TAU); g.fill();
+    g.strokeStyle = "rgba(230,220,255,0.6)"; g.lineWidth = 1.5; g.beginPath(); g.ellipse(ix, iy, irx, iry, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+    artAlien(g, "green", ix - irx * 0.42, iy + iry * 0.1, h * 0.3, t, 0);
+    artAlien(g, "purple", ix + irx * 0.3, iy + iry * 0.25, h * 0.36, t, 1.7);
+  },
+  beach(g, w, h, t) {
+    const hz = h * 0.5;
+    const sky = g.createLinearGradient(0, 0, 0, hz);
+    sky.addColorStop(0, "#5FC2EC"); sky.addColorStop(0.65, "#A9E1F5"); sky.addColorStop(1, "#FFE6C4");
+    g.fillStyle = sky; g.fillRect(0, 0, w, hz + 1);
+    // Sol con halo
+    const sx = w * 0.8, sy = h * 0.3, sr = h * 0.11;
+    artGlow(g, sx, sy, sr * 4, "rgba(255,226,150,0.55)");
+    const sg = g.createRadialGradient(sx - sr * 0.3, sy - sr * 0.3, 0, sx, sy, sr);
+    sg.addColorStop(0, "#FFFBEA"); sg.addColorStop(1, "#FFD25E");
+    g.fillStyle = sg; g.beginPath(); g.arc(sx, sy, sr * (1 + 0.03 * Math.sin(t * 2)), 0, TAU); g.fill();
+    // Nubes suaves que pasan
+    g.fillStyle = "rgba(255,255,255,0.9)";
+    for (const [cx, cy, s, v] of [[0.2, 0.2, 1, 6], [0.55, 0.12, 0.7, 4]]) {
+      const x = (((cx * w + t * v) % (w + 120)) + w + 120) % (w + 120) - 60, y = cy * h, r = h * 0.07 * s;
+      g.beginPath(); g.arc(x, y, r, 0, TAU); g.arc(x + r * 1.1, y + r * 0.2, r * 0.8, 0, TAU); g.arc(x - r * 1.1, y + r * 0.25, r * 0.7, 0, TAU); g.fill();
+    }
+    // Mar con brillos del sol
+    const sea = g.createLinearGradient(0, hz, 0, h * 0.7);
+    sea.addColorStop(0, "#2EA3CF"); sea.addColorStop(1, "#6FD0E6");
+    g.fillStyle = sea; g.fillRect(0, hz, w, h * 0.22);
+    g.strokeStyle = "rgba(255,255,255,0.75)"; g.lineCap = "round";
+    for (let i = 0; i < 9; i++) { const y = hz + 4 + i * 3.2, x = sx + Math.sin(t * 2 + i * 1.7) * (6 + i * 3), L = 10 - i * 0.6; g.globalAlpha = 0.9 - i * 0.07; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x - L, y); g.lineTo(x + L, y); g.stroke(); }
+    g.globalAlpha = 1;
+    // Arena, con la orilla mojada y la espuma que va y viene
+    const sh = h * 0.68 + Math.sin(t * 1.3) * 2.5, edge = (x) => sh + Math.sin(x * 0.045 + t * 1.3) * 2.5 + Math.sin(x * 0.017) * 3;
+    const sand = g.createLinearGradient(0, sh, 0, h);
+    sand.addColorStop(0, "#F3D49B"); sand.addColorStop(1, "#FCEBC8");
+    g.fillStyle = sand; g.beginPath(); g.moveTo(0, h); for (let x = 0; x <= w + 8; x += 8) g.lineTo(x, edge(x)); g.lineTo(w, h); g.closePath(); g.fill();
+    g.fillStyle = "rgba(200,160,100,0.18)"; g.beginPath(); g.moveTo(0, h); for (let x = 0; x <= w + 8; x += 8) g.lineTo(x, edge(x) + 5); for (let x = w; x >= 0; x -= 8) g.lineTo(x, edge(x) + 10); g.closePath(); g.fill();
+    g.strokeStyle = "#FFFFFF"; g.lineWidth = 3; g.globalAlpha = 0.95; g.beginPath(); for (let x = 0; x <= w + 8; x += 8) x ? g.lineTo(x, edge(x)) : g.moveTo(x, edge(x)); g.stroke(); g.globalAlpha = 1;
+    // Palmera
+    const tx = w * 0.09, ty = h * 0.96;
+    g.strokeStyle = "#9A6E43"; g.lineWidth = h * 0.045; g.lineCap = "round";
+    g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(tx + w * 0.02, h * 0.55, tx + w * 0.07, h * 0.22); g.stroke();
+    g.strokeStyle = "rgba(255,255,255,0.18)"; g.lineWidth = h * 0.012; g.beginPath(); g.moveTo(tx - 2, ty); g.quadraticCurveTo(tx + w * 0.015, h * 0.55, tx + w * 0.065, h * 0.23); g.stroke();
+    const fx = tx + w * 0.07, fy = h * 0.22, sw = Math.sin(t * 1.4) * 0.05;
+    for (let i = 0; i < 7; i++) {
+      const a = -Math.PI * 0.95 + (i / 6) * Math.PI * 1.1 + sw, L = h * (0.24 + (i % 2) * 0.05);
+      g.fillStyle = i % 2 ? "#3FA36E" : "#2E8A5B";
+      g.beginPath(); g.moveTo(fx, fy);
+      g.quadraticCurveTo(fx + Math.cos(a - 0.25) * L * 0.6, fy + Math.sin(a - 0.25) * L * 0.6 - 4, fx + Math.cos(a) * L, fy + Math.sin(a) * L + L * 0.25);
+      g.quadraticCurveTo(fx + Math.cos(a + 0.2) * L * 0.55, fy + Math.sin(a + 0.2) * L * 0.55 + 6, fx, fy); g.fill();
+    }
+    g.fillStyle = "#7A5230"; for (const [dx, dy] of [[-3, 4], [3, 5], [0, 8]]) { g.beginPath(); g.arc(fx + dx, fy + dy, h * 0.025, 0, TAU); g.fill(); }
+    // Estrella de mar
+    g.save(); g.translate(w * 0.86, h * 0.88); g.rotate(0.3); g.fillStyle = "#F08C6A";
+    g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? h * 0.018 : h * 0.045, a = (k * Math.PI) / 5 - Math.PI / 2; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); g.restore();
+    artAlien(g, "orange", w * 0.38, h * 0.88, h * 0.28, t, 0);
+    artAlien(g, "yellow", w * 0.6, h * 0.84, h * 0.3, t, 1.3);
+  },
+  snow(g, w, h, t) {
+    const sky = g.createLinearGradient(0, 0, 0, h * 0.62);
+    sky.addColorStop(0, "#5476D0"); sky.addColorStop(0.6, "#A9C2F0"); sky.addColorStop(1, "#F6D8E6");
+    g.fillStyle = sky; g.fillRect(0, 0, w, h);
+    artGlow(g, w * 0.7, h * 0.52, w * 0.45, "rgba(255,220,235,0.5)");
+    // Montañas en tres capas (las lejanas más claras)
+    const range = (base, amp, peaks, col, cap, seed) => {
+      const r = artRng(seed), pts = [];
+      for (let i = 0; i <= peaks; i++) pts.push([(i / peaks) * w + (r() - 0.5) * w * 0.08, base - amp * (0.55 + r() * 0.45)]);
+      g.fillStyle = col; g.beginPath(); g.moveTo(0, h);
+      pts.forEach(([x, y], i) => { g.lineTo(x, y); if (i < peaks) g.lineTo((x + pts[i + 1][0]) / 2, base - amp * 0.12); });
+      g.lineTo(w, h); g.closePath(); g.fill();
+      g.fillStyle = cap;
+      pts.forEach(([x, y]) => { const d = amp * 0.3; g.beginPath(); g.moveTo(x, y); g.lineTo(x - d * 0.75, y + d); g.lineTo(x - d * 0.25, y + d * 0.75); g.lineTo(x, y + d * 1.05); g.lineTo(x + d * 0.3, y + d * 0.72); g.lineTo(x + d * 0.75, y + d); g.closePath(); g.fill(); });
+    };
+    range(h * 0.62, h * 0.48, 4, "#9AB2E4", "rgba(255,255,255,0.85)", 3);
+    range(h * 0.72, h * 0.42, 3, "#6E8DCB", "#FFFFFF", 5);
+    // Pinos al fondo
+    for (let i = 0; i < 9; i++) { const x = w * (0.02 + i * 0.12) + (i % 2) * 6, hh = h * (0.12 + (i % 3) * 0.03); paintPine(g, x, h * 0.74, hh, false); }
+    // Nieve del frente, con sombras azules suaves
+    const sn = g.createLinearGradient(0, h * 0.7, 0, h);
+    sn.addColorStop(0, "#FFFFFF"); sn.addColorStop(1, "#E2EBF8");
+    g.fillStyle = sn; g.beginPath(); g.moveTo(0, h * 0.76); g.bezierCurveTo(w * 0.3, h * 0.68, w * 0.6, h * 0.82, w, h * 0.72); g.lineTo(w, h); g.lineTo(0, h); g.closePath(); g.fill();
+    g.fillStyle = "rgba(120,150,210,0.14)"; g.beginPath(); g.ellipse(w * 0.7, h * 0.92, w * 0.25, h * 0.05, 0, 0, TAU); g.fill();
+    paintPine(g, w * 0.08, h * 0.97, h * 0.42, false);
+    paintPine(g, w * 0.92, h * 0.98, h * 0.36, false);
+    // Marcianitos: el naranja en esquís
+    const ox = w * 0.38, oy = h * 0.9;
+    drawRide(g, ox, oy, 0.12, h * 0.1, "ski", 1);
+    artAlien(g, "orange", ox, oy, h * 0.27, 0, 0);
+    artAlien(g, "green", w * 0.6, h * 0.86, h * 0.3, t, 1);
+    // Copos cayendo
+    g.fillStyle = "#FFFFFF";
+    for (const f of ART_FLAKES) { const y = ((f.y + t * f.v) % 1) * h, x = f.x * w + Math.sin(t + f.p) * 6; g.globalAlpha = 0.85; g.beginPath(); g.arc(x, y, f.s, 0, TAU); g.fill(); }
+    g.globalAlpha = 1;
+  },
+  soon(g, w, h, t) {
+    const bg = g.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, "#1C1B2E"); bg.addColorStop(1, "#2E2B4A");
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#FFFFFF";
+    ART_STARS.forEach((s) => { g.globalAlpha = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(t * s.sp + s.p)); g.beginPath(); g.arc(s.x * w, s.y * h, s.s * 0.8, 0, TAU); g.fill(); });
+    // Un planeta misterioso, solo la silueta con su borde iluminado
+    const px = w / 2, py = h * 0.55, pr = h * 0.3;
+    g.globalAlpha = 1; artGlow(g, px, py, pr * 2, "rgba(140,120,255,0.25)");
+    g.fillStyle = "#151425"; g.beginPath(); g.arc(px, py, pr, 0, TAU); g.fill();
+    g.strokeStyle = "rgba(190,175,255,0.7)"; g.lineWidth = 2; g.beginPath(); g.arc(px, py, pr, Math.PI * 1.1, Math.PI * 1.75); g.stroke();
+    g.setLineDash([3, 6]); g.strokeStyle = "rgba(190,175,255,0.4)"; g.beginPath(); g.ellipse(px, py, pr * 1.7, pr * 0.4, -0.2, 0, TAU); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "rgba(220,212,255,0.9)"; g.font = `800 ${Math.round(pr * 0.9)}px ui-rounded, -apple-system, system-ui, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("?", px, py + 2);
+  },
+};
+function paintArt(cv, t) {
+  const id = cv.dataset.art, w = cv.clientWidth, h = cv.clientHeight;
+  if (!w || !h || !ART[id]) return;
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  if (cv.width !== Math.round(w * d) || cv.height !== Math.round(h * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
+  const g = cv.getContext("2d");
+  g.setTransform(d, 0, 0, d, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+  ART[id](g, w, h, t);
+  // Viñeta suave para que se sienta como una foto
+  const v = g.createRadialGradient(w / 2, h * 0.45, Math.min(w, h) * 0.3, w / 2, h * 0.5, Math.max(w, h) * 0.75);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,0.22)");
+  g.fillStyle = v; g.fillRect(0, 0, w, h);
+}
+// Los canvas se reutilizan (la tarjeta se vuelve a pintar muy seguido y así no parpadea)
+function mountArts(root, ctx) {
+  root.querySelectorAll("canvas[data-art]").forEach((c) => {
+    const key = ctx + ":" + c.dataset.art, old = ART_CACHE[key];
+    if (old && old !== c) c.replaceWith(old); else ART_CACHE[key] = c;
+  });
+  startArts();
+}
+let artRaf = 0, artFrame = 0;
+function startArts() { if (!artRaf) artRaf = requestAnimationFrame(animateArts); }
+function animateArts(now) {
+  const list = Object.values(ART_CACHE).filter((c) => c.isConnected && c.offsetParent !== null);
+  if (!list.length) { artRaf = 0; return; }
+  // A 30 cuadros por segundo es suficiente para algo tan tranquilo (y con "reducir movimiento", se pinta una vez quieto)
+  if (artFrame++ % 2 === 0) list.forEach((c) => paintArt(c, reduceMotion ? 2 : now / 1000));
+  artRaf = requestAnimationFrame(animateArts);
+}
+
 const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>';
 
 function applyLevel() {
@@ -2619,8 +2796,9 @@ function renderLevels(animate) {
     }
     html += `<div class="lvl-card${i > save.level ? " locked" : ""}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`;
   });
-  html += `<div class="lvl-card"><div class="lvl-art soon"><span>· · ·</span></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`;
+  html += `<div class="lvl-card"><div class="lvl-art soon"><canvas data-art="soon" aria-hidden="true"></canvas></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`;
   list.innerHTML = html;
+  mountArts(list, "lv");
   list.classList.toggle("enter", !!animate);
   [...list.children].forEach((c, i) => c.style.setProperty("--i", i));
   $("#levels-coins").textContent = fmt(save.coins);
@@ -2637,6 +2815,7 @@ function checkReady() {
   save.readyAsked = save.level; markSave();
   const es = LANG === "es";
   $("#ready-art").innerHTML = levelArt(n.id, save.level + 2);
+  mountArts($("#ready-art"), "rd");
   $("#ready-kicker").textContent = `${tx("level")} ${save.level + 2} ${tx("unlocked")}`;
   $("#ready-title").textContent = `${n.name} ${tx("readyTitle")}`;
   $("#ready-msg").textContent = es
