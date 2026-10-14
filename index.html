@@ -937,7 +937,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.26.4";
+const VERSION = "0.26.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3869,10 +3869,10 @@ function buildBeachProps(g) {
   let colorI = Math.floor(Math.random() * UMBRELLAS.length);
   for (const p of placed) {
     if (p.type === "palm") {
-      const h = rand(120, 150) * k, dir = p.x < W / 2 ? 1 : -1, w = h * 1.5;
+      const h = rand(120, 150) * k, dir = p.x < W / 2 ? 1 : -1, w = h * 2.3, top = h * 1.45; // lienzo amplio: las hojas nunca se cortan
       g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(120,90,50,0.16)";
       g.beginPath(); g.ellipse(p.x + dir * h * 0.32, p.y + 4, h * 0.42, h * 0.11, 0, 0, TAU); g.fill(); // sombra de la copa
-      pines.push({ x: p.x, y: p.y, h, ph: rand(0, TAU), sway: 0.03, spr: makePropSprite((gg) => paintPalm(gg, w / 2, h * 1.05, h, dir, dark), w, h * 1.1, w / 2, h * 1.05) });
+      pines.push({ x: p.x, y: p.y, h, ph: rand(0, TAU), sway: 0.03, spr: makePropSprite((gg) => paintPalm(gg, w / 2, top, h, dir, dark), w, top + h * 0.08, w / 2, top) });
     } else {
       const h = rand(58, 70) * k, cols = UMBRELLAS[colorI++ % UMBRELLAS.length], tilt = rand(-0.12, 0.12), w = h * 1.5;
       // Sombra redonda de la sombrilla y una toalla de rayas junto
