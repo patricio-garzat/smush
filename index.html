@@ -929,7 +929,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.23.1";
+const VERSION = "0.24.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1925,9 +1925,9 @@ function spawnBall(inside) {
     const r = Math.random() * ((hasTop ? 2 : 1) * W + 2 * sideH);
     if (city) {
       // En la ciudad solo se entra por las calles (las esquinas son edificios)
-      const mx = T.side * 0.7 + 6, gx = () => rand(city.bxL + mx, city.bxR - mx), gy = () => rand(city.byT + 8, city.byB - 8) - T.bottom;
+      const mx = T.side * 0.7 + 6, gx = () => rand(city.bxL + mx, city.bxR - mx), gy = () => rand(city.byT + 8, H - 6) - T.bottom;
       const k = Math.random();
-      if (k < 0.25) { x = gx(); y = H + T.top + 2; } else if (k < 0.5) { x = gx(); y = -T.bottom - 2; }
+      if (k < 0.3) { x = rand(T.side, W - T.side); y = H + T.top + 2; } else if (k < 0.5) { x = gx(); y = -T.bottom - 2; }
       else if (k < 0.75) { x = -T.side - 2; y = gy(); } else { x = W + T.side + 2; y = gy(); }
     }
     else if (r < W) { x = rand(T.side, W - T.side); y = H + T.top + 2; }
@@ -3900,6 +3900,53 @@ function paintBin(g, x, y, s, dark) {
   g.fillStyle = lid; g.beginPath(); g.ellipse(x, y - 15 * s, 5.8 * s, 2.2 * s, 0, 0, TAU); g.fill();
   g.fillStyle = "rgba(255,255,255,0.3)"; g.fillRect(x - 4 * s, y - 13 * s, 1.2 * s, 10 * s);
 }
+// Árbol de parque: tronco y una copa redonda hecha de varias bolas con luz arriba a la izquierda
+function paintTree(g, x, y, h, dark, seed) {
+  const R = artRng(seed), cr = h * 0.32, cy = y - h * 0.64;
+  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(30,60,30,0.2)"; g.beginPath(); g.ellipse(x + h * 0.1, y + 1, cr * 1.1, cr * 0.4, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "#3E3029" : "#7A5A43"; poly(g, [[x - h * 0.05, y], [x + h * 0.05, y], [x + h * 0.03, cy + cr * 0.2], [x - h * 0.03, cy + cr * 0.2]]); g.fill();
+  g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(x + h * 0.01, cy + cr * 0.4, h * 0.03, y - cy - cr * 0.4);
+  const blobs = [[0, 0.05, 1], [-0.58, 0.2, 0.68], [0.58, 0.22, 0.66], [-0.28, -0.42, 0.64], [0.3, -0.38, 0.62], [0, 0.42, 0.7]].map(([u, v, r]) => [x + (u + (R() - 0.5) * 0.12) * cr, cy + (v + (R() - 0.5) * 0.1) * cr, r * cr * 0.72]);
+  const [c0, c1, c2] = dark ? ["#1C3A2C", "#28503D", "#386A50"] : ["#3E8352", "#56A468", "#7CC386"];
+  g.fillStyle = c0; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx + r * 0.12, by + r * 0.14, r, 0, TAU); g.fill(); }
+  g.fillStyle = c1; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx, by, r * 0.9, 0, TAU); g.fill(); }
+  g.fillStyle = c2; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx - r * 0.25, by - r * 0.28, r * 0.5, 0, TAU); g.fill(); }
+  g.fillStyle = dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.25)";
+  for (let i = 0; i < 9; i++) { const a = R() * TAU, d = R() * cr * 0.8; g.beginPath(); g.arc(x + Math.cos(a) * d - cr * 0.15, cy + Math.sin(a) * d * 0.8 - cr * 0.2, 1.6, 0, TAU); g.fill(); }
+}
+// Banca de parque: patas de fierro, asiento y respaldo de tablitas
+function paintBench(g, x, y, s, dark) {
+  const w = 40 * s, wood = dark ? "#5A4535" : "#B5835A", wood2 = dark ? "#4A382B" : "#9A6C47", iron = dark ? "#1E2128" : "#3E4550";
+  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(30,50,30,0.2)"; g.beginPath(); g.ellipse(x + 2, y + 0.5, w * 0.55, 3.5 * s, 0, 0, TAU); g.fill();
+  g.strokeStyle = iron; g.lineWidth = 2 * s; g.lineCap = "round";
+  for (const o of [-0.42, 0.42]) { g.beginPath(); g.moveTo(x + o * w, y); g.lineTo(x + o * w, y - 9 * s); g.lineTo(x + o * w * 0.98, y - 21 * s); g.stroke(); }
+  for (const [yy, c] of [[-19, wood2], [-15, wood]]) { g.fillStyle = c; g.beginPath(); g.roundRect(x - w / 2, y + yy * s, w, 3 * s, 1.2); g.fill(); }
+  for (const [yy, c] of [[-10, wood2], [-8, wood]]) { g.fillStyle = c; g.beginPath(); g.roundRect(x - w / 2 - 1, y + yy * s, w + 2, 2.6 * s, 1.2); g.fill(); }
+  g.fillStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.3)"; g.fillRect(x - w / 2, y - 15 * s, w, 1);
+}
+// Arbusto redondito (a veces con florecitas)
+function paintBush(g, x, y, s, dark, seed) {
+  const R = artRng(seed), r = 9 * s, flowers = R() < 0.6;
+  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(30,60,30,0.2)"; g.beginPath(); g.ellipse(x + 2, y + 0.5, r * 1.4, r * 0.45, 0, 0, TAU); g.fill();
+  const [c0, c1, c2] = dark ? ["#1C3A2C", "#2A5040", "#386A50"] : ["#3E8352", "#55A066", "#79C083"];
+  for (const [col, k2, dy] of [[c0, 1, 0], [c1, 0.85, -1.5], [c2, 0.45, -4]]) {
+    g.fillStyle = col;
+    for (const [u, v] of [[-0.7, -0.7], [0.7, -0.7], [0, -1.15]]) { g.beginPath(); g.arc(x + u * r - (k2 < 0.5 ? r * 0.2 : 0), y + v * r + dy, r * k2 * 0.8, 0, TAU); g.fill(); }
+  }
+  if (flowers) { const fc = dark ? "#8C5A6E" : ["#FF8A9A", "#FFFFFF", "#F1C84D"][Math.floor(R() * 3)]; g.fillStyle = fc; for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(x + (R() - 0.5) * r * 2, y - r * (0.6 + R() * 0.9), 1.3, 0, TAU); g.fill(); } }
+}
+// Farolito de parque: un poste delgado con un globo de luz arriba
+function paintLantern(g, x, y, h, dark) {
+  const metal = dark ? "#252A33" : "#3E4550";
+  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(30,50,30,0.2)"; g.beginPath(); g.ellipse(x + 1.5, y + 0.5, 4.5, 1.8, 0, 0, TAU); g.fill();
+  g.fillStyle = metal; g.beginPath(); g.roundRect(x - 2.6, y - 5, 5.2, 5.5, 1.5); g.fill();
+  g.strokeStyle = metal; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y - 4); g.lineTo(x, y - h + 6); g.stroke();
+  if (dark) { const hg = g.createRadialGradient(x, y - h, 0, x, y - h, h * 0.5); hg.addColorStop(0, "rgba(255,226,170,0.6)"); hg.addColorStop(1, "rgba(255,226,170,0)"); g.fillStyle = hg; g.beginPath(); g.arc(x, y - h, h * 0.5, 0, TAU); g.fill(); }
+  g.fillStyle = metal; g.fillRect(x - 3, y - h + 4, 6, 3);
+  g.fillStyle = dark ? "#FFF3D2" : "#F4F2EC"; g.beginPath(); g.arc(x, y - h, 5.2, 0, TAU); g.fill();
+  g.fillStyle = dark ? "rgba(255,255,255,0.6)" : "rgba(180,190,200,0.5)"; g.beginPath(); g.arc(x - 1.6, y - h - 1.6, 1.6, 0, TAU); g.fill();
+  g.fillStyle = metal; g.beginPath(); g.ellipse(x, y - h - 5, 2.4, 1.2, 0, 0, TAU); g.fill();
+}
 // Edificio chiquito visto de frente (para el Inicio, las tarjetas y el viaje): fachada, costado, azotea,
 // ventanas (prendidas de noche) y una tiendita con toldo abajo. (x, y) = centro del frente, en el piso.
 // side = qué costado se ve (1 = el derecho); d = fondo
@@ -3943,16 +3990,16 @@ function paintMiniBuilding(g, x, y, w, d, h, col, dark, side, seed, awn, glow = 
 // cuatro esquinas (tiendas arriba, azoteas abajo), postes de luz y semáforos. Siempre es la misma ciudad.
 function buildCity() {
   const dark = PAL.dark, small = W < PHONE_WIDTH, R = artRng(4207), rr = (a, b) => a + (b - a) * R(), pick = (a) => a[Math.floor(R() * a.length)];
-  const rv = clamp(W * 0.34, 118, 220), rh = clamp(H * 0.26, 112, 196), sw = clamp(Math.min(W, H) * 0.09, 34, 58);
+  const rv = small ? clamp(W * 0.37, 130, 200) : clamp(W * 0.42, 150, 290), rh = clamp(H * 0.32, 140, 250), sw = clamp(Math.min(W, H) * 0.105, 40, 70);
   const cx = W / 2, cy = Math.round(H * 0.52), xL = cx - rv / 2, xR = cx + rv / 2, yT = cy - rh / 2, yB = cy + rh / 2;
   const bxL = xL - sw, bxR = xR + sw, byT = yT - sw, byB = yB + sw, rc = sw * 0.8, cw = clamp(sw * 0.95, 30, 50), off = rc + 3;
-  const gh = clamp(sw * 0.95, 38, 54), fh = gh * 0.74, k = small ? 0.85 : 1, q = 1.5 / (W + H);
+  const gh = clamp(sw * 1.08, 46, 70), fh = gh * 0.74, k = small ? 1 : 1.2, q = 1.5 / (W + H);
   // Perspectiva: lo alto se ve hacia arriba y un poquito hacia afuera (así se asoma el costado que da a la calle)
   const P = (x, y, z) => [x + (x - cx) * q * z, y - z];
   city = {
     cx, cy, xL, xR, yT, yB, bxL, bxR, byT, byB, steam: null, posts: [],
     // Las esquinas son edificios: ahí no se puede entrar
-    walls: [{ x0: -1e4, y0: -1e4, x1: bxL, y1: byT }, { x0: bxR, y0: -1e4, x1: 1e4, y1: byT }, { x0: -1e4, y0: byB, x1: bxL, y1: 1e4 }, { x0: bxR, y0: byB, x1: 1e4, y1: 1e4 }],
+    walls: [{ x0: -1e4, y0: -1e4, x1: bxL, y1: byT }, { x0: bxR, y0: -1e4, x1: 1e4, y1: byT },],
   };
   const C = dark
     ? { road: "#2B2F37", walk: "#464A54", curb: "#5C616C", joint: "rgba(0,0,0,0.3)", hi: "rgba(255,255,255,0.05)", paint: "rgba(214,218,226,0.62)", yellow: "rgba(222,178,82,0.66)", tactile: "#7E6B3A" }
@@ -4012,7 +4059,7 @@ function buildCity() {
   g.fillRect(xL + 3, cwN[0] - 10, rv / 2 - 6, 4.5); g.fillRect(cx + 3, cwS[1] + 5.5, rv / 2 - 6, 4.5);
   g.fillRect(cwW[0] - 10, cy + 3, 4.5, rh / 2 - 6); g.fillRect(cwE[1] + 5.5, yT + 3, 4.5, rh / 2 - 6);
   const zebra = (a0, a1, b0, b1, vert) => {
-    const len = a1 - a0 - 10, n = Math.max(5, Math.round(len / 16)), s = len / (2 * n - 1);
+    const len = a1 - a0 - 10, n = Math.max(5, Math.round(len / 21)), s = len / (2 * n - 1);
     for (let i = 0; i < n; i++) { const a = a0 + 5 + i * 2 * s; vert ? g.fillRect(a, b0, s, b1 - b0) : g.fillRect(b0, a, b1 - b0, s); }
   };
   zebra(xL, xR, cwN[0], cwN[1], true); zebra(xL, xR, cwS[0], cwS[1], true);
@@ -4105,7 +4152,7 @@ function buildCity() {
 
   // --- Postes de luz, semáforos y cositas de banqueta: dónde van (bien repartidos, junto a la guarnición)
   const lamps = [], items = [];
-  const hp = gh * 1.95 * (small ? 0.9 : 1), la = hp * 0.3, step = small ? 1e4 : 210;
+  const hp = gh * 2, la = hp * 0.3, step = small ? 1e4 : 260;
   for (const sxn of [-1, 1]) for (const syn of [-1, 1]) {
     const vx = sxn < 0 ? xL - 9 : xR + 9, hy = syn < 0 ? yT - 9 : yB + 9;
     // En el celular, un poste por esquina (alternando la calle) para que no se vea amontonado
@@ -4148,9 +4195,6 @@ function buildCity() {
     const st = g.createLinearGradient(0, byT, 0, byT + sw * 0.5);
     st.addColorStop(0, dark ? "rgba(0,0,0,0.35)" : "rgba(40,35,30,0.2)"); st.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = st; g.fillRect(x0, byT, x1 - x0, sw * 0.5);
-    const sb = g.createLinearGradient(0, byB, 0, byB - 9);
-    sb.addColorStop(0, dark ? "rgba(0,0,0,0.3)" : "rgba(40,35,30,0.14)"); sb.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = sb; g.fillRect(x0, byB - 9, x1 - x0, 9);
   }
   // Una ventana en la fachada: marco, vidrio (reflejo de día, luz cálida de noche), repisa y a veces
   // cortinas, persiana o macetita con flores
@@ -4318,88 +4362,9 @@ function buildCity() {
     for (const o of [0.5, 0.75]) gg.fillRect(x - s * 0.37, y - s * 0.33 - s * 0.62 * o, s * 0.74, 1.4);
     gg.fillStyle = dk ? "#3A3530" : "#7C5A3E"; gg.beginPath(); gg.moveTo(x - s * 0.4, y - s * 0.95); gg.lineTo(x, y - s * 1.22); gg.lineTo(x + s * 0.4, y - s * 0.95); gg.closePath(); gg.fill();
   }
-  // Edificio de abajo: se ve su azotea (con aires acondicionados, tinacos, tragaluces o una terraza con focos)
-  function roofBuilding(b) {
-    const { x0, x1, z } = b, base = byB + z, xi = b.left ? x1 : x0;
-    sideFace(xi, z, b.col, base, 1);
-    const roof = dark ? pick(["#383C46", "#3D414B"]) : pick(["#C9C3B8", "#BFB9AE", "#CEC5B5"]);
-    const RP = (u, v) => P(u, v, z), corners = [RP(x0, base), RP(x1, base), RP(x1, base + 2000), RP(x0, base + 2000)];
-    quad(corners, roof);
-    g.save(); poly(g, corners); g.clip();
-    // Gravilla
-    for (let i = 0; i < ((x1 - x0) * (H - byB)) / 60; i++) {
-      const [px, py] = RP(rr(x0, x1), rr(base, base + H - byB + 10));
-      g.fillStyle = R() < 0.5 ? (dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.4)") : dark ? "rgba(0,0,0,0.2)" : "rgba(90,80,70,0.13)";
-      g.fillRect(px, py, 1.2, 1.2);
-    }
-    // Pretil: el muro bajito alrededor (claro arriba, con su sombra adentro)
-    const pc = dark ? "#4C515C" : "#E2DCD1", ps = dark ? "rgba(0,0,0,0.3)" : "rgba(90,80,70,0.16)";
-    quad([RP(x0, base), RP(x1, base), RP(x1, base + 5), RP(x0, base + 5)], pc);
-    quad([RP(x0, base + 5), RP(x1, base + 5), RP(x1, base + 8), RP(x0, base + 8)], ps);
-    for (const [e0, e1] of [[x0, x0 + 5], [x1 - 5, x1]]) quad([RP(e0, base), RP(e1, base), RP(e1, base + 2000), RP(e0, base + 2000)], pc);
-    // Cosas en la azotea
-    const vis0 = Math.max(x0 + 14, 8), vis1 = Math.min(x1 - 14, W - 8);
-    if (vis1 - vis0 > 30) {
-      const things = b.things;
-      things.forEach((t, i) => {
-        const u = vis0 + (vis1 - vis0) * t.u, v = base + 18 + (H - byB - 40) * t.v;
-        if (t.k === "ac") roofBox(u, v, 22 * k, 15 * k, 10 * k, true);
-        else if (t.k === "box") roofBox(u, v, 30 * k, 20 * k, 14 * k, false);
-        else if (t.k === "tank") { const [tx, ty] = RP(u, v); g.fillStyle = "rgba(0,0,0,0.15)"; g.beginPath(); g.ellipse(tx + 4, ty + 1, gh * 0.35, gh * 0.12, 0, 0, TAU); g.fill(); paintTank(g, tx, ty, gh * 0.7, dark); }
-        else if (t.k === "sky") skylight(u, v, 30 * k, 22 * k);
-        else if (t.k === "lights") terrace(u, v, (vis1 - vis0) * 0.6, 34 * k);
-      });
-    }
-    g.restore();
-    // Sombrita del pretil sobre la banqueta (la azotea está en alto)
-  }
-  function roofBox(u, v, w0, d0, h0, fan) {
-    const zz = b0z;
-    const top = [P(u - w0 / 2, v - d0 / 2, zz + h0), P(u + w0 / 2, v - d0 / 2, zz + h0), P(u + w0 / 2, v + d0 / 2, zz + h0), P(u - w0 / 2, v + d0 / 2, zz + h0)];
-    const front = [P(u - w0 / 2, v + d0 / 2, zz), P(u + w0 / 2, v + d0 / 2, zz), P(u + w0 / 2, v + d0 / 2, zz + h0), P(u - w0 / 2, v + d0 / 2, zz + h0)];
-    const [sx, sy] = P(u + 3, v + d0 / 2 + 2, zz); g.fillStyle = "rgba(0,0,0,0.16)"; g.beginPath(); g.ellipse(sx, sy, w0 * 0.6, 3, 0, 0, TAU); g.fill();
-    quad(front, dark ? "#2C3038" : "#9EA3AB"); quad(top, dark ? "#4A4F59" : "#D9DCE0");
-    if (fan) {
-      const [fx, fy] = P(u, v, zz + h0), r = Math.min(w0, d0) * 0.32;
-      g.fillStyle = dark ? "#23262D" : "#80858D"; g.beginPath(); g.ellipse(fx, fy, r, r * 0.8, 0, 0, TAU); g.fill();
-      g.strokeStyle = dark ? "#4A4F59" : "#C9CDD2"; g.lineWidth = 0.8;
-      for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU; line(fx, fy, fx + Math.cos(a) * r * 0.8, fy + Math.sin(a) * r * 0.64); }
-    } else {
-      g.strokeStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(60,60,70,0.25)"; g.lineWidth = 0.7;
-      for (let i = 1; i < 6; i++) { const p0 = P(u - w0 / 2 + (w0 * i) / 6, v + d0 / 2, zz + 2), p1 = P(u - w0 / 2 + (w0 * i) / 6, v + d0 / 2, zz + h0 - 2); line(p0[0], p0[1], p1[0], p1[1]); }
-    }
-  }
-  function skylight(u, v, w0, d0) {
-    const zz = b0z, fr = [P(u - w0 / 2, v - d0 / 2, zz + 3), P(u + w0 / 2, v - d0 / 2, zz + 3), P(u + w0 / 2, v + d0 / 2, zz + 3), P(u - w0 / 2, v + d0 / 2, zz + 3)];
-    quad([P(u - w0 / 2, v + d0 / 2, zz), P(u + w0 / 2, v + d0 / 2, zz), fr[2], fr[3]], dark ? "#2C3038" : "#A9AEB5");
-    quad(fr, dark ? "#FFD38A" : "#B9D3E6");
-    g.strokeStyle = dark ? "#3A3530" : "#E8ECEF"; g.lineWidth = 1.2;
-    for (let i = 1; i < 3; i++) { const p0 = P(u - w0 / 2 + (w0 * i) / 3, v - d0 / 2, zz + 3), p1 = P(u - w0 / 2 + (w0 * i) / 3, v + d0 / 2, zz + 3); line(p0[0], p0[1], p1[0], p1[1]); }
-    poly(g, fr); g.stroke();
-  }
-  // Terraza: deck de madera, macetas y una tira de foquitos que de noche se prenden
-  function terrace(u, v, w0, d0) {
-    const zz = b0z, deck = [P(u - w0 / 2, v - d0 / 2, zz), P(u + w0 / 2, v - d0 / 2, zz), P(u + w0 / 2, v + d0 / 2, zz), P(u - w0 / 2, v + d0 / 2, zz)];
-    quad(deck, dark ? "#4A3C31" : "#C9A27C");
-    g.strokeStyle = "rgba(0,0,0,0.12)"; g.lineWidth = 0.7;
-    for (let x = u - w0 / 2 + 5; x < u + w0 / 2; x += 5) { const p0 = P(x, v - d0 / 2, zz), p1 = P(x, v + d0 / 2, zz); line(p0[0], p0[1], p1[0], p1[1]); }
-    for (const s of [-1, 1]) { const [px, py] = P(u + s * (w0 / 2 - 5), v + d0 / 2 - 4, zz); g.fillStyle = dark ? "#5A4A3E" : "#B77A55"; g.fillRect(px - 3, py - 5, 6, 5); g.fillStyle = dark ? "#2F5A44" : "#5BAA78"; g.beginPath(); g.arc(px, py - 7, 5, 0, TAU); g.fill(); }
-    // Foquitos colgando de lado a lado, en una curva suave
-    const posts = [[u - w0 / 2 + 2, v - d0 / 2 + 2], [u + w0 / 2 - 2, v - d0 / 2 + 2]], ph = 20 * k;
-    g.strokeStyle = dark ? "#1D2026" : "#4A4F58"; g.lineWidth = 1;
-    for (const [px, pv] of posts) { const a = P(px, pv, zz), b2 = P(px, pv, zz + ph); line(a[0], a[1], b2[0], b2[1]); }
-    const A = P(posts[0][0], posts[0][1], zz + ph), B = P(posts[1][0], posts[1][1], zz + ph), sag = 8;
-    g.strokeStyle = dark ? "rgba(30,30,30,0.8)" : "rgba(60,60,70,0.55)"; g.lineWidth = 0.7;
-    g.beginPath(); g.moveTo(A[0], A[1]); g.quadraticCurveTo((A[0] + B[0]) / 2, (A[1] + B[1]) / 2 + sag * 2, B[0], B[1]); g.stroke();
-    for (let i = 1; i < 12; i++) {
-      const t = i / 12, x = (1 - t) ** 2 * A[0] + 2 * (1 - t) * t * ((A[0] + B[0]) / 2) + t * t * B[0], y = (1 - t) ** 2 * A[1] + 2 * (1 - t) * t * ((A[1] + B[1]) / 2 + sag * 2) + t * t * B[1];
-      if (dark) { const hg = g.createRadialGradient(x, y + 1.5, 0, x, y + 1.5, 7); hg.addColorStop(0, "rgba(255,220,150,0.65)"); hg.addColorStop(1, "rgba(255,220,150,0)"); g.fillStyle = hg; g.beginPath(); g.arc(x, y + 1.5, 7, 0, TAU); g.fill(); }
-      g.fillStyle = dark ? "#FFF0C2" : "#F4EBD6"; g.beginPath(); g.arc(x, y + 1.5, 1.4, 0, TAU); g.fill();
-    }
-  }
   // Cuadras: anchos de los edificios, de afuera hacia la esquina
   const segs = (len) => { const out = []; let left = len; while (left > 0) { let w0 = left < 175 ? left : rr(110, 175); if (left - w0 < 70) w0 = left; out.push(w0); left -= w0; } return out; };
-  let colI = Math.floor(R() * CITY_WALLS.length), shopI = Math.floor(R() * CITY_SHOPS.length), awnI = 0, b0z = 0;
+  let colI = Math.floor(R() * CITY_WALLS.length), shopI = Math.floor(R() * CITY_SHOPS.length), awnI = 0;
   const nextCol = () => CITY_WALLS[colI++ % CITY_WALLS.length];
   for (const left of [true, false]) {
     // Arriba: de afuera hacia adentro, para que el de la esquina quede encima
@@ -4414,20 +4379,112 @@ function buildCity() {
         blade: corner && !small ? ["HOTEL", "JAZZ"][left ? 0 : 1] : null, tank: R() < 0.5 ? rr(-20, 20) : 0 });
     });
   }
-  const terraceLeft = R() < 0.5;
+  // --- Abajo, dos parques (ahí sí se camina): pasto con franjas de podado, un caminito, árboles, bancas,
+  // arbustos, flores, farolitos y, si cabe, una fuente
+  city.parks = []; city.fountains = [];
+  const parkProps = [];
   for (const left of [true, false]) {
-    const total = left ? bxL + 30 : W + 30 - bxR, ws = segs(total);
-    let at = left ? -30 : W + 30;
-    ws.forEach((w0, i) => {
-      const x0 = left ? at : at - w0, x1 = left ? at + w0 : at;
-      at = left ? x1 : x0;
-      const corner = i === ws.length - 1, z = rr(46, 92) * k, kinds = ["ac", "box", "tank", "sky", "ac"], things = [];
-      const n = w0 > 140 ? 3 : 2;
-      for (let j = 0; j < n; j++) things.push({ k: pick(kinds), u: (j + 0.5) / n + rr(-0.08, 0.08), v: rr(0.05, 0.6) });
-      if (corner && left === terraceLeft) things.splice(0, things.length, { k: "lights", u: 0.5, v: 0.08 }, { k: "ac", u: 0.2, v: 0.75 });
-      b0z = z;
-      roofBuilding({ x0, x1, z, left, corner, col: nextCol(), things: things.sort((a, b) => a.v - b.v) });
-    });
+    const x0 = left ? -20 : bxR + 7, x1 = left ? bxL - 7 : W + 20, y0 = byB + 7, vx0 = Math.max(0, x0), vx1 = Math.min(W, x1), pw = vx1 - vx0, ph = H - y0;
+    if (pw < 30 || ph < 30) continue;
+    city.parks.push({ x0: vx0, x1: vx1, y0, y1: H });
+    const lawn = new Path2D(); lawn.roundRect(x0, y0, x1 - x0, H + 20 - y0, left ? [0, 12, 0, 0] : [12, 0, 0, 0]);
+    // Borde de piedra bajito y el pasto
+    g.save(); g.shadowColor = dark ? "rgba(0,0,0,0.5)" : "rgba(40,50,30,0.3)"; g.shadowBlur = 3; g.shadowOffsetY = 1.5;
+    g.strokeStyle = dark ? "#5E626B" : "#D8D3C8"; g.lineWidth = 7; g.stroke(lawn); g.restore();
+    g.fillStyle = dark ? "#2E4A3A" : "#9ACB8B"; g.fill(lawn);
+    g.save(); g.clip(lawn);
+    g.fillStyle = dark ? "rgba(255,255,255,0.025)" : "rgba(255,255,255,0.16)";
+    for (let k2 = -H; k2 < W + H; k2 += 46) { poly(g, [[k2, y0], [k2 + 23, y0], [k2 + 23 - 600, y0 + 600], [k2 - 600, y0 + 600]]); g.fill(); }
+    for (let i = 0; i < 5; i++) { const x = rr(vx0, vx1), y = rr(y0, H), r = rr(30, 70), gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, dark ? "rgba(0,0,0,0.12)" : "rgba(60,110,50,0.12)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+    g.lineCap = "round"; g.lineWidth = 1;
+    for (let i = 0; i < (pw * ph) / 70; i++) {
+      const x = rr(vx0, vx1), y = rr(y0, H), lite = R() < 0.4;
+      g.strokeStyle = lite ? (dark ? "rgba(140,200,160,0.18)" : "rgba(220,245,200,0.7)") : dark ? "rgba(0,0,0,0.25)" : "rgba(60,120,60,0.3)";
+      g.beginPath(); g.moveTo(x - 1.4, y); g.lineTo(x, y - 3); g.lineTo(x + 1.4, y); g.stroke();
+    }
+    // El caminito: entra por la esquina (junto al cruce) y sale por la orilla de abajo o por un lado
+    const ix = left ? x1 : x0, fnt = pw > 230 && ph > 120 && !small ? { x: vx0 + pw * (left ? 0.42 : 0.58), y: y0 + ph * 0.55, R: clamp(Math.min(pw, ph) * 0.24, 30, 44) } : null;
+    // En un parque angosto (celular) no hay caminito: así cabe el árbol, la banca y las flores
+    const segsP = pw < 130 ? [] : fnt
+      ? [[[ix, y0 + 4], [ix + (left ? -1 : 1) * pw * 0.12, fnt.y - 10], [fnt.x + (left ? 1 : -1) * fnt.R * 0.8, fnt.y]], [[fnt.x - (left ? 1 : -1) * fnt.R * 0.8, fnt.y], [vx0 + pw * (left ? 0.15 : 0.85), fnt.y], [left ? vx0 - 10 : vx1 + 10, fnt.y + ph * 0.2]], [[fnt.x, fnt.y + fnt.R * 0.5], [fnt.x, H - 10], [fnt.x + (left ? -1 : 1) * 20, H + 12]]]
+      : [[[ix, y0 + 4], [ix + (left ? -1 : 1) * pw * 0.55, y0 + ph * 0.45], [vx0 + pw * (left ? 0.3 : 0.7), H + 12]]];
+    const qp = (sg, t) => [(1 - t) ** 2 * sg[0][0] + 2 * (1 - t) * t * sg[1][0] + t * t * sg[2][0], (1 - t) ** 2 * sg[0][1] + 2 * (1 - t) * t * sg[1][1] + t * t * sg[2][1]];
+    const pathPts = [];
+    for (const sg of segsP) for (let i = 0; i <= 30; i++) pathPts.push(qp(sg, i / 30));
+    const pwid = clamp(sw * 0.62, 24, 38);
+    for (const [w2, col] of [[pwid + 5, dark ? "#3E3A34" : "#CDBE9F"], [pwid, dark ? "#55504A" : "#EADFC8"]]) {
+      g.strokeStyle = col; g.lineWidth = w2;
+      for (const sg of segsP) { g.beginPath(); g.moveTo(sg[0][0], sg[0][1]); g.quadraticCurveTo(sg[1][0], sg[1][1], sg[2][0], sg[2][1]); g.stroke(); }
+    }
+    for (let i = 0; i < pathPts.length * 7; i++) {
+      const [px, py] = pathPts[Math.floor(R() * pathPts.length)], a = rr(0, TAU), d = rr(0, pwid * 0.45);
+      g.fillStyle = R() < 0.5 ? (dark ? "rgba(0,0,0,0.25)" : "rgba(150,130,95,0.35)") : dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.8)";
+      g.fillRect(px + Math.cos(a) * d, py + Math.sin(a) * d * 0.8, 1.3, 1.3);
+    }
+    const nearPath = (x, y, m) => pathPts.some(([px, py]) => Math.hypot(px - x, py - y) < pwid / 2 + m);
+    const taken = [];
+    const free = (x, y, r) => x > vx0 + 6 && x < vx1 - 6 && y > y0 + 8 && y < H - 4 && !nearPath(x, y, r) && taken.every((t) => Math.hypot(t.x - x, (t.y - y) * 1.3) > t.r + r) && (!fnt || Math.hypot(x - fnt.x, (y - fnt.y) * 1.5) > fnt.R + r + 6);
+    const place = (r, tries = 60) => { for (let i = 0; i < tries; i++) { const x = rr(vx0 + 10, vx1 - 10), y = rr(y0 + 14, H - 6); if (free(x, y, r)) { taken.push({ x, y, r }); return { x, y }; } } return null; };
+    // Flores en macizos
+    for (let i = 0; i < (pw > 200 ? 3 : 1); i++) {
+      const at = place(18 * k); if (!at) continue;
+      const rx = 17 * k, ry = 9 * k;
+      g.fillStyle = dark ? "#3A2E28" : "#8E6A4E"; g.beginPath(); g.ellipse(at.x, at.y, rx, ry, 0, 0, TAU); g.fill();
+      const fc = dark ? ["#8C5A6E", "#8A7A44", "#5E6A9A"] : ["#FF8A9A", "#F1C84D", "#A584E8", "#FF8A65", "#FFFFFF"];
+      for (let j = 0; j < 22; j++) { const a = rr(0, TAU), d = Math.sqrt(R()); const fx = at.x + Math.cos(a) * rx * 0.85 * d, fy = at.y + Math.sin(a) * ry * 0.8 * d; g.fillStyle = dark ? "#2F5A44" : "#4E9A62"; g.beginPath(); g.arc(fx, fy + 0.8, 1.8, 0, TAU); g.fill(); g.fillStyle = fc[j % fc.length]; g.beginPath(); g.arc(fx, fy - 0.6, 1.3, 0, TAU); g.fill(); }
+    }
+    // La fuente: taza de piedra, agua y una columnita en medio (las ondas se mueven en drawCityBg)
+    if (fnt) {
+      const { x, y, R: Rf } = fnt;
+      g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(40,50,30,0.2)"; g.beginPath(); g.ellipse(x + 3, y + 4, Rf + 4, (Rf + 4) * 0.6, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "#5A5E68" : "#C9C3B6"; g.beginPath(); g.ellipse(x, y + 4, Rf, Rf * 0.6, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "#727782" : "#E9E4DA"; g.beginPath(); g.ellipse(x, y, Rf, Rf * 0.6, 0, 0, TAU); g.fill();
+      const wg = g.createRadialGradient(x - Rf * 0.3, y - Rf * 0.2, 2, x, y, Rf * 0.86);
+      wg.addColorStop(0, dark ? "#3C6E8C" : "#BFE9F2"); wg.addColorStop(1, dark ? "#1E3E56" : "#5EB7D2");
+      g.fillStyle = wg; g.beginPath(); g.ellipse(x, y, Rf * 0.84, Rf * 0.84 * 0.6, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "#727782" : "#E2DDD2"; g.fillRect(x - 3, y - Rf * 0.42, 6, Rf * 0.42);
+      g.beginPath(); g.ellipse(x, y - Rf * 0.42, Rf * 0.3, Rf * 0.12, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "#3C6E8C" : "#9ADBEA"; g.beginPath(); g.ellipse(x, y - Rf * 0.43, Rf * 0.22, Rf * 0.07, 0, 0, TAU); g.fill();
+      city.fountains.push(fnt); city.posts.push({ x, y, r: Rf + 2 });
+    }
+    // Árboles, bancas junto al caminito, arbustos y farolitos
+    const nT = clamp(Math.round((pw * ph) / 11000), 1, 4);
+    for (let i = 0; i < nT; i++) { const at = place(26 * k); if (at) parkProps.push({ kind: "tree", ...at, h: rr(gh * 1.9, gh * 2.4) }); }
+    if (!segsP.length) { const at = place(20 * k); if (at) parkProps.push({ kind: "bench", ...at }); }
+    else for (const t of [0.35, 0.72].slice(0, pw > 160 ? 2 : 1)) {
+      const sg = segsP[segsP.length > 1 ? Math.min(1, Math.floor(t * 2)) : 0], [px, py] = qp(sg, t), [qx, qy] = qp(sg, t + 0.02), nx = -(qy - py), ny = qx - px, nl = Math.hypot(nx, ny) || 1;
+      const side = ny / nl > 0 ? 1 : -1, bx = px + (nx / nl) * side * (pwid / 2 + 10), by = py + (ny / nl) * side * (pwid / 2 + 10);
+      if (bx > vx0 + 16 && bx < vx1 - 16 && by > y0 + 20 && by < H - 6) { taken.push({ x: bx, y: by, r: 18 }); parkProps.push({ kind: "bench", x: bx, y: by }); }
+    }
+    for (let i = 0; i < (pw > 160 ? 2 : 1); i++) { const at = place(12 * k); if (at) parkProps.push({ kind: "bush", ...at }); }
+    if (pathPts.length) { const [lx, ly] = pathPts[Math.floor(pathPts.length * 0.5)], lanX = lx + (left ? 1 : -1) * (pwid / 2 + 8); parkProps.push({ kind: "lantern", x: lanX, y: ly }); taken.push({ x: lanX, y: ly, r: 8 }); }
+    else { const at = place(8); if (at) parkProps.push({ kind: "lantern", ...at }); }
+    g.restore();
+  }
+  // De noche, la luz de los farolitos en el pasto
+  if (dark) for (const P2 of parkProps) if (P2.kind === "lantern") {
+    const r = gh * 1.3, gr = g.createRadialGradient(P2.x, P2.y, 0, P2.x, P2.y, r);
+    gr.addColorStop(0, "rgba(255,214,150,0.3)"); gr.addColorStop(1, "rgba(255,214,150,0)");
+    g.fillStyle = gr; g.save(); g.translate(P2.x, P2.y); g.scale(1, 0.62); g.beginPath(); g.arc(0, 0, r, 0, TAU); g.restore(); g.fill();
+  }
+  for (const P2 of parkProps) {
+    if (P2.kind === "tree") {
+      const h = P2.h, cr = h * 0.32, w0 = cr * 2.8 + 10, top = h + cr * 0.5 + 6;
+      pines.push({ x: P2.x, y: P2.y, h, sway: 0.012, spr: makePropSprite((gg) => paintTree(gg, w0 / 2, top, h, dark, Math.floor(P2.x * 7 + P2.y)), w0, top + 10, w0 / 2, top) });
+      city.posts.push({ x: P2.x, y: P2.y, r: 7 });
+    } else if (P2.kind === "bench") {
+      const w0 = 54 * k, top = 34 * k;
+      pines.push({ x: P2.x, y: P2.y, h: 20, sway: 0, spr: makePropSprite((gg) => paintBench(gg, w0 / 2, top, k, dark), w0, top + 8, w0 / 2, top) });
+      city.posts.push({ x: P2.x, y: P2.y, r: 15 * k });
+    } else if (P2.kind === "bush") {
+      const w0 = 40 * k, top = 30 * k;
+      pines.push({ x: P2.x, y: P2.y, h: 16, sway: 0.006, spr: makePropSprite((gg) => paintBush(gg, w0 / 2, top, k, dark, Math.floor(P2.x + P2.y)), w0, top + 8, w0 / 2, top) });
+      city.posts.push({ x: P2.x, y: P2.y, r: 11 * k });
+    } else {
+      const h = gh * 1.1, w0 = 70, top = h + 40;
+      pines.push({ x: P2.x, y: P2.y, h, sway: 0, spr: makePropSprite((gg) => paintLantern(gg, w0 / 2, top, h, dark), w0, top + 8, w0 / 2, top) });
+      city.posts.push({ x: P2.x, y: P2.y, r: 4 });
+    }
   }
 
   // --- Lo que se para en la banqueta (se acomoda en profundidad con los marcianitos)
@@ -4471,6 +4528,36 @@ function drawCityBg() {
     }
     ctx.globalAlpha = 1;
   }
+  if (!city || reduceMotion) return;
+  // La fuente: ondas que se abren en el agua y un chorrito que cae de la columna
+  for (const f of city.fountains) {
+    ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const u = (time * 0.35 + i / 3) % 1, r = f.R * (0.3 + 0.5 * u);
+      ctx.globalAlpha = (PAL.dark ? 0.25 : 0.55) * (1 - u);
+      ctx.beginPath(); ctx.ellipse(f.x, f.y, r, r * 0.6, 0, 0, TAU); ctx.stroke();
+    }
+    ctx.fillStyle = PAL.dark ? "#B9D8E8" : "#FFFFFF";
+    for (let i = 0; i < 10; i++) {
+      const u = (time * 0.9 + i / 10) % 1, a = (i / 10) * TAU, d = f.R * 0.25 * (0.4 + u * 0.9);
+      const x = f.x + Math.cos(a) * d, y = f.y - f.R * 0.45 - Math.sin(u * Math.PI) * f.R * 0.25 + u * f.R * 0.42 + Math.sin(a) * d * 0.5;
+      ctx.globalAlpha = (PAL.dark ? 0.5 : 0.85) * (1 - u * 0.6); ctx.beginPath(); ctx.arc(x, y, 1.3, 0, TAU); ctx.fill();
+    }
+  }
+  // De noche, luciérnagas en los parques
+  if (PAL.dark) for (let p = 0; p < city.parks.length; p++) {
+    const pk = city.parks[p];
+    for (let i = 0; i < 8; i++) {
+      const s1 = (i * 0.618 + p * 0.31) % 1, s2 = (i * 0.377 + p * 0.73) % 1;
+      const x = pk.x0 + 10 + s1 * (pk.x1 - pk.x0 - 20) + Math.sin(time * 0.4 + i * 2.1) * 16, y = pk.y0 + 14 + s2 * (pk.y1 - pk.y0 - 28) + Math.cos(time * 0.33 + i * 1.3) * 10;
+      const k = Math.pow(0.5 + 0.5 * Math.sin(time * 1.3 + i * 2.7), 3);
+      if (k < 0.05) continue;
+      const gr = ctx.createRadialGradient(x, y, 0, x, y, 7);
+      gr.addColorStop(0, `rgba(230,250,150,${0.75 * k})`); gr.addColorStop(1, "rgba(230,250,150,0)");
+      ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, 7, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 // Las esquinas (edificios) y los postes no se atraviesan: si un marcianito choca, se acomoda afuera y se da la vuelta
 function cityBlocked(x, y, T) {
