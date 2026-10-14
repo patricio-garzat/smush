@@ -889,7 +889,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.17.0";
+const VERSION = "0.17.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -904,11 +904,11 @@ const TYPE_ORDER = ["green", "orange", "purple", "yellow"];
 for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia en el celular (PHONE_SCALE)
 
 // Niveles: cada uno con su tema (colores y fondo animado), su multiplicador de monedas y sus herramientas.
-// Para pasar al siguiente: aplastar "smush" marcianitos en el nivel actual y luego pagar "cost" monedas.
+// Para pasar al siguiente: llegar a "smush" marcianitos aplastados EN TOTAL (se acumulan todo el juego) y pagar "cost" monedas.
 const LEVELS = [
   { id: "void",  name: "The Void",  coinMult: 1 },
   { id: "beach", name: "The Beach", coinMult: 2, smush: 5000, cost: 10000 },
-  { id: "snow",  name: "The Slopes", coinMult: 4, smush: 15000, cost: 35000 },
+  { id: "snow",  name: "The Slopes", coinMult: 4, smush: 20000, cost: 35000 },
 ];
 // En pantallas angostas (celular) los marcianitos se ven un poco más chicos
 const PHONE_SCALE = 0.82, PHONE_WIDTH = 520;
@@ -1056,7 +1056,7 @@ const freshSave = () => ({
   up: { hire: 0, boltH: 0, jet: 0, acidH: 0, speed: 0, power: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
   v: 2, // versión del guardado
-  level: 0, lvlSmushed: 0, // nivel actual y marcianitos aplastados en él (para la meta del siguiente)
+  level: 0, // nivel actual (la meta del siguiente usa el total de aplastados, que nunca se reinicia)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
   readyAsked: -1, // nivel en el que ya avisamos que podías viajar (solo se avisa una vez por nivel)
   off: {}, // ayudantes apagados con su interruptor (siguen contratados, solo no trabajan)
@@ -1102,7 +1102,6 @@ function loadSave() {
     refund(clamp(Math.floor(num(s.tools && s.tools.acid)), 0, 3), [20000, 35000, 60000]);
     if (d.level < 2 && d.tools.meteor) { refund(d.tools.meteor, [15000, 30000, 60000]); d.tools.meteor = 0; }
     // Partidas de antes de los niveles: lo que llevas aplastado cuenta para la meta de The Beach
-    d.lvlSmushed = Number.isFinite(s.lvlSmushed) ? Math.floor(num(s.lvlSmushed)) : d.smushed;
     if (TOOLS[s.tool] && d.tools[s.tool] > 0 && (TOOLS[s.tool].world || 0) <= d.level) d.tool = s.tool;
     d.hinted = !!s.hinted;
     if (Number.isInteger(s.readyAsked)) d.readyAsked = s.readyAsked;
@@ -1155,7 +1154,7 @@ const STR = {
   how3: ["Switch tools anytime from the bar below. Hold and drag to use the Flamethrower.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar el Lanzallamas."],
   how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 25.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 25."],
   how5: ["Hire helper fingers and shock clouds: they keep smushing even while you're away.", "Contrata dedos ayudantes y nubes eléctricas: siguen aplastando aunque no estés."],
-  how7: ["Smush enough aliens and pay the trip to travel to a new level, where every alien is worth more. You start fresh there: only your coins come with you.", "Aplasta suficientes marcianitos y paga el viaje para llegar a un nivel nuevo, donde cada marcianito vale más. Ahí empiezas de cero: solo viajan tus monedas."],
+  how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there: your coins and your smush count come with you.", "Cada marcianito que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marcianito vale más. Ahí empiezas de cero: viajan tus monedas y tu cuenta de aplastados."],
   how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
@@ -1196,9 +1195,9 @@ const STR = {
   beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs and the Tsunami, plus the Bomber jet and the Acid storm.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas y el Tsunami, además del Jet bombardero y la Tormenta ácida."],
   snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
-  reqSmush: ["Smush aliens here", "Aplasta marcianitos aquí"], reqPay: ["Pay the trip", "Paga el viaje"],
+  reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
-  freshStart: ["Fresh start: tools, helpers and boosts reset. Only your coins come with you.", "Empiezas de cero: herramientas, ayudantes y mejoras se reinician. Solo viajan tus monedas."], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
+  freshStart: ["Fresh start: tools, helpers and boosts reset. Your coins and your smush count come with you.", "Empiezas de cero: herramientas, ayudantes y mejoras se reinician. Viajan tus monedas y tu cuenta de aplastados."], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
   soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianitos, nuevas herramientas."],
   ready: ["Ready!", "¡Listo!"],
   stay: ["Stay a bit", "Un rato más"], travelNow: ["Travel now", "Viajar ya"], unlocked: ["unlocked", "desbloqueado"],
@@ -1977,7 +1976,7 @@ function smush(b, auto) {
   if (b.claimed) b.claimed.target = null;
   const coins = Math.max(1, luckyRound(b.T.reward * FX.valueMult(save.up.value) * lvl().coinMult));
   addCoins(coins, b.x, b.y - b.T.top * 0.55, b.T);
-  save.smushed++; save.lvlSmushed++; save.byType[b.type]++;
+  save.smushed++; save.byType[b.type]++;
   burst(b);
   Sound.pop(b.type, auto);
   if (!auto) buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
@@ -2403,7 +2402,7 @@ $("#btn-collect").addEventListener("click", () => {
   w.classList.remove("open"); setTimeout(() => { if (!w.classList.contains("open")) w.hidden = true; }, 250);
   if (!a) return;
   Sound.unlock();
-  save.coins += a.coins; save.earned += a.coins; save.awayEarned += a.coins; save.smushed += a.aliens; save.lvlSmushed += a.aliens;
+  save.coins += a.coins; save.earned += a.coins; save.awayEarned += a.coins; save.smushed += a.aliens;
   uiDirty = true; coinBump = true; writeSave();
   Sound.collect(); buzz([12, 70, 12, 70, 20]);
   // Una lluvia suave de monedas en el campo
@@ -2506,7 +2505,7 @@ function applyLevel() {
 // Chip del nivel en el encabezado: nombre + progreso hacia el siguiente
 let levelShown = "";
 function renderLevelChip() {
-  const n = nextLvl(), done = n ? Math.min(save.lvlSmushed, n.smush) : 0;
+  const n = nextLvl(), done = n ? Math.min(save.smushed, n.smush) : 0;
   const key = save.level + "|" + done + "|" + (n && save.coins >= n.cost) + LANG;
   if (key === levelShown) return;
   levelShown = key;
@@ -2523,7 +2522,7 @@ function renderGoal() {
   const n = nextLvl(), pill = $("#smushed-pill");
   pill.classList.toggle("goal", !!n);
   if (n) {
-    const done = Math.min(save.lvlSmushed, n.smush);
+    const done = Math.min(save.smushed, n.smush);
     $("#smushed").textContent = fmt(done);
     $("#goal-of").textContent = `/ ${fmt(n.smush)}`;
     $("#goal-lbl").textContent = done >= n.smush ? "✓" : `→ ${n.name}`;
@@ -2546,7 +2545,7 @@ function renderLevels(animate) {
     const status = here ? `<span class="lvl-status">${tx("youAreHere")}</span>` : done ? `<span class="lvl-status done">${tx("completed")}</span>` : `<span class="lvl-status lock">${tx("lockedLvl")}</span>`;
     let req = "";
     if (isNext) {
-      const s = Math.min(save.lvlSmushed, L.smush), okS = s >= L.smush, okC = save.coins >= L.cost;
+      const s = Math.min(save.smushed, L.smush), okS = s >= L.smush, okC = save.coins >= L.cost;
       req = `<div class="req">
         <div class="req-row${okS ? " ok" : ""}"><span class="chk">${checkSvg}</span><span>${tx("reqSmush")}</span><span class="v">${fmt(s)} / ${fmt(L.smush)}</span>
           <div class="bar"><b style="transform:scaleX(${s / L.smush})"></b></div></div>
@@ -2570,7 +2569,7 @@ const readyEl = $("#ready");
 function checkReady() {
   const n = nextLvl();
   if (!n || !playing || !inGame || save.readyAsked === save.level) return;
-  if (save.lvlSmushed < n.smush || save.coins < n.cost) return;
+  if (save.smushed < n.smush || save.coins < n.cost) return;
   if (document.querySelector(".sheet.open, .dialog.open") || !$("#travel").hidden || waves.length) return;
   save.readyAsked = save.level; markSave();
   const es = LANG === "es";
@@ -2578,8 +2577,8 @@ function checkReady() {
   $("#ready-kicker").textContent = `${tx("level")} ${save.level + 2} ${tx("unlocked")}`;
   $("#ready-title").textContent = `${n.name} ${tx("readyTitle")}`;
   $("#ready-msg").textContent = es
-    ? `Ya aplastaste ${fmt(n.smush)} marcianitos y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero: solo viajan tus monedas.`
-    : `You've smushed ${fmt(n.smush)} aliens and you have the ${fmt(n.cost)} coins for the trip. You start fresh there: only your coins come with you.`;
+    ? `Ya llevas ${fmt(n.smush)} marcianitos aplastados y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero; viajan tus monedas y tu cuenta de aplastados.`
+    : `You've smushed ${fmt(n.smush)} aliens in total and you have the ${fmt(n.cost)} coins for the trip. You start fresh there; your coins and your smush count come with you.`;
   $("#btn-go").textContent = tx("travelNow");
   readyEl.classList.toggle("to-snow", n.id === "snow");
   readyEl.hidden = false; void readyEl.offsetWidth; readyEl.classList.add("open");
@@ -2594,10 +2593,10 @@ $("#levels-list").addEventListener("click", (e) => { if (e.target.closest("[data
 // Pagar y viajar: una cinemática de "viaje a otra isla" y, cuando la cámara cae sobre la arena, el juego ya está ahí
 function travel() {
   const n = nextLvl();
-  if (!n || save.lvlSmushed < n.smush || save.coins < n.cost) { Sound.nope(); return; }
+  if (!n || save.smushed < n.smush || save.coins < n.cost) { Sound.nope(); return; }
   const from = lvl();
   save.coins -= n.cost; save.spent += n.cost;
-  save.level++; save.lvlSmushed = 0;
+  save.level++;
   // Nivel nuevo, desde cero: herramientas, ayudantes y mejoras se reinician. Solo viajan tus monedas.
   const fresh = freshSave();
   save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.tool = "finger";
@@ -4461,7 +4460,7 @@ function renderHome() {
   $("#home-coins").textContent = fmt(save.coins);
   $("#play-label").textContent = save.smushed > 0 ? tx("continue") : tx("play");
   $("#play-sub").textContent = lvl().name;
-  $("#hc-levels").textContent = n ? `${Math.floor((Math.min(save.lvlSmushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("max");
+  $("#hc-levels").textContent = n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("max");
   $("#hc-records").textContent = `${fmtShort(save.smushed)} ${tx("smushed")}`;
   $("#home-ver").textContent = "v" + VERSION;
 }
