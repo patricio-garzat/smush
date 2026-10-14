@@ -116,7 +116,7 @@ a { color: inherit; }
    ============================================================ */
 #app { position: absolute; inset: 0; height: 100dvh; display: flex; flex-direction: column; }
 #top {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 9px;
   width: 100%; max-width: 1100px; margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 18px) 12px calc(env(safe-area-inset-left) + 18px);
 }
@@ -124,10 +124,10 @@ a { color: inherit; }
 .coins { display: flex; align-items: center; gap: 9px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .coins .coin { font-size: 20px; }
 #coins { display: inline-block; transform-origin: left center; }
-.sub { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* Chip del nivel: nombre, progreso hacia el siguiente y un anillito */
 #lvl-chip {
-  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 4px; border: 0; border-radius: 11px;
+  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px 0 4px; border: 0; border-radius: 12px;
   background: var(--card); box-shadow: var(--shadow); color: var(--text); font-size: 12.5px; font-weight: 750; white-space: nowrap;
   transition: transform 0.14s ease, box-shadow 0.3s ease;
 }
@@ -140,6 +140,11 @@ a { color: inherit; }
 #lvl-chip .badge { top: -2px; right: -2px; background: var(--lvl); }
 #lvl-chip.ready { animation: chipGlow 2.4s ease-in-out infinite; }
 @keyframes chipGlow { 0%, 100% { box-shadow: var(--shadow), 0 0 0 0 var(--lvl-soft); } 50% { box-shadow: var(--shadow), 0 0 0 5px var(--lvl-soft); } }
+/* Pastillas de estadísticas: marcianitos aplastados y monedas por segundo */
+.mini, #rate { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 6px; border-radius: 12px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; }
+.mini img { width: 16px; height: 16px; object-fit: contain; }
+.mini .lbl { color: var(--muted); font-weight: 650; }
+@media (max-width: 370px) { .mini .lbl { display: none; } }
 #rate { display: none; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 6px; border-radius: 11px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12px; font-weight: 750; }
 #rate.on { display: inline-flex; }
 #rate svg { width: 12px; height: 12px; }
@@ -189,15 +194,17 @@ a { color: inherit; }
 #field.boosted.x4 { box-shadow: inset 0 0 0 2px rgba(165, 132, 232, 0.75), inset 0 0 40px rgba(165, 132, 232, 0.14); }
 
 #tools {
-  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 8px; width: 100%; max-width: 640px; margin: 0 auto;
-  padding: 12px calc(env(safe-area-inset-right) + 12px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 12px);
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 4px;
+  width: calc(100% - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: 640px;
+  margin: 10px auto calc(env(safe-area-inset-bottom) + 10px); padding: 6px; border-radius: 26px;
+  background: var(--card); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(36, 37, 33, 0.1);
 }
 .tool {
-  position: relative; height: 76px; border: 0; border-radius: 20px; background: var(--card); box-shadow: var(--shadow);
+  position: relative; height: 66px; border: 0; border-radius: 20px; background: transparent; color: var(--text);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0;
-  transition: background-color 0.25s ease, color 0.25s ease, transform 0.14s ease;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.14s ease, box-shadow 0.25s ease;
 }
-.tool svg { width: 26px; height: 26px; transition: opacity 0.25s; }
+.tool svg { width: 26px; height: 26px; color: var(--tc, currentColor); transition: opacity 0.25s, color 0.25s; }
 .tool .name { font-size: 12px; font-weight: 700; }
 .pips { display: flex; gap: 3px; height: 5px; }
 .pips i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.18; transition: opacity 0.3s; }
@@ -208,20 +215,19 @@ a { color: inherit; }
 .tool.locked .pips { display: none; }
 .tool.locked .price { display: flex; }
 .tool.locked.can .price { color: var(--text); }
-.tool.sel { background: var(--accent); color: var(--on-accent); }
+.tool.sel { background: linear-gradient(150deg, color-mix(in srgb, var(--tc) 72%, #FFFFFF), var(--tc)); color: #FFFFFF; box-shadow: 0 6px 16px color-mix(in srgb, var(--tc) 40%, transparent); }
+.tool.sel svg { color: #FFFFFF; }
+.tool.locked svg { color: var(--muted); }
 /* Con muchas herramientas la barra se desliza de lado (solo la barra, nunca la pantalla) */
 #tools.strip { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; touch-action: pan-x; scrollbar-width: none;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%); }
 #tools.strip::-webkit-scrollbar { display: none; }
 #tools.strip .tool { flex: 0 0 48px; scroll-snap-align: center; }
 #tools.compact { gap: 6px; }
-#tools.compact .tool { height: 64px; border-radius: 18px; }
+#tools.compact .tool { height: 58px; border-radius: 18px; }
 #tools.compact .tool .name { display: none; }
 #tools.compact .tool svg { width: 24px; height: 24px; }
 /* Herramientas premium: un toque de color violeta */
-.tool.premium:not(.locked):not(.sel) svg { color: #7C5CE0; }
-:root[data-theme="dark"] .tool.premium:not(.locked):not(.sel) svg { color: #B39BF5; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tool.premium:not(.locked):not(.sel) svg { color: #B39BF5; } }
 /* Espera (agujero negro, meteoritos): un reloj que se vacía sobre el botón */
 .tool .cd { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 0.2s;
   background: conic-gradient(rgba(128, 128, 128, 0.32) calc(var(--p, 0) * 1turn), transparent 0); }
@@ -269,31 +275,49 @@ a { color: inherit; }
 
 /* Tarjetas de la Tienda */
 .item {
-  display: grid; grid-template-columns: 50px 1fr auto; gap: 12px; align-items: center;
-  padding: 14px; margin-bottom: 10px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow);
-  transition: box-shadow 0.4s ease;
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 13px; align-items: center;
+  padding: 14px 14px 14px 13px; margin-bottom: 10px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow);
+  transition: box-shadow 0.4s ease, opacity 0.3s ease;
 }
+.sect { margin: 16px 4px 9px; font-size: 12.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.sect:first-child { margin-top: 2px; }
+.item .info { min-width: 0; }
+.item .nm { margin-right: 2px; }
+.item .nx { color: #2E9E6A; font-weight: 800; }
+.segs { display: flex; gap: 3px; max-width: 150px; margin-top: 8px; }
+.segs i { flex: 1; height: 4px; border-radius: 2px; background: var(--field); transition: background-color 0.3s; }
+.segs i.on { background: var(--c); }
+.item .cta { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.item .need { min-height: 13px; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.item .need:empty { display: none; }
+.maxed { display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 13px; border-radius: 17px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); font-size: 13px; font-weight: 850; }
+.maxed svg { width: 13px; height: 13px; }
+.item.done .stat { color: var(--muted); }
 .item.flash { box-shadow: var(--shadow), 0 0 0 2px var(--on); }
 /* Las tarjetas entran una tras otra al abrir la Tienda o cambiar de pestaña */
 .enter > * { animation: cardIn 0.42s cubic-bezier(0.22, 0.8, 0.24, 1) both; animation-delay: calc(var(--i, 0) * 40ms); }
 @keyframes cardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-.item.world .ic { background: linear-gradient(160deg, #9EDCF0, #F4E3BF); color: #2B5E73; }
 .item .tag { padding: 2px 7px; border-radius: 8px; background: linear-gradient(135deg, #2FA3C4, #7FD0E3); color: #FFFFFF; font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; }
 .item.locked-world { opacity: 0.75; }
 .buy .lock { width: 12px; height: 12px; }
-.item .ic { width: 50px; height: 50px; border-radius: 15px; background: var(--field); display: grid; place-items: center; }
-.item .ic svg { width: 26px; height: 26px; }
-.item .ic img { max-width: 36px; max-height: 36px; }
-.item.premium .ic { background: linear-gradient(135deg, #3B3355, #22202F); color: #E9E1FF; }
+.item .ic {
+  width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #FFFFFF;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 68%, #FFFFFF), var(--c));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 5px 12px color-mix(in srgb, var(--c) 30%, transparent);
+}
+.item .ic svg { width: 27px; height: 27px; }
+.item .ic img { max-width: 36px; max-height: 36px; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.15)); }
+.item.art .ic { background: linear-gradient(150deg, color-mix(in srgb, var(--c) 10%, var(--card)), color-mix(in srgb, var(--c) 24%, var(--card))); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 22%, transparent); }
+.item.locked-world .ic { filter: grayscale(0.6); }
 .item .pro { padding: 2px 7px; border-radius: 8px; background: linear-gradient(135deg, #7C5CE0, #A584E8); color: #FFFFFF; font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; }
-.item h3 { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 16px; font-weight: 800; }
+.item h3 { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
 .item .pips { display: inline-flex; }
-.item .lv { padding: 2px 7px; border-radius: 8px; background: var(--field); color: var(--muted); font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.item .lv { padding: 2px 7px; border-radius: 8px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .item p { margin: 2px 0 0; font-size: 13px; font-weight: 550; color: var(--muted); }
 .item .stat { margin-top: 5px; font-size: 12.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .item .stat span { color: var(--muted); font-weight: 650; }
 .buy {
-  min-width: 96px; height: 42px; padding: 0 14px; border: 0; border-radius: 21px;
+  min-width: 92px; height: 42px; padding: 0 14px; border: 0; border-radius: 21px;
   background: var(--accent); color: var(--on-accent); display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
   line-height: 1.1; transition: transform 0.14s, background-color 0.25s, color 0.25s;
 }
@@ -363,7 +387,11 @@ a { color: inherit; }
 #travel-kicker { font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6A6A63; }
 #travel-name { font-size: clamp(34px, 11vw, 54px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; }
 
-/* Ajustes: lista estilo iOS */
+/* Ajustes: lista estilo iOS, con un mosaico de color por opción */
+.row .lbl { display: inline-flex; align-items: center; gap: 12px; }
+.si { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #FFFFFF; flex: none;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 70%, #FFFFFF), var(--c)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.si svg { width: 18px; height: 18px; }
 .group-title { margin: 6px 6px 8px; font-size: 12.5px; font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 .group { margin-bottom: 18px; border-radius: 18px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
 .row {
@@ -442,7 +470,6 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   <header id="top">
     <div class="wallet">
       <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
-      <div class="sub"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
     </div>
     <div class="actions">
       <button id="btn-shop" class="pill" type="button">
@@ -453,6 +480,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>
       </button>
     </div>
+      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="smushed-pill" class="mini"><img id="smushed-ic" alt=""><b id="smushed">0</b><span class="lbl" data-i18n="smushed">smushed</span></span><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
   </header>
   <main id="field">
     <canvas id="cv" aria-label="Game area"></canvas>
@@ -497,12 +525,12 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
     </div>
     <div class="panel-body">
       <div class="group">
-        <div class="row"><span data-i18n="sound">Sound</span><button class="switch" id="sw-sound" role="switch" type="button" aria-checked="true" aria-label="Sound"></button></div>
-        <div class="row"><span data-i18n="vibration">Vibration</span><button class="switch" id="sw-vibe" role="switch" type="button" aria-checked="true" aria-label="Vibration"></button></div>
-        <div class="row"><span data-i18n="theme">Theme</span>
+        <div class="row"><span class="lbl"><span class="si" style="--c:#F2557A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span><span data-i18n="sound">Sound</span></span><button class="switch" id="sw-sound" role="switch" type="button" aria-checked="true" aria-label="Sound"></button></div>
+        <div class="row"><span class="lbl"><span class="si" style="--c:#8E7CE8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect fill="currentColor" fill-opacity=".35" x="8" y="4" width="8" height="16" rx="2"/><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/></svg></span><span data-i18n="vibration">Vibration</span></span><button class="switch" id="sw-vibe" role="switch" type="button" aria-checked="true" aria-label="Vibration"></button></div>
+        <div class="row"><span class="lbl"><span class="si" style="--c:#4B5BD6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><path fill="currentColor" d="M12 4.5a7.5 7.5 0 0 1 0 15z"/></svg></span><span data-i18n="theme">Theme</span></span>
           <div class="seg" id="seg-theme"><button type="button" data-v="auto" data-i18n="auto">Auto</button><button type="button" data-v="light" data-i18n="light">Light</button><button type="button" data-v="dark" data-i18n="dark">Dark</button></div>
         </div>
-        <div class="row"><span data-i18n="language">Language</span>
+        <div class="row"><span class="lbl"><span class="si" style="--c:#2C9FC2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.4 3.4 5 3.4 8s-1 5.6-3.4 8c-2.4-2.4-3.4-5-3.4-8s1-5.6 3.4-8z"/></svg></span><span data-i18n="language">Language</span></span>
           <div class="seg" id="seg-lang"><button type="button" data-v="en">English</button><button type="button" data-v="es">Español</button></div>
         </div>
       </div>
@@ -634,7 +662,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.6.4";
+const VERSION = "0.7.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -732,28 +760,35 @@ const OFFLINE_MIN = 20;   // segundos fuera antes de contar lo que hicieron los 
 const OFFLINE_RATE = 0.5; // fuera rinden la mitad: jugar sigue valiendo más la pena
 
 // Íconos (trazo, toman el color del texto)
-const svgI = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const svgI = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const SOFT = 'fill="currentColor" fill-opacity=".28"', SOLID = 'fill="currentColor" stroke="none"';
 const ICONS = {
-  finger: svgI('<circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/><path d="M6.5 7.6a7 7 0 0 0 0 8.8M17.5 7.6a7 7 0 0 1 0 8.8"/><path d="M3.6 5.3a10.6 10.6 0 0 0 0 13.4M20.4 5.3a10.6 10.6 0 0 1 0 13.4" opacity=".45"/>'),
-  boot:   svgI('<path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14M13 7h-3M13 10h-3"/>'),
-  spray:  svgI('<rect x="4.5" y="9" width="9" height="12" rx="2.4"/><path d="M6.8 9V6.2h4.4V9M9 6.2V4h3"/><circle cx="17.2" cy="4.6" r=".6" fill="currentColor"/><circle cx="19.6" cy="7.4" r=".6" fill="currentColor"/><circle cx="16.6" cy="9" r=".6" fill="currentColor"/><circle cx="19.8" cy="11.4" r=".6" fill="currentColor"/>'),
-  bolt:   svgI('<path d="M13.5 2.5 5 13.5h6.2L10 21.5l9-11.6h-6.3z"/>'),
-  laser:  svgI('<path d="M3 20 20 3"/><path d="M14.5 3H20v5.5" opacity=".45"/><circle cx="4.5" cy="18.5" r="2" fill="currentColor" stroke="none"/>'),
-  vortex: svgI('<path d="M12 12a2 2 0 1 1 2-2"/><path d="M14 10a4.5 4.5 0 1 1-4.5-4.5"/><path d="M9.5 5.5A7.5 7.5 0 1 1 3.4 9.3"/><path d="M3.4 9.3A10 10 0 0 1 12 2"/>'),
-  meteor: svgI('<circle cx="15" cy="15" r="5"/><path d="M11.5 11.5 4 4M14.5 9.5 10 3M9.5 14.5 3 10"/>'),
-  sun:    svgI('<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/>'),
-  wave:   svgI('<path d="M2.5 16c2.2 0 2.2-1.6 4.4-1.6s2.2 1.6 4.4 1.6 2.2-1.6 4.4-1.6 2.2 1.6 4.4 1.6"/><path d="M3 11.5c1.2-4.4 5-6.8 9.4-6 3.2.6 4.6 3.2 3.4 5.2-1 1.6-3.4 1.6-4.1.1"/><path d="M2.5 20c2.2 0 2.2-1.4 4.4-1.4s2.2 1.4 4.4 1.4 2.2-1.4 4.4-1.4 2.2 1.4 4.4 1.4" opacity=".45"/>'),
-  levels: svgI('<path d="M4 20 9 9l4 6 3-4 4 9z"/><circle cx="16.5" cy="6" r="2"/>'),
-  bootH:  svgI('<path d="M7 3.5h6v7l4.6 2.1A3.2 3.2 0 0 1 19.5 15.5V18h-14V4.5a1 1 0 0 1 1-1z"/><path d="M5.5 21h14"/>'),
-  boltH:  svgI('<path d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>'),
-  hire:   svgI('<path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/>'),
-  speed:  svgI('<path d="M5 6.5 10.5 12 5 17.5M12.5 6.5 18 12l-5.5 5.5"/>'),
-  power:  svgI('<path d="M6.5 7.5v9M3.5 10v4M17.5 7.5v9M20.5 10v4M6.5 12h11"/>'),
-  value:  svgI('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/>'),
-  crowd:  svgI('<circle cx="7.5" cy="9" r="3"/><circle cx="16.5" cy="9" r="3"/><circle cx="12" cy="16.5" r="3"/>'),
-  luck:   svgI('<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>'),
-  calm:   svgI('<path d="M4 9h5l-5 6h5M12.5 5h7l-7 8.5h7"/>'),
-  night:  svgI('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+  finger: svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/><path d="M5.2 6.6a5 5 0 0 1 1.4-2.3M17.4 4.3a5 5 0 0 1 1.4 2.3" opacity=".65"/>`),
+  boot:   svgI(`<path ${SOFT} d="M7 3.5h6.2v7.2l4.4 2a3.4 3.4 0 0 1 2 3.1V18H5.6V4.9A1.4 1.4 0 0 1 7 3.5z"/><path d="M5 21h15M9.4 7h3.8M9.4 10h3.8"/>`),
+  spray:  svgI(`<rect ${SOFT} x="5" y="9.5" width="9" height="11.5" rx="2.5"/><path d="M7.2 9.5V6.6h4.6v2.9M9.5 6.6V4.2h3"/><circle ${SOLID} cx="17.6" cy="5" r="1.1"/><circle ${SOLID} cx="20.2" cy="8.2" r="1.1"/><circle ${SOLID} cx="17.2" cy="9.8" r="1.1"/><circle ${SOLID} cx="20.4" cy="12.6" r="1.1"/>`),
+  bolt:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M13.6 2.5 5 13.6h6.1L10 21.5l9-11.7h-6.3z"/>`),
+  laser:  svgI(`<path d="M4 20 18.5 5.5" stroke-width="4.5" opacity=".25"/><path d="M4 20 18.5 5.5"/><circle ${SOFT} cx="18.5" cy="5.5" r="2.8"/><path d="M13.6 3.2l.9 1.7M20.8 10.4 19.1 9.5" opacity=".75"/>`),
+  vortex: svgI(`<path d="M12 12.2a1.4 1.4 0 1 1 1.4-1.4"/><path d="M13.4 10.8a3.6 3.6 0 1 1-3.6-3.6"/><path d="M9.8 7.2a6.4 6.4 0 1 1-5.6 3.2"/><path d="M4.2 10.4A9 9 0 0 1 12.6 3"/><circle ${SOLID} cx="12" cy="12" r="1.3"/>`),
+  meteor: svgI(`<circle ${SOFT} cx="15" cy="15" r="5.6"/><path d="M11 11 3.5 3.5M14.2 9.4 10 3M9.4 14.2 3 10"/><circle ${SOLID} cx="16.6" cy="13.4" r="1.1"/>`),
+  sun:    svgI(`<circle ${SOFT} cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>`),
+  wave:   svgI(`<path ${SOFT} d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9L3 17z"/><path d="M3 17c1.6-5.8 5.4-10 10.6-10 3.4 0 5.4 2.2 4.6 4.6-.7 2-3.2 2.4-4.3.9"/><path d="M2.5 20.5c2.2 0 2.2-1.5 4.4-1.5s2.2 1.5 4.4 1.5 2.2-1.5 4.4-1.5 2.2 1.5 4.4 1.5"/>`),
+  hire:   svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/>`),
+  bootH:  svgI(`<path ${SOFT} d="M7 3.5h6.2v7.2l4.4 2a3.4 3.4 0 0 1 2 3.1V18H5.6V4.9A1.4 1.4 0 0 1 7 3.5z"/><path d="M5 21h15"/>`),
+  boltH:  svgI(`<path ${SOFT} d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>`),
+  speed:  svgI(`<circle ${SOFT} cx="12" cy="13.5" r="7.5"/><path d="M12 13.5 15 10.5M10 2.5h4M18.6 6.4l1.3-1.3"/>`),
+  power:  svgI(`<rect ${SOFT} x="5.2" y="7" width="3.2" height="10" rx="1.2"/><rect ${SOFT} x="15.6" y="7" width="3.2" height="10" rx="1.2"/><path d="M2.6 10v4M21.4 10v4M8.4 12h7.2"/>`),
+  value:  svgI(`<ellipse ${SOFT} cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>`),
+  crowd:  svgI(`<circle ${SOFT} cx="6.8" cy="15" r="3.4"/><circle ${SOFT} cx="17.2" cy="15" r="3.4"/><circle ${SOFT} cx="12" cy="11" r="4"/><path d="M10.6 7.1 9.6 4.4M13.4 7.1l1-2.7"/>`),
+  luck:   svgI(`<path fill="currentColor" fill-opacity=".9" d="M12 3.2l2.7 5.4 6 .9-4.3 4.2 1 5.9L12 16.8l-5.4 2.8 1-5.9-4.3-4.2 6-.9z"/>`),
+  calm:   svgI(`<path ${SOFT} d="M17.5 14.5A7 7 0 1 1 9.5 6.5a5.5 5.5 0 0 0 8 8z"/><path d="M15 3.5h4l-4 4h4" stroke-width="1.8"/>`),
+  night:  svgI(`<path ${SOFT} d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z"/><path d="M17 3.5v3M15.5 5h3M20.5 9v2M19.5 10h2" stroke-width="1.6"/>`),
+  levels: svgI(`<path ${SOFT} d="M4 20 9 9l4 6 3-4 4 9z"/><circle cx="16.5" cy="6" r="2"/>`),
+};
+// El color de cada herramienta, ayudante y mejora (su mosaico en la Tienda y su botón en la barra)
+const HUE = {
+  finger: "#7D8AA3", boot: "#4F86E8", spray: "#22AE9C", bolt: "#F0A12E", laser: "#F2557A", vortex: "#7C5CE0", meteor: "#EE7537", sun: "#EBA90E", wave: "#2C9FC2",
+  hire: "#8E99AE", bootH: "#4F86E8", boltH: "#6C7FA8", speed: "#22B07D", power: "#E5534B",
+  value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", calm: "#8E7CE8", night: "#4B5BD6",
 };
 
 // Ayudantes: guante, bota y nube (dibujos vectoriales). ax, ay = el punto que toca el piso; size = alto en px
@@ -869,6 +904,9 @@ const STR = {
   vortex: ["Black hole", "Agujero negro"], vortexD: ["Opens a black hole that swallows every alien nearby.", "Abre un agujero negro que se traga a todos los cercanos."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
+  secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"],
+  secTeam: ["Your team", "Tu equipo"], secTraining: ["Training", "Entrenamiento"],
+  lvShort: ["Lv", "Nv"], maxShort: ["Max", "Máx."], needMore: ["Need", "Faltan"],
   sun: ["Sunbeam", "Rayo de sol"], sunD: ["Hold and move: a scorching circle of sunlight that melts everything under it.", "Mantén y mueve: un círculo de sol ardiente que derrite todo lo que está debajo."],
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
@@ -2331,8 +2369,13 @@ function updateUI() {
   if (!$("#sheet-levels").hidden) renderLevels(false);
   document.querySelectorAll(".buy[data-key]").forEach((el) => {
     const k = el.dataset.key, p = el.dataset.kind === "tool" ? priceOf(k) : upPrice(k);
-    if (p != null) el.disabled = save.coins < p || (el.dataset.kind !== "tool" && !upReady(k));
+    if (p == null) return;
+    const ready = el.dataset.kind === "tool" || upReady(k);
+    el.disabled = save.coins < p || !ready;
+    const need = el.parentNode.querySelector(".need");
+    if (need) need.textContent = ready && save.coins < p ? `${tx("needMore")} ${fmtShort(Math.ceil(p - save.coins))}` : "";
   });
+  const sp = $("#smushed"); if (sp) sp.textContent = fmt(save.smushed);
   if (!$("#sheet-menu").hidden) renderRecords();
 }
 const pips = (n, max = 3) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
@@ -2350,7 +2393,7 @@ function renderToolbar() {
   bar.classList.toggle("strip", vis.length > 7);
   bar.innerHTML = vis.map((id) => {
     const l = save.tools[id], locked = l === 0;
-    return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}${PREMIUM.has(id) ? " premium" : ""}" type="button" data-id="${id}" aria-pressed="${save.tool === id}" aria-label="${tx(id)}">
+    return `<button class="tool${locked ? " locked" : ""}${save.tool === id ? " sel" : ""}" style="--tc:${HUE[id]}" type="button" data-id="${id}" aria-pressed="${save.tool === id}" aria-label="${tx(id)}">
       ${ICONS[id]}<span class="name">${tx(id)}</span><span class="pips">${pips(l)}</span>
       <span class="price"><span class="coin"></span>${fmtShort(TOOLS[id].price)}</span><i class="cd"></i></button>`;
   }).join("");
@@ -2373,37 +2416,57 @@ function updateCooldownUI() {
   }
 }
 function buyButton(kind, key, price, label, blocked) {
-  if (price == null) return `<button class="buy max" type="button" disabled>${tx("max")}</button>`;
-  return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}"${save.coins < price || blocked ? " disabled" : ""}>
-    <span class="what">${label}</span><span class="cost">${price ? '<span class="coin"></span>' + fmt(price) : ""}</span></button>`;
+  if (price == null) return `<span class="maxed"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>${tx("maxShort")}</span>`;
+  return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}" data-price="${price}"${save.coins < price || blocked ? " disabled" : ""}>
+    <span class="what">${label}</span><span class="cost">${price ? '<span class="coin"></span>' + fmtShort(price) : ""}</span></button>`;
+}
+// Barra de niveles de cada tarjeta (un segmento por nivel)
+const segs = (n, max) => `<div class="segs">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("")}</div>`;
+// Una tarjeta de la Tienda: ícono de color, nombre, nivel, descripción, qué mejora y el botón
+function shopCard({ key, cls = "", icon, name, tags = "", lv = "", desc, stat, bar = "", btn }) {
+  return `<div class="item${cls}" data-key="${key}" style="--c:${HUE[key] || "#8A94A6"}">
+    <div class="ic">${icon}</div>
+    <div class="info"><h3><span class="nm">${name}</span>${lv}${tags}</h3><p>${desc}</p><div class="stat">${stat}</div>${bar}</div>
+    <div class="cta">${btn}<span class="need"></span></div></div>`;
+}
+const sect = (k) => `<div class="sect">${tx(k)}</div>`;
+function toolCard(id) {
+  const l = save.tools[id], price = priceOf(id), wl = toolWorld(id), away = wl > save.level, pro = PREMIUM.has(id);
+  const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span class="nx">→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
+  const btn = away
+    ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
+    : buyButton("tool", id, price, l === 0 ? tx("buy") : tx("upgrade"));
+  return shopCard({
+    key: id, cls: (away ? " locked-world" : "") + (price == null ? " done" : ""), icon: ICONS[id], name: tx(id),
+    tags: (pro ? `<span class="pro">${tx("premium")}</span>` : "") + (wl ? `<span class="tag">${LEVELS[wl].name}</span>` : ""),
+    lv: l ? `<span class="lv">${tx("lvShort")} ${l}/3</span>` : "", desc: tx(id + "D"), stat, bar: segs(l, 3), btn,
+  });
+}
+function upCard(k) {
+  const l = save.up[k], u = UP[k], price = upPrice(k), conv = k === "bootH" || k === "boltH", ready = upReady(k);
+  const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
+  const label = !ready ? tx(k === "bootH" ? "needFinger" : "needBoot") : k === "hire" ? tx("hireBtn") : conv ? tx("convert") : l === 0 ? tx("buy") : tx("upgrade");
+  const art = { hire: "finger", bootH: "boot", boltH: "bolt" }[k];
+  const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
+  return shopCard({
+    key: k, cls: (art ? " art" : "") + (price == null ? " done" : ""), icon, name: tx(k),
+    lv: conv ? "" : `<span class="lv">${tx("lvShort")} ${l}/${u.max}</span>`, desc: tx(k + "D"), stat,
+    bar: conv ? "" : segs(l, u.max), btn: buyButton("up", k, price, label, !ready),
+  });
 }
 function renderShop(animate) {
   document.querySelectorAll("#shop-tabs button").forEach((b) => { const on = b.dataset.tab === shopTab; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
   $("#shop-note").textContent = tx({ tools: "noteTools", helpers: "noteHelpers", boosts: "noteBoosts" }[shopTab]);
   let html = "";
   if (shopTab === "tools") {
-    html = TOOL_ORDER.map((id) => {
-      const l = save.tools[id], price = priceOf(id);
-      const stat = l === 0 ? statText(id, 1) : l < 3 ? `${statText(id, l)} <span>→ ${statShort(id, l + 1)}</span>` : statText(id, 3);
-      const wl = toolWorld(id), away = wl > save.level;
-      const btn = away
-        ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
-        : buyButton("tool", id, price, l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1));
-      const pro = PREMIUM.has(id);
-      return `<div class="item${pro ? " premium" : ""}${wl ? " world" : ""}${away ? " locked-world" : ""}" data-key="${id}"><div class="ic">${ICONS[id]}</div>
-        <div><h3>${tx(id)}${pro ? `<span class="pro">${tx("premium")}</span>` : ""}${wl ? `<span class="tag">${LEVELS[wl].name}</span>` : ""}${l ? `<span class="pips">${pips(l)}</span>` : ""}</h3><p>${tx(id + "D")}</p><div class="stat">${stat}</div></div>${btn}</div>`;
-    }).join("");
+    html = sect("secBasics") + ["finger", "boot", "spray", "bolt"].map(toolCard).join("")
+      + sect("secPro") + ["laser", "vortex", "meteor"].map(toolCard).join("")
+      + sect("secBeach") + ["sun", "wave"].map(toolCard).join("");
+  } else if (shopTab === "helpers") {
+    html = sect("secTeam") + ["hire", "bootH", "boltH"].map(upCard).join("")
+      + sect("secTraining") + ["speed", "power"].map(upCard).join("");
   } else {
-    html = UP_ORDER.filter((k) => UP[k].tab === shopTab).map((k) => {
-      const l = save.up[k], u = UP[k], price = upPrice(k);
-      const conv = k === "bootH" || k === "boltH", ready = upReady(k);
-      const stat = l >= u.max ? upText(k, l) : `${upText(k, l)} <span>→ ${upText(k, l + 1, true)}</span>`;
-      const label = !ready ? tx(k === "bootH" ? "needFinger" : "needBoot") : k === "hire" ? tx("hireBtn") : conv ? tx("convert") : l === 0 ? tx("buy") : tx("upgrade") + " · " + (l + 1);
-      const lv = conv ? "" : u.max <= 5 ? `<span class="pips">${pips(l, u.max)}</span>` : `<span class="lv">${l}/${u.max}</span>`;
-      const icon = conv && helperSpr[k === "bootH" ? "boot" : "bolt"] ? `<img alt="" src="${helperSpr[k === "bootH" ? "boot" : "bolt"].toDataURL()}">` : k === "hire" && helperSpr.finger ? `<img alt="" src="${helperSpr.finger.toDataURL()}">` : ICONS[k];
-      return `<div class="item${conv ? " convert" : ""}" data-key="${k}"><div class="ic">${icon}</div>
-        <div><h3>${tx(k)}${lv}</h3><p>${tx(k + "D")}</p><div class="stat">${stat}</div></div>${buyButton("up", k, price, label, !ready)}</div>`;
-    }).join("");
+    html = UP_ORDER.filter((k) => UP[k].tab === "boosts").map(upCard).join("");
   }
   const list = $("#shop-list");
   list.innerHTML = html;
@@ -2962,6 +3025,7 @@ function startGame() {
   checkAway(save.lastSeen);
   writeSave();
   loadArt().then(() => { buildSprites(); });
+  $("#smushed-ic").src = alienUrl("green");
   startLoop();
   const studio = $("#studio");
   // La intro del estudio arranca sola. Si el navegador ya deja sonar, suena desde el inicio;
