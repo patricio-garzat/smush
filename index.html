@@ -899,7 +899,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.18.0";
+const VERSION = "0.18.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2093,12 +2093,13 @@ function sprayTick(p, dt) {
   const mx = p.x - (p.fx == null ? p.x : p.fx), my = p.y - (p.fy == null ? p.y : p.fy), mv = Math.hypot(mx, my);
   p.fx = p.x; p.fy = p.y;
   if (p.ang == null) p.ang = -Math.PI / 2;
-  if (mv > 1.2) p.ang += angDiff(Math.atan2(my, mx), p.ang) * Math.min(1, dt * 9 + 0.04);
+  // La llama queda como cola: apunta al lado contrario de hacia donde arrastras
+  if (mv > 1.2) p.ang += angDiff(Math.atan2(-my, -mx), p.ang) * Math.min(1, dt * 9 + 0.04);
   const ca = Math.cos(p.ang), sa = Math.sin(p.ang);
   p.ox = p.x + ca * 10; p.oy = p.y + sa * 10; // la boquilla, justo delante del dedo
   emitFire(p, dt, R, mx / Math.max(dt, 1e-3), my / Math.max(dt, 1e-3));
   // Daño: la zona de la llama, delante de la boquilla
-  const zx = p.ox + ca * R * 0.75, zy = p.oy + sa * R * 0.75, zr = R * 0.6;
+  const zx = p.ox + ca * R * 0.42, zy = p.oy + sa * R * 0.42, zr = R * 0.42;
   for (const b of balls) {
     if (b.state === "die" || b.pull || time - b.lastSpray < iv) continue;
     if (Math.hypot(b.x - zx, b.y - zy) < zr + b.r * 0.5) {
@@ -2117,23 +2118,27 @@ function sprayTick(p, dt) {
 // ondulan como lenguas, bolitas de fuego redondas que se desprenden en la punta y chispas que suben.
 const streams = [], fireBlobs = [];
 const FIRE_COLS = ["#FF5A36", "#FF8A3D", "#FFC24D", "#FFF3C8"], FIRE_W = [1, 0.76, 0.52, 0.28];
-const NODE_LIFE = 0.3; // s que tarda un tramo de llama en ir de la boquilla a la punta
+const NODE_LIFE = 0.22; // s que tarda un tramo de llama en ir de la boquilla a la punta
+const FLAME_LEN = 0.78;  // largo de la llama, en veces el radio del lanzallamas
+// Dónde va un tramo: siempre medido desde la boquilla (así la llama no se estira al arrastrar), con su propio ángulo
+const nodePos = (s, n, R) => { const u = n.t / NODE_LIFE, d = R * FLAME_LEN * (1 - Math.pow(1 - u, 1.6)); return [s.ox + Math.cos(n.a) * d, s.oy + Math.sin(n.a) * d - 8 * u * u]; };
 function fireBlob(x, y, vx, vy, r, life, ember) { if (fireBlobs.length < 140) fireBlobs.push({ x, y, vx, vy, r, life, t: 0, ember: !!ember }); }
 // Echa fuego desde la boquilla del dedo p (vx, vy = cómo se mueve el dedo, para que la llama herede el movimiento)
 function emitFire(p, dt, R, vx, vy) {
   let s = p.stream;
-  if (!s || !streams.includes(s)) { s = p.stream = { nodes: [], p, blob: 0 }; streams.push(s); }
+  if (!s || !streams.includes(s)) { s = p.stream = { nodes: [], p, blob: 0, R }; streams.push(s); }
+  s.ox = p.ox; s.oy = p.oy; s.R = R;
   // Un vaivén muy suave en la dirección: la llama nunca se ve congelada
-  const k = Math.max(1, Math.round(dt * 60)), sp = R / (NODE_LIFE * 0.82), wa = p.ang + (reduceMotion ? 0 : Math.sin(time * 6.5) * 0.05 + Math.sin(time * 11) * 0.025), ca = Math.cos(wa), sa = Math.sin(wa);
-  for (let j = 0; j < k; j++) s.nodes.push({ x: p.ox, y: p.oy, vx: ca * sp + vx * 0.3, vy: sa * sp + vy * 0.3, t: (j / k) * dt });
+  const k = Math.max(1, Math.round(dt * 60)), wa = p.ang + (reduceMotion ? 0 : Math.sin(time * 6.5) * 0.05 + Math.sin(time * 11) * 0.025), ca = Math.cos(wa), sa = Math.sin(wa);
+  for (let j = 0; j < k; j++) s.nodes.push({ a: wa, t: (j / k) * dt });
   // Bolitas que se desprenden de la punta, y chispas
   s.blob -= dt;
   if (s.blob <= 0 && s.nodes.length > 3) {
     s.blob = lowFx ? 0.09 : 0.05;
-    const tip = s.nodes[0];
-    fireBlob(tip.x + rand(-6, 6), tip.y + rand(-6, 6), tip.vx * 0.35 + rand(-20, 20), tip.vy * 0.35 - rand(20, 50), rand(5, 9) * (R / 86), rand(0.32, 0.5));
+    const [tx, ty] = nodePos(s, s.nodes[0], R);
+    fireBlob(tx + rand(-5, 5), ty + rand(-5, 5), Math.cos(s.nodes[0].a) * 40 + rand(-20, 20), Math.sin(s.nodes[0].a) * 40 - rand(20, 50), rand(4, 7) * (R / 86), rand(0.28, 0.42));
   }
-  if (Math.random() < dt * (lowFx ? 6 : 14)) { const a = p.ang + rand(-0.5, 0.5), v = rand(R * 2, R * 3.6); fireBlob(p.ox + ca * R * 0.5, p.oy + sa * R * 0.5, Math.cos(a) * v, Math.sin(a) * v, rand(1.4, 2.4), rand(0.5, 0.9), true); }
+  if (Math.random() < dt * (lowFx ? 6 : 14)) { const a = p.ang + rand(-0.5, 0.5), v = rand(R * 1.4, R * 2.6); fireBlob(p.ox + ca * R * 0.35, p.oy + sa * R * 0.35, Math.cos(a) * v, Math.sin(a) * v, rand(1.4, 2.4), rand(0.45, 0.8), true); }
 }
 function updateFlames(dt) {
   for (let i = streams.length - 1; i >= 0; i--) {
@@ -2142,9 +2147,7 @@ function updateFlames(dt) {
     for (let j = s.nodes.length - 1; j >= 0; j--) {
       const n = s.nodes[j];
       n.t += dt;
-      if (n.t >= NODE_LIFE) { s.nodes.splice(j, 1); continue; }
-      n.x += n.vx * dt; n.y += n.vy * dt;
-      n.vy -= 70 * (n.t / NODE_LIFE) * dt; // el calor la levanta tantito al final
+      if (n.t >= NODE_LIFE) s.nodes.splice(j, 1);
     }
     if (!s.nodes.length && s.p.stream !== s) streams.splice(i, 1);
   }
@@ -2180,7 +2183,7 @@ function drawFlames() {
   // 1) Luz cálida sobre el piso, debajo del chorro
   for (const s of streams) {
     if (s.nodes.length < 3) continue;
-    const mid = s.nodes[Math.floor(s.nodes.length * 0.45)], rr = 90;
+    const [mx, my] = nodePos(s, s.nodes[Math.floor(s.nodes.length * 0.45)], s.R), mid = { x: mx, y: my }, rr = 70;
     const g = ctx.createRadialGradient(mid.x, mid.y + 10, 0, mid.x, mid.y + 10, rr);
     g.addColorStop(0, `rgba(255,150,60,${PAL.onDark ? 0.3 : 0.18})`); g.addColorStop(1, "rgba(255,150,60,0)");
     ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.save(); ctx.translate(mid.x, mid.y + 10); ctx.scale(1, 0.6); ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill(); ctx.restore();
@@ -2199,10 +2202,10 @@ function drawFlames() {
   for (const s of streams) {
     const ns = s.nodes, n = ns.length;
     if (n < 3) continue;
-    const R = TOOLS.spray.radius[Math.max(0, lvlOf("spray") - 1)], Wm = R * 0.3;
+    const Wm = s.R * 0.28;
     // Del más nuevo (boquilla) al más viejo (punta)
     const pts = [], us = [], nx = [], ny = [];
-    for (let i = n - 1; i >= 0; i--) { pts.push([ns[i].x, ns[i].y]); us.push(ns[i].t / NODE_LIFE); }
+    for (let i = n - 1; i >= 0; i--) { pts.push(nodePos(s, ns[i], s.R)); us.push(ns[i].t / NODE_LIFE); }
     for (let i = 0; i < n; i++) {
       const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
       nx.push(-dy / l); ny.push(dx / l);
