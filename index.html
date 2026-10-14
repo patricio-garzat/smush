@@ -87,9 +87,9 @@
   --lvl: #2FA3C4; --lvl-soft: rgba(47, 163, 196, 0.14); --mist: #B7A68A;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1C1B17; --field: #D2C4A4; --field-hi: #DED2B5; --speck: transparent; --mist: #8F8068; --field-dark: 0; }
+  :root[data-level="beach"]:not([data-theme="light"]) { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
 }
-:root[data-level="beach"][data-theme="dark"] { --bg: #1C1B17; --field: #D2C4A4; --field-hi: #DED2B5; --speck: transparent; --mist: #8F8068; --field-dark: 0; }
+:root[data-level="beach"][data-theme="dark"] { --bg: #1C1B17; --field: #4A412F; --field-hi: #574C37; --speck: transparent; --mist: #CFC3A8; }
 
 /* ============================================================
    Base: sin zoom, sin selección, sin scroll de la página
@@ -634,7 +634,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.6.3";
+const VERSION = "0.6.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1225,7 +1225,7 @@ function readPalette() {
   const cs = getComputedStyle(document.documentElement);
   const v = (n) => cs.getPropertyValue(n).trim();
   PAL.dark = v("--is-dark") === "1";
-  PAL.onDark = v("--field-dark") === "1"; // el piso es oscuro (en la playa siempre es arena clara)
+  PAL.onDark = v("--field-dark") === "1"; // el piso es oscuro (tema oscuro)
   PAL.text = PAL.onDark ? v("--text") : "#242521"; PAL.mist = v("--mist");
   PAL.shadow = PAL.onDark ? "rgba(0,0,0,0.34)" : "rgba(60,52,30,0.13)";
   PAL.boltCore = PAL.onDark ? "rgba(255,255,255," : "rgba(84,116,214,";
@@ -2046,7 +2046,7 @@ function buildBackground() {
   const c = document.createElement("canvas");
   c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR);
-  const sand = "rgba(175,150,105,";
+  const sand = PAL.onDark ? "rgba(255,230,180," : "rgba(175,150,105,";
   g.lineCap = "round";
   for (let i = 0; i < Math.round(W * H / 16000); i++) {
     const x = rand(0, W), y = rand(seaH + 30, H), w = rand(18, 40);
@@ -2056,7 +2056,7 @@ function buildBackground() {
   const items = Math.max(4, Math.round(W * H / 45000));
   for (let i = 0; i < items; i++) {
     const x = rand(20, W - 20), y = rand(seaH + 40, H - 20), rot = rand(0, TAU), s = rand(0.8, 1.2);
-    g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.globalAlpha = 0.55;
+    g.save(); g.translate(x, y); g.rotate(rot); g.scale(s, s); g.globalAlpha = PAL.onDark ? 0.35 : 0.55;
     if (i % 2) { // estrella de mar
       g.fillStyle = "#EE9D78"; g.beginPath();
       for (let k = 0; k < 10; k++) { const r = k % 2 ? 3.4 : 9, a = (k * Math.PI) / 5 - Math.PI / 2; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
@@ -2078,7 +2078,7 @@ function drawBackground(dt) {
     const tide = Math.sin(time * 0.35) * 4 * (reduceMotion ? 0.3 : 1);
     const edge = (x, off, ph) => seaH + tide + seaShift + off + Math.sin(x * 0.035 + time * 1.3 + ph) * 3 + Math.sin(x * 0.013 - time * 0.7 + ph) * 2.5;
     // arena mojada
-    ctx.globalAlpha = 1; ctx.fillStyle = "rgba(175,150,105,0.12)";
+    ctx.globalAlpha = 1; ctx.fillStyle = PAL.onDark ? "rgba(0,0,0,0.12)" : "rgba(175,150,105,0.12)";
     ctx.beginPath(); ctx.moveTo(0, 0); for (let x = 0; x <= W + 12; x += 12) ctx.lineTo(x, edge(x, 12, 1.5)); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
     // agua
     const wg = ctx.createLinearGradient(0, 0, 0, seaH + 10);
@@ -2214,7 +2214,7 @@ function drawWave(w) {
   if (tr >= w.dur) { back = Math.min(1, (tr - w.dur) / WAVE_BACK); front = H + 20 - (H + 20 - seaH) * easeOut(back); alpha = 1 - back; }
   const t = w.t, crest = (x) => front + Math.sin(x * 0.045 + t * 7) * 6 + Math.sin(x * 0.014 - t * 3.2) * 9;
   // Arena mojada que deja el agua al regresar
-  if (back > 0) { ctx.globalAlpha = 0.12 * (1 - back); ctx.fillStyle = "#A08A5E"; ctx.fillRect(0, front, W, H - front); }
+  if (back > 0) { ctx.globalAlpha = 0.12 * (1 - back); ctx.fillStyle = PAL.onDark ? "#000000" : "#A08A5E"; ctx.fillRect(0, front, W, H - front); }
   // Cuerpo de la ola: más profundo arriba, más claro cerca de la cresta
   const g = ctx.createLinearGradient(0, 0, 0, Math.max(1, front));
   if (PAL.dark) { g.addColorStop(0, "rgba(22,70,92,0.92)"); g.addColorStop(1, "rgba(48,128,155,0.82)"); }
