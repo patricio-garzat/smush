@@ -958,7 +958,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.30.4";
+const VERSION = "0.31.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3067,7 +3067,7 @@ const ART = {
     for (let i = 0; i < 9; i++) { const x = r() * w, tw = 6 + r() * 8; g.fillStyle = "rgba(30,70,45,0.45)"; g.fillRect(x - tw / 2, h * 0.15, tw, h * 0.6); g.fillStyle = "rgba(40,95,60,0.55)"; g.beginPath(); g.arc(x, h * 0.18, 22 + r() * 22, 0, TAU); g.fill(); }
     for (let i = 0; i < 3; i++) { const x = w * (0.2 + i * 0.28), gr = g.createLinearGradient(0, 0, 0, h * 0.85); gr.addColorStop(0, `rgba(255,250,210,${0.22 + 0.06 * Math.sin(t * 0.6 + i)})`); gr.addColorStop(1, "rgba(255,250,210,0)"); g.fillStyle = gr; poly(g, [[x, 0], [x + 22, 0], [x + 70, h * 0.85], [x + 30, h * 0.85]]); g.fill(); }
     g.fillStyle = "#86BE6C"; g.beginPath(); g.moveTo(0, h * 0.72); g.bezierCurveTo(w * 0.3, h * 0.66, w * 0.7, h * 0.78, w, h * 0.7); g.lineTo(w, h); g.lineTo(0, h); g.closePath(); g.fill();
-    g.strokeStyle = "#D9C49A"; g.lineWidth = h * 0.09; g.lineCap = "round"; g.beginPath(); g.moveTo(w * 0.45, h * 1.05); g.quadraticCurveTo(w * 0.62, h * 0.85, w * 0.52, h * 0.72); g.stroke();
+    paintBanana(g, w * 0.6, h * 0.84, h / 260, false, 5); paintMonstera(g, w * 0.4, h * 0.9, h / 170, false, 6);
     paintJungleTree(g, w * 0.1, h * 0.95, h * 0.95, false, 3); paintJungleTree(g, w * 0.88, h * 0.98, h * 0.9, false, 8);
     paintFern(g, w * 0.26, h * 0.98, h / 120, false, 2); paintFlowerBush(g, w * 0.74, h * 0.97, h / 130, false, 5);
     g.strokeStyle = "#2F6B45"; g.lineWidth = 2;
@@ -5522,18 +5522,80 @@ function paintJungleTree(g, x, y, h, dark, seed) {
   g.beginPath(); for (let i = 0; i <= 20; i++) { const u = i / 20, yy = y - h * 0.05 - u * h * 0.52, xx = x + lean * u + Math.sin(u * 9) * tw * 0.9; i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); } g.stroke();
   g.fillStyle = dark ? "#2C5A3C" : "#5BA36D";
   for (let i = 1; i < 8; i++) { const u = i / 8, yy = y - h * 0.05 - u * h * 0.52, xx = x + lean * u + Math.sin(u * 9) * tw * 0.9; g.beginPath(); g.ellipse(xx + 3, yy, h * 0.02, h * 0.01, 0.6, 0, TAU); g.fill(); }
-  // La copa: racimos de hojas en tres tonos (sombra, cuerpo, luz) y hojas en punta en la orilla
-  const cx = x + lean, cy = ty - h * 0.18, blobs = [];
-  for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU + rr(-0.3, 0.3), d = rr(0.15, 0.32) * h; blobs.push([cx + Math.cos(a) * d * 1.25, cy + Math.sin(a) * d * 0.7, rr(0.16, 0.24) * h]); }
-  blobs.push([cx, cy - h * 0.05, h * 0.26]);
-  for (const [bx, by, r] of blobs) for (let k = 0; k < 7; k++) { const a = (k / 7) * TAU + bx, lx = bx + Math.cos(a) * r * 0.95, ly = by + Math.sin(a) * r * 0.8; g.fillStyle = c0; g.beginPath(); g.ellipse(lx, ly + r * 0.1, r * 0.42, r * 0.18, a, 0, TAU); g.fill(); }
-  g.fillStyle = c0; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx + r * 0.1, by + r * 0.14, r, 0, TAU); g.fill(); }
-  g.fillStyle = c1; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx, by, r * 0.88, 0, TAU); g.fill(); }
-  g.fillStyle = c2; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx - r * 0.25, by - r * 0.3, r * 0.5, 0, TAU); g.fill(); }
-  g.fillStyle = c3; g.globalAlpha = dark ? 0.35 : 0.6; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx - r * 0.35, by - r * 0.42, r * 0.18, 0, TAU); g.fill(); } g.globalAlpha = 1;
+  // La copa: racimos de hojas largas en punta que salen en todas direcciones (atrás más oscuras, enfrente más claras)
+  const cx = x + lean, cy = ty - h * 0.16;
+  const leaf = (lx, ly, L, wd, ang, col) => {
+    const ex = lx + Math.cos(ang) * L, ey = ly + Math.sin(ang) * L, nx = -Math.sin(ang) * wd, ny = Math.cos(ang) * wd, mx = (lx + ex) / 2, my = (ly + ey) / 2;
+    g.fillStyle = col; g.beginPath(); g.moveTo(lx, ly); g.quadraticCurveTo(mx + nx, my + ny, ex, ey); g.quadraticCurveTo(mx - nx, my - ny, lx, ly); g.fill();
+  };
+  // Cada racimo: un cuerpo de follaje con hojas anchas en punta alrededor (que caen hacia afuera), de atrás hacia adelante
+  const clusters = [[-0.3, 0.02, 0.85, c0], [0.31, 0, 0.85, c0], [0, -0.16, 1, c0], [-0.16, -0.06, 0.8, c1], [0.18, -0.08, 0.75, c1], [0, 0.07, 0.72, c1], [-0.08, -0.24, 0.6, c2], [0.14, -0.2, 0.45, c2]];
+  for (const [u, v, sc, col] of clusters) {
+    const bx = cx + u * h, by = cy + v * h, r = h * 0.2 * sc, n = 13, edge = col === c0 ? c0 : col === c1 ? c0 : c1;
+    for (let i = 0; i < n; i++) {
+      const a0 = (i / n) * TAU + rr(-0.15, 0.15), ex = bx + Math.cos(a0) * r * 0.8, ey = by + Math.sin(a0) * r * 0.62, ang = a0 + (Math.cos(a0) > 0 ? 0.35 : -0.35) * (Math.sin(a0) < 0.3 ? 1 : 0.4), L = r * rr(0.5, 0.75);
+      leaf(ex - Math.cos(ang) * L * 0.3, ey - Math.sin(ang) * L * 0.3, L, L * 0.34, ang, i % 2 ? col : edge);
+    }
+    g.fillStyle = col; g.beginPath(); g.ellipse(bx, by, r * 0.85, r * 0.66, 0, 0, TAU); g.fill();
+    if (col !== c0) { g.fillStyle = col === c1 ? c2 : c3; g.globalAlpha = dark ? 0.5 : 0.75; g.beginPath(); g.ellipse(bx - r * 0.25, by - r * 0.25, r * 0.4, r * 0.24, -0.4, 0, TAU); g.fill(); g.globalAlpha = 1; }
+  }
+  // Una bromelia roja (planta que vive en las ramas)
+  { const bx = cx + h * rr(-0.15, 0.15), by = cy + h * 0.1; g.fillStyle = dark ? "#8C3B3B" : "#E2604F"; for (let i = 0; i < 6; i++) { const a2 = -Math.PI / 2 + (i - 2.5) * 0.35; leaf(bx, by, h * 0.05, h * 0.012, a2, dark ? "#8C3B3B" : "#E2604F"); } }
   // Lianas que cuelgan de la copa
   g.strokeStyle = dark ? "#21452F" : "#3F8457"; g.lineWidth = Math.max(1, h * 0.01); g.lineCap = "round";
   for (let i = 0; i < 3; i++) { const vx = cx + rr(-0.35, 0.35) * h, vy = cy + h * 0.12, l = rr(0.15, 0.3) * h; g.beginPath(); g.moveTo(vx, vy); g.quadraticCurveTo(vx + rr(-6, 6), vy + l * 0.5, vx + rr(-4, 4), vy + l); g.stroke(); g.fillStyle = c2; g.beginPath(); g.ellipse(vx, vy + l, h * 0.018, h * 0.01, 0.8, 0, TAU); g.fill(); }
+}
+// Hoja tropical larga y curva (con su nervio y unas rasgaduras), de (x, y) hacia ang, que se dobla hacia abajo
+function bananaLeaf(g, x, y, L, wd, ang, droop, col, dark) {
+  const ex = x + Math.cos(ang) * L, ey = y + Math.sin(ang) * L + droop, mx = x + Math.cos(ang) * L * 0.55, my = y + Math.sin(ang) * L * 0.55 - droop * 0.3;
+  const nx = -Math.sin(ang) * wd, ny = Math.cos(ang) * wd;
+  g.fillStyle = col; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(mx + nx, my + ny, ex, ey); g.quadraticCurveTo(mx - nx, my - ny, x, y); g.fill();
+  g.strokeStyle = dark ? "rgba(180,220,170,0.2)" : "rgba(235,255,220,0.6)"; g.lineWidth = Math.max(1, wd * 0.12);
+  g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+  g.strokeStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(40,90,40,0.3)"; g.lineWidth = 0.8;
+  for (let i = 1; i < 7; i++) { const u = i / 7, px = (1 - u) ** 2 * x + 2 * (1 - u) * u * mx + u * u * ex, py = (1 - u) ** 2 * y + 2 * (1 - u) * u * my + u * u * ey, k = wd * Math.sin(u * Math.PI) * 0.9; g.beginPath(); g.moveTo(px, py); g.lineTo(px + nx / wd * k, py + ny / wd * k); g.stroke(); }
+}
+// Platanero: tallo verde y hojas enormes que se arquean
+function paintBanana(g, x, y, s, dark, seed) {
+  const R = artRng(seed), [c0, c1, c2] = JUNGLE_LEAF(dark), lc = dark ? ["#21452F", "#2C5A3C"] : ["#4E9E58", "#6DB868", "#5AAA5E"];
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(30,60,30,0.2)"; g.beginPath(); g.ellipse(x + 6 * s, y + 1, 30 * s, 7 * s, 0, 0, TAU); g.fill();
+  const st = dark ? "#4A5A34" : "#8AA35A", top = y - 46 * s;
+  g.fillStyle = st; g.beginPath(); g.moveTo(x - 6 * s, y); g.lineTo(x - 4 * s, top); g.lineTo(x + 4 * s, top); g.lineTo(x + 6 * s, y); g.closePath(); g.fill();
+  g.strokeStyle = "rgba(0,0,0,0.15)"; g.lineWidth = 1; for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(x - 5 * s, y - i * 11 * s); g.lineTo(x + 5 * s, y - i * 11 * s - 3 * s); g.stroke(); }
+  const angs = [-2.75, -2.25, -1.75, -1.35, -0.9, -0.4];
+  angs.forEach((a, i) => bananaLeaf(g, x, top, (48 + R() * 16) * s, 9 * s, a + (R() - 0.5) * 0.2, (10 + R() * 14) * s * (Math.abs(a + 1.57) > 0.6 ? 1.4 : 0.3), lc[i % lc.length], dark));
+  void c0; void c1; void c2;
+}
+// Costilla de Adán: hojas grandes en forma de corazón con sus cortes, sobre tallos que salen del piso
+function paintMonstera(g, x, y, s, dark, seed) {
+  const R = artRng(seed), cols = dark ? ["#1E3E2E", "#28503A"] : ["#3E8F55", "#4FA366"];
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(30,60,30,0.2)"; g.beginPath(); g.ellipse(x + 4 * s, y + 1, 26 * s, 6 * s, 0, 0, TAU); g.fill();
+  const lv = [[-0.9, 26, 0], [-0.35, 36, 1], [0.25, 32, 0], [0.8, 24, 1], [0, 18, 1]];
+  for (const [a, len, ci] of lv) {
+    const ex = x + Math.sin(a) * len * s * 1.1, ey = y - len * s * 0.95 - R() * 4 * s, r = (11 + R() * 4) * s;
+    g.strokeStyle = dark ? "#2C5A3C" : "#4E9A5E"; g.lineWidth = 1.6 * s; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.sin(a) * len * 0.3 * s, y - len * 0.6 * s, ex, ey + r * 0.4); g.stroke();
+    g.save(); g.translate(ex, ey); g.rotate(a * 0.6);
+    g.fillStyle = cols[ci]; g.beginPath(); g.moveTo(0, r * 0.55); g.bezierCurveTo(-r * 1.3, r * 0.2, -r * 0.9, -r * 1.05, 0, -r * 0.8); g.bezierCurveTo(r * 0.9, -r * 1.05, r * 1.3, r * 0.2, 0, r * 0.55); g.fill();
+    g.strokeStyle = dark ? "#0E1F16" : "#1F5434"; g.lineWidth = 1.4 * s; // los cortes de la hoja
+    for (const sd of [-1, 1]) for (let j = 0; j < 3; j++) { const yy = -r * 0.5 + j * r * 0.35; g.beginPath(); g.moveTo(sd * r * 0.92, yy - r * 0.05); g.lineTo(sd * r * 0.35, yy + r * 0.08); g.stroke(); }
+    g.strokeStyle = dark ? "rgba(180,220,170,0.2)" : "rgba(220,255,210,0.5)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, r * 0.5); g.lineTo(0, -r * 0.7); g.stroke();
+    g.restore();
+  }
+}
+// Heliconia: tallos con flores rojas y amarillas en zigzag (como picos)
+function paintHeliconia(g, x, y, s, dark, seed) {
+  const R = artRng(seed), [c0, c1] = JUNGLE_LEAF(dark);
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(30,60,30,0.2)"; g.beginPath(); g.ellipse(x + 3, y + 1, 20 * s, 5 * s, 0, 0, TAU); g.fill();
+  for (const sd of [-1, 1]) bananaLeaf(g, x, y - 4 * s, 30 * s, 6 * s, -Math.PI / 2 + sd * 0.7, 8 * s, sd > 0 ? c1 : c0, dark);
+  for (let k = 0; k < 2; k++) {
+    const sx = x + (k ? 6 : -5) * s, top = y - (40 + R() * 10) * s;
+    g.strokeStyle = dark ? "#2C5A3C" : "#4E8A4E"; g.lineWidth = 1.5 * s; g.beginPath(); g.moveTo(sx, y); g.lineTo(sx, top); g.stroke();
+    for (let i = 0; i < 5; i++) {
+      const by = top + i * 6 * s, sd = i % 2 ? 1 : -1;
+      g.fillStyle = dark ? "#8C3B3B" : "#E2604F"; g.beginPath(); g.moveTo(sx, by); g.lineTo(sx + sd * 11 * s, by - 3 * s); g.lineTo(sx + sd * 2 * s, by + 4 * s); g.closePath(); g.fill();
+      g.fillStyle = dark ? "#8C7638" : "#F1C84D"; g.beginPath(); g.moveTo(sx + sd * 11 * s, by - 3 * s); g.lineTo(sx + sd * 7 * s, by - 1.2 * s); g.lineTo(sx + sd * 9 * s, by - 3.2 * s); g.closePath(); g.fill();
+    }
+  }
 }
 // Helecho: frondas que salen del centro, con sus hojitas a los lados
 function paintFern(g, x, y, s, dark, seed) {
@@ -5600,7 +5662,7 @@ function buildJungle() {
   const g = c.getContext("2d"); g.scale(DPR, DPR);
   // --- El piso: verde musgo, con manchas de pasto más oscuro, musgo claro y tierra (cada mancha se desvanece a su color)
   const fl = g.createLinearGradient(0, top, 0, H);
-  if (dark) { fl.addColorStop(0, "#1A281E"); fl.addColorStop(1, "#16211A"); } else { fl.addColorStop(0, "#C3DCA6"); fl.addColorStop(1, "#D3E6BA"); }
+  if (dark) { fl.addColorStop(0, "#132018"); fl.addColorStop(1, "#16241A"); } else { fl.addColorStop(0, "#94C27A"); fl.addColorStop(1, "#A9D08C"); }
   g.fillStyle = fl; g.fillRect(0, 0, W, H);
   for (let i = 0; i < Math.round((W * H) / 22000) + 6; i++) {
     const x = rr(0, W), y = rr(top, H), r = rr(50, 140), t = R(), col = t < 0.45 ? (dark ? "0,0,0" : "70,125,60") : t < 0.75 ? (dark ? "60,90,55" : "235,250,215") : dark ? "60,45,30" : "170,140,95";
@@ -5608,15 +5670,24 @@ function buildJungle() {
     const gr = g.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(${col},${t < 0.45 ? 0.14 : t < 0.75 ? 0.35 : 0.16})`); gr.addColorStop(1, `rgba(${col},0)`);
     g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.restore();
   }
-  // --- Un caminito de tierra que sube serpenteando hasta la selva (de abajo hacia el dosel)
-  const path = [[W * rr(0.35, 0.5), H + 10], [W * rr(0.55, 0.7), H * 0.7], [W * rr(0.3, 0.45), H * 0.42], [W * rr(0.5, 0.62), top + 6]];
-  const trail = (lw, col) => { g.strokeStyle = col; g.lineWidth = lw; g.lineCap = "round"; g.lineJoin = "round"; g.beginPath(); g.moveTo(path[0][0], path[0][1]); g.bezierCurveTo(path[1][0], path[1][1], path[2][0], path[2][1], path[3][0], path[3][1]); g.stroke(); };
-  const pw = clamp(W * 0.07, 26, 46);
-  trail(pw + 8, dark ? "rgba(0,0,0,0.18)" : "rgba(120,100,60,0.14)");
-  trail(pw, dark ? "#3A3224" : "#D9C49A");
-  trail(pw * 0.55, dark ? "rgba(255,240,210,0.03)" : "rgba(255,248,230,0.35)");
-  const bz = (u) => { const [p0, p1, p2, p3] = path, m = 1 - u; return [m ** 3 * p0[0] + 3 * m * m * u * p1[0] + 3 * m * u * u * p2[0] + u ** 3 * p3[0], m ** 3 * p0[1] + 3 * m * m * u * p1[1] + 3 * m * u * u * p2[1] + u ** 3 * p3[1]]; };
-  for (let i = 0; i < 160; i++) { const [px, py] = bz(R()), a = rr(0, TAU), d = rr(0, pw * 0.45); g.fillStyle = R() < 0.5 ? (dark ? "rgba(0,0,0,0.25)" : "rgba(140,110,70,0.35)") : dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.7)"; g.fillRect(px + Math.cos(a) * d, py + Math.sin(a) * d, 1.4, 1.4); }
+  // --- Maleza: helechitos pegados al piso, hojas grandes caídas, raíces y musgo (el centro sigue libre para caminar)
+  for (let i = 0; i < Math.round((W * H) / 9000); i++) {
+    const x = rr(0, W), y = rr(top + 10, H), n = 5 + Math.floor(R() * 3), L = rr(6, 11);
+    g.strokeStyle = R() < 0.5 ? (dark ? "rgba(40,80,50,0.6)" : "rgba(50,110,55,0.55)") : dark ? "rgba(60,100,60,0.5)" : "rgba(85,150,75,0.6)"; g.lineWidth = 1.6; g.lineCap = "round";
+    for (let j = 0; j < n; j++) { const a2 = -Math.PI / 2 + (j - (n - 1) / 2) * 0.45; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a2) * L * 0.5, y + Math.sin(a2) * L * 0.6, x + Math.cos(a2) * L, y + Math.sin(a2) * L * 0.55 + 2); g.stroke(); }
+  }
+  for (let i = 0; i < Math.round((W * H) / 26000) + 2; i++) { g.globalAlpha = dark ? 0.45 : 0.55; paintBigLeaf(g, rr(0, W), rr(top + 20, H), rr(18, 32), rr(0, TAU), dark, pick(dark ? ["#1C3A2C", "#24482F", "#3A3A22"] : ["#4E9E58", "#3F8457", "#B9A35E", "#6DB868"])); }
+  g.globalAlpha = 1;
+  // Helechitos bajos regados por todo el piso (planos, no estorban)
+  for (let i = 0; i < Math.round((W * H) / 45000) + 3; i++) { g.globalAlpha = dark ? 0.7 : 0.85; paintFern(g, rr(20, W - 20), rr(top + 40, H - 6), rr(0.38, 0.55), dark, 900 + i); }
+  g.globalAlpha = 1;
+  g.lineCap = "round";
+  for (let i = 0; i < (small ? 4 : 8); i++) {
+    const left = i % 2 === 0; let x = left ? rr(-10, W * 0.15) : rr(W * 0.85, W + 10), y = rr(top + 40, H - 20), a2 = left ? rr(-0.4, 0.4) : Math.PI + rr(-0.4, 0.4);
+    g.strokeStyle = dark ? "rgba(50,38,28,0.8)" : "rgba(120,90,60,0.55)"; g.lineWidth = rr(2, 4); g.beginPath(); g.moveTo(x, y);
+    for (let j = 0; j < 5; j++) { a2 += rr(-0.4, 0.4); x += Math.cos(a2) * rr(10, 20); y += Math.sin(a2) * rr(4, 8); g.lineTo(x, y); }
+    g.stroke();
+  }
   // --- Hojarasca: hojitas caídas de varios verdes, amarillos y cafés
   const lc = dark ? ["#2C4A30", "#3E3A22", "#3A2C20", "#24402A"] : ["#7FB069", "#C9B160", "#B98B5A", "#5E9A5A", "#E0C27A"];
   for (let i = 0; i < Math.round((W * H) / 2200); i++) {
@@ -5684,35 +5755,43 @@ function buildJungle() {
   g.fillStyle = dark ? "rgba(140,200,140,0.12)" : "rgba(210,255,190,0.5)";
   for (let i = 0; i < W / 18; i++) { g.beginPath(); g.arc(rr(0, W), rr(4, top * 0.9), rr(1.5, 3.5), 0, TAU); g.fill(); }
   bgLayer = c;
-  // --- Árboles, helechos, arbustos con flores y una piedra con musgo: a los lados (el centro queda libre)
-  const plan = small ? ["tree", "tree", "fern", "bush", "fern"] : ["tree", "tree", "tree", "tree", "fern", "fern", "bush", "bush", "rock", "fern"];
+  // --- A los lados, la selva tupida: árboles gigantes, palmeras, plataneros, costillas de Adán, heliconias, helechos y
+  // una piedra con musgo. Los grandes van más pegados a la orilla; el centro queda libre para los marcianitos
+  const side = small ? ["tree", "palm", "banana", "monstera", "fern", "heliconia"] : ["tree", "palm", "tree", "banana", "monstera", "banana", "heliconia", "fern", "monstera", "fern", "rock"];
+  const big = (kd) => kd === "tree" || kd === "palm";
   const placed = [];
-  plan.forEach((kind, i) => {
-    for (let tries = 0; tries < 60; tries++) {
-      const left = i % 2 === 0, x = left ? rr(14, W * (kind === "tree" ? 0.16 : 0.22)) : rr(W * (kind === "tree" ? 0.84 : 0.78), W - 14);
-      const y = kind === "tree" ? rr(top + 110 * k, H - 30) : rr(top + 50, H - 14);
-      const minD = kind === "tree" ? 120 * k : 60 * k;
-      if (placed.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < minD) || Math.hypot(x - pond.x, (y - pond.y) * 1.8) < pond.rx + 40) continue;
-      placed.push({ kind, x, y });
+  for (const left of [true, false]) side.forEach((kind) => {
+    for (let tries = 0; tries < 80; tries++) {
+      const span = big(kind) ? 0.13 : 0.21, x = left ? rr(-W * 0.02, W * span) : rr(W * (1 - span), W * 1.02);
+      const y = big(kind) ? rr(top + 100 * k, H - 20) : rr(top + 40, H - 10);
+      const minD = big(kind) ? 105 * k : 46 * k;
+      if (placed.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.4) < (big(p.kind) && big(kind) ? minD : Math.max(minD, 40 * k))) || Math.hypot(x - pond.x, (y - pond.y) * 1.8) < pond.rx + 34) continue;
+      placed.push({ kind, x, y, left });
       break;
     }
   });
   for (const p of placed) {
     const seed = Math.floor(p.x * 3 + p.y);
-    if (p.kind === "tree") blocks.push({ x: p.x, y: p.y, rx: 15 * k, ry: 6 * k });
-    else if (p.kind === "rock") blocks.push({ x: p.x, y: p.y - 2, rx: 19 * k, ry: 6 * k });
-    if (p.kind === "tree") { const h = rr(150, 190) * k, w0 = h * 1.3, tp = h * 1.1; pines.push({ x: p.x, y: p.y, h, ph: rr(0, TAU), sway: 0.006, spr: makePropSprite((gg) => paintJungleTree(gg, w0 / 2, tp, h, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
-    else if (p.kind === "fern") { const s = k * rr(1, 1.25), w0 = 90 * s, tp = 52 * s; pines.push({ x: p.x, y: p.y, h: 40 * s, ph: rr(0, TAU), sway: 0.02, spr: makePropSprite((gg) => paintFern(gg, w0 / 2, tp, s, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
-    else if (p.kind === "bush") { const s = k * 1.15, w0 = 70 * s, tp = 40 * s; pines.push({ x: p.x, y: p.y, h: 30 * s, ph: rr(0, TAU), sway: 0.01, spr: makePropSprite((gg) => paintFlowerBush(gg, w0 / 2, tp, s, dark, seed), w0, tp + 8, w0 / 2, tp) }); }
-    else { const s = k, w0 = 56 * s, tp = 30 * s; pines.push({ x: p.x, y: p.y, h: 22 * s, sway: 0, spr: makePropSprite((gg) => paintMossRock(gg, w0 / 2, tp, s, dark), w0, tp + 8, w0 / 2, tp) }); }
+    const blk = { tree: [15, 6], palm: [7, 4], banana: [9, 4], monstera: [12, 5], rock: [19, 6] }[p.kind];
+    if (blk) blocks.push({ x: p.x, y: p.y - (p.kind === "rock" ? 2 : 0), rx: blk[0] * k, ry: blk[1] * k });
+    if (p.kind === "tree") { const h = rr(165, 215) * k, w0 = h * 1.35, tp = h * 1.1; pines.push({ x: p.x, y: p.y, h, ph: rr(0, TAU), sway: 0.006, spr: makePropSprite((gg) => paintJungleTree(gg, w0 / 2, tp, h, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
+    else if (p.kind === "palm") { const h = rr(140, 175) * k, dir = p.left ? 1 : -1, w0 = h * 2.3, tp = h * 1.45; pines.push({ x: p.x, y: p.y, h, ph: rr(0, TAU), sway: 0.02, spr: makePropSprite((gg) => paintPalm(gg, w0 / 2, tp, h, dir, dark), w0, tp + h * 0.08, w0 / 2, tp) }); }
+    else if (p.kind === "banana") { const sc = k * rr(1.05, 1.3), w0 = 150 * sc, tp = 90 * sc; pines.push({ x: p.x, y: p.y, h: 70 * sc, ph: rr(0, TAU), sway: 0.015, spr: makePropSprite((gg) => paintBanana(gg, w0 / 2, tp, sc, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
+    else if (p.kind === "monstera") { const sc = k * rr(1, 1.25), w0 = 90 * sc, tp = 64 * sc; pines.push({ x: p.x, y: p.y, h: 50 * sc, ph: rr(0, TAU), sway: 0.012, spr: makePropSprite((gg) => paintMonstera(gg, w0 / 2, tp, sc, dark, seed), w0, tp + 8, w0 / 2, tp) }); }
+    else if (p.kind === "heliconia") { const sc = k * 1.1, w0 = 80 * sc, tp = 64 * sc; pines.push({ x: p.x, y: p.y, h: 50 * sc, ph: rr(0, TAU), sway: 0.015, spr: makePropSprite((gg) => paintHeliconia(gg, w0 / 2, tp, sc, dark, seed), w0, tp + 8, w0 / 2, tp) }); }
+    else if (p.kind === "fern") { const sc = k * rr(1, 1.25), w0 = 90 * sc, tp = 52 * sc; pines.push({ x: p.x, y: p.y, h: 40 * sc, ph: rr(0, TAU), sway: 0.02, spr: makePropSprite((gg) => paintFern(gg, w0 / 2, tp, sc, dark, seed), w0, tp + 10, w0 / 2, tp) }); }
+    else { const sc = k, w0 = 56 * sc, tp = 30 * sc; pines.push({ x: p.x, y: p.y, h: 22 * sc, sway: 0, spr: makePropSprite((gg) => paintMossRock(gg, w0 / 2, tp, sc, dark), w0, tp + 8, w0 / 2, tp) }); }
   }
   pines.sort((a, b) => a.y - b.y);
+  // Hojas grandes en las orillas (enmarcan la selva y se mecen; van encima de todo)
+  const frame = [];
+  for (const left of [true, false]) for (let i = 0; i < (small ? 2 : 3); i++) frame.push({ x: left ? rr(-14, 4) : W + rr(-4, 14), y: top + (H - top) * (0.2 + i * (small ? 0.5 : 0.33)) + rr(-20, 20), L: rr(60, 95) * k, ang: left ? rr(-0.5, 0.4) : Math.PI + rr(-0.4, 0.5), col: pick(dark ? ["#10241A", "#173323"] : ["#2F6B45", "#3F8457", "#2E7A48"]), ph: rr(0, TAU) });
   // --- Lo que se mueve: lianas que cuelgan del dosel, mariposas o luciérnagas, rayos de luz y los hongos que brillan
   const vines = [];
-  for (let x = rr(10, 40); x < W; x += rr(60, 120)) vines.push({ x, len: rr(26, 70) * k, ph: rr(0, TAU), leaves: 3 + Math.floor(R() * 3) });
+  for (let x = rr(6, 30); x < W; x += rr(36, 80)) vines.push({ x, len: (x < W * 0.22 || x > W * 0.78 ? rr(60, 130) : rr(24, 64)) * k, ph: rr(0, TAU), leaves: 3 + Math.floor(R() * 4) });
   const flyers = Array.from({ length: dark ? Math.round((W * H) / 26000) + 6 : small ? 2 : 4 }, () => ({ x: rr(0, W), y: rr(top + 30, H - 30), ph: rr(0, TAU), sp: rr(0.5, 1.2), col: pick(["#FF8A65", "#2FA3C4", "#F1C84D", "#A584E8"]) }));
   const rays = Array.from({ length: small ? 2 : 4 }, () => ({ x: rr(0.1, 0.9) * W, w: rr(30, 70) * k, ph: rr(0, TAU) }));
-  jungle = { vines, flyers, rays, shrooms, pond, top };
+  jungle = { vines, flyers, rays, shrooms, pond, top, frame };
 }
 // Debajo de los marcianitos: el piso (bgLayer), los rayos de luz, una neblina suave, las ondas del estanque y los hongos que brillan
 function drawJungleBg() {
@@ -5753,6 +5832,8 @@ function drawJungleTop() {
       ctx.fillStyle = i % 2 ? c1 : c2; ctx.beginPath(); ctx.ellipse(px + sd * 4, py, 5, 2.2, sd * 0.6, 0, TAU); ctx.fill();
     }
   }
+  // Hojas grandes en las orillas, meciéndose despacio
+  for (const f of J.frame) { ctx.globalAlpha = 1; paintBigLeaf(ctx, f.x, f.y, f.L, f.ang + Math.sin(tt * 0.6 + f.ph) * 0.05, PAL.dark, f.col); }
   // Mariposas de día; luciérnagas de noche
   for (const f of J.flyers) {
     const x = f.x + Math.sin(tt * 0.35 * f.sp + f.ph) * 60 + Math.sin(tt * 1.1 + f.ph) * 10, y = f.y + Math.cos(tt * 0.27 * f.sp + f.ph * 2) * 40 + Math.sin(tt * 2.3 + f.ph) * 6;
@@ -6947,7 +7028,7 @@ const Hero = (() => {
     beach: [{ k: "palm", u: -0.58, v: -0.28, s: 1, r: 7 }, { k: "umbrella", u: 0.58, v: -0.2, s: 1, r: 6 }, { k: "castle", u: 0.4, v: 0.52, s: 1, r: 22 }],
     snow: [{ k: "snowman", u: -0.5, v: 0.45, s: 1, r: 12 }],
     city: [{ k: "tree", u: 0.42, v: 0.68, s: 1, r: 6 }],
-    jungle: [{ k: "jtree", u: -0.58, v: -0.32, s: 1, r: 8 }, { k: "fern", u: 0.62, v: -0.22, s: 1, r: 10 }, { k: "bush", u: -0.42, v: 0.52, s: 1, r: 10 }, { k: "shroom", u: 0.56, v: 0.48, s: 1, r: 5 }],
+    jungle: [{ k: "jtree", u: -0.58, v: -0.32, s: 1, r: 8 }, { k: "banana", u: 0.62, v: -0.24, s: 1, r: 8 }, { k: "bush", u: -0.42, v: 0.52, s: 1, r: 10 }, { k: "shroom", u: 0.56, v: 0.48, s: 1, r: 5 }],
   };
   const heroProps = (lid, e) => { const k = Math.min(e.ry, 78) / 78; return (HERO_PROPS[lid] || []).map((p) => ({ ...p, sc: k, x: e.cx + p.u * e.rx, y: e.cy + p.v * e.ry, rr: p.r * k })); };
   function drawHeroProp(P, dark) {
@@ -6963,6 +7044,7 @@ const Hero = (() => {
     else if (P.k === "tree") paintTree(g, x, y, 70 * k, dark, 5);
     else if (P.k === "jtree") paintJungleTree(g, x, y, 128 * k, dark, 9);
     else if (P.k === "fern") paintFern(g, x, y, 0.95 * k, dark, 4);
+    else if (P.k === "banana") paintBanana(g, x, y, 0.8 * k, dark, 4);
     else if (P.k === "bush") paintFlowerBush(g, x, y, 0.9 * k, dark, 6);
     else if (P.k === "shroom") paintMushrooms(g, x, y, 1.1 * k, dark);
     else if (P.k === "crystal") {
@@ -7360,7 +7442,7 @@ const Hero = (() => {
       g.strokeStyle = dark ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.9)"; g.lineWidth = 1.6;
       g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, Math.PI * 1.04, Math.PI * 1.96); g.stroke();
     } else if (lid === "jungle") {
-      // Una islita de selva en un río: costado de tierra con raíces colgando, pasto con musgo, caminito,
+      // Una islita de selva en un río: costado de tierra con raíces colgando, pasto con musgo, hojas caídas,
       // un charquito con un lirio y florecitas
       const GR = Math.min(e.rx * 1.45, e.cx - 1, w - e.cx - 1), gs = Math.min((e.ry * 1.15) / e.rx, (Math.min(e.cy, hh - e.cy) - 1) / GR);
       g.save(); g.translate(e.cx, e.cy); g.scale(1, gs);
@@ -7374,9 +7456,9 @@ const Hero = (() => {
       gt.addColorStop(0, dark ? "#2C4A30" : "#C2E3A2"); gt.addColorStop(1, dark ? "#1C3022" : "#86BE6C");
       g.fillStyle = gt; g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.fill();
       g.save(); g.beginPath(); g.ellipse(e.cx, e.cy, e.rx, e.ry, 0, 0, TAU); g.clip();
-      // Caminito de tierra y musgo
-      g.strokeStyle = dark ? "#3A3224" : "#D9C49A"; g.lineWidth = e.ry * 0.22;
-      g.beginPath(); g.moveTo(e.cx - e.rx * 0.1, e.cy + e.ry * 1.1); g.quadraticCurveTo(e.cx + e.rx * 0.25, e.cy + e.ry * 0.2, e.cx - e.rx * 0.05, e.cy - e.ry * 1.1); g.stroke();
+      // Hojas caídas y helechitos al ras del piso
+      for (const [u, v, a, col] of [[-0.25, 0.35, 0.6, dark ? "#24482F" : "#4E9E58"], [0.5, -0.45, 2.4, dark ? "#3A3A22" : "#B9A35E"], [-0.05, -0.5, 4.2, dark ? "#1C3A2C" : "#3F8457"], [0.1, 0.62, 5.3, dark ? "#24482F" : "#6DB868"]]) paintBigLeaf(g, e.cx + u * e.rx, e.cy + v * e.ry, e.rx * 0.13, a, dark, col);
+      for (const [u, v] of [[-0.75, 0.25], [0.78, 0.3], [-0.3, -0.15], [0.42, 0.55]]) paintFern(g, e.cx + u * e.rx, e.cy + v * e.ry, e.rx / 300, dark, 7 + u * 10);
       g.lineWidth = 1.1;
       for (let i = 0; i < 70; i++) { const a = i * 2.399, d = Math.sqrt((i * 0.618) % 1), x = e.cx + Math.cos(a) * e.rx * d * 0.95, y = e.cy + Math.sin(a) * e.ry * d * 0.95; g.strokeStyle = i % 3 ? (dark ? "rgba(0,0,0,0.3)" : "rgba(60,115,55,0.4)") : dark ? "rgba(120,170,120,0.2)" : "rgba(245,255,230,0.8)"; g.beginPath(); g.moveTo(x - 1.4, y); g.lineTo(x, y - 4); g.lineTo(x + 1.4, y); g.stroke(); }
       g.restore();
