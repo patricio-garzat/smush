@@ -899,7 +899,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.18.4";
+const VERSION = "0.18.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -971,7 +971,7 @@ const UP = {
   carea:  { tab: "helpers", max: 3, cost: [800, 2200, 5000] },                   // qué tan lejos alcanzan (4 tamaños)
   cchain: { tab: "helpers", max: 8, cost: [600, 1200, 2200, 3500, 5500, 8000, 11000, 15000] }, // marcianitos por descarga (2 → 10)
   // Ayudantes de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
-  jet:   { tab: "helpers", world: 1, max: 6, cost: [10000, 6000, 10000, 16000, 25000, 40000] }, // jet bombardero
+  jet:   { tab: "helpers", world: 1, max: 6, cost: [20000, 8000, 12000, 18000, 27000, 40000] }, // jet bombardero
   // Mejoras
   value: { tab: "boosts",  max: 8,  cost: [80, 140, 230, 360, 550, 820, 1200, 1750] }, // más monedas
   crowd: { tab: "boosts",  max: 4,  cost: [150, 350, 700, 1300] },            // más marcianitos y más rápido
@@ -1208,7 +1208,7 @@ const STR = {
   bomb: ["Bomb", "Bomba"], bombD: ["Place bombs anywhere, then press Detonate. Buy more to place up to 10 at once.", "Pon bombas donde quieras y luego presiona Detonar. Compra más para poner hasta 10 a la vez."],
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
-  jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies over the beach and drops a row of 6 big bombs where the crowd is biggest.", "Pasa volando y suelta una fila de 6 bombas grandes donde hay más marcianitos."],
+  jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies across the middle of the field and scatters 6 huge bombs all over it.", "Cruza por en medio del campo y reparte 6 bombas enormes por todos lados."],
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
@@ -3332,7 +3332,7 @@ function puffSprite(dark) {
 
 /* ---------- Herramientas y ayudantes de The Beach: bombas, lluvia ácida, jets y tormentas ácidas ---------- */
 let seaShift = 0; // cuánto se mueve la orilla del mar (hoy se queda quieta)
-const BOMB_R = 82, JET_R = 96, JET_BOMBS = 6; // JET_R: radio de cada bomba del jet
+const BOMB_R = 82, JET_R = 215, JET_BOMBS = 6; // JET_R: radio de cada bomba del jet (5 veces el área de antes)
 const BOMB_SIZE = 40, JET_SIZE = 150; // alto de la bomba y largo del jet, en px
 // --- Explosiones: destello, bola de fuego, onda expansiva, humo, esquirlas y una marca en el piso
 const booms = [];
@@ -3456,14 +3456,19 @@ function crowdTarget() {
 function launchJet() {
   const t = crowdTarget();
   if (!t) { jetClock = 1; return; }
-  // Una fila de bombas sobre la ruta del jet, centrada donde hay más marcianitos y siempre dentro del área
-  const dir = Math.random() < 0.5 ? 1 : -1, ang = rand(-0.18, 0.18), sp = 400, tan = Math.tan(ang);
-  const gap = Math.min(58, (W - 60) / JET_BOMBS), half = gap * (JET_BOMBS - 1) / 2;
-  const cx = clamp(t.x, 30 + half, Math.max(30 + half, W - 30 - half)), top = Math.max(shoreY(BALL_TYPES.green), 0) + 20;
-  const cy = clamp(t.y, top + Math.abs(tan) * half, Math.max(top + Math.abs(tan) * half, H - 20 - Math.abs(tan) * half));
+  // El jet cruza por en medio del campo (cargado hacia donde hay más marcianitos) y reparte las bombas
+  // a lo ancho de todo el campo, separadas y esparcidas arriba y abajo de su ruta
+  const dir = Math.random() < 0.5 ? 1 : -1, ang = rand(-0.1, 0.1), sp = 400, tan = Math.tan(ang);
+  const top = Math.max(shoreY(BALL_TYPES.green), 0) + 20, cx = W / 2;
+  const cy = clamp(t.y * 0.4 + H * 0.55 * 0.6, top + H * 0.15, H * 0.72);
   const vx = Math.cos(ang) * sp * dir, vy = Math.sin(ang) * sp * dir, x0 = dir > 0 ? -130 : W + 130;
+  const gap = (W - 60) / (JET_BOMBS - 1), spread = Math.min(H * 0.2, 140);
   const drops = [];
-  for (let k = 0; k < JET_BOMBS; k++) { const x = cx + (k * gap - half) * dir; drops.push({ x, y: cy + (x - cx) * tan, out: false, last: k === JET_BOMBS - 1 }); }
+  for (let k = 0; k < JET_BOMBS; k++) {
+    const x = 30 + k * gap + rand(-gap * 0.2, gap * 0.2), side = k % 2 ? 1 : -1;
+    const y = clamp(cy + (x - cx) * tan + side * rand(spread * 0.35, spread), top, H - 20);
+    drops.push({ x: dir > 0 ? x : W - x, y, out: false, last: k === JET_BOMBS - 1 });
+  }
   jets.push({ x: x0, y: cy + (x0 - cx) * tan, vx, vy, drops, t: 0, trail: [] });
   Sound.jet();
 }
