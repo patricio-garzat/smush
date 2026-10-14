@@ -834,7 +834,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.15.6";
+const VERSION = "0.15.7";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1608,7 +1608,7 @@ function updateTarget() {
 
 /* ---------- 7. Marcianitos: entran, caminan, voltean y, si no los aplastas, se escapan ---------- */
 const balls = [];
-const DIE = 0.24; // duración del aplastado (s)
+const DIE = 0.3; // duración del aplastado (s)
 let time = 0, playing = false, spawnClock = 0, lastYellow = -99;
 
 function weightOf(k) { return k === "yellow" ? FX.luckWeight(save.up.luck) : BALL_TYPES[k].weight; }
@@ -1758,18 +1758,96 @@ function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, si
 
 // Explosión al aplastar: anillo, gotitas del mismo color y una manchita en el piso que se desvanece
 function burst(b) {
-  const T = b.T, n = (lowFx ? 0.6 : 1) * (b.type === "purple" || b.type === "yellow" ? 14 : b.type === "orange" ? 8 : 10);
-  const gy = b.y + T.bottom * 0.75;
-  for (let i = 0; i < n; i++) {
-    const a = rand(Math.PI * 1.05, Math.PI * 1.95) + (Math.random() < 0.3 ? Math.PI * 0.9 : 0), s = rand(70, 200) * (b.r / 22) ** 0.5;
-    part(b.x + Math.cos(a) * b.r * 0.4, b.y + Math.sin(a) * b.r * 0.3, Math.cos(a) * s, Math.sin(a) * s, rand(2, 4.2) * (b.r / 22) ** 0.6, rand(0.45, 0.7), i % 3 ? T.color : T.light, "dot", 4.5, 260);
-  }
-  ring(b.x, b.y, b.r * 0.8, b.r * 1.9, 0.38, T.color, 3, 0.4);
-  splats.push({ x: b.x, y: gy, rx: b.r * 1.15, color: T.color, t: 0, dur: 1.8, seed: Math.random() * 10 });
+  const T = b.T;
+  gooBurst(b);
   if (b.type === "yellow") {
     ring(b.x, b.y, b.r, b.r * 2.8, 0.6, T.color, 2, 0.35);
     for (let i = 0; i < 6; i++) { const a = rand(0, TAU), s = rand(40, 110); part(b.x, b.y, Math.cos(a) * s, Math.sin(a) * s - 40, rand(1.4, 2.4), 0.9, "#FFF3C4", "star", 2.5, 30); }
   }
+}
+// Aplastón: el cuerpo se aplasta y se vuelve un charquito brillante de su color (forma orgánica), con
+// gotitas que saltan en arco (con altura y sombra) y dejan puntitos donde caen. Luego se absorbe en el piso.
+const goos = [];
+const GOO_DUR = 1.5;
+function gooBurst(b) {
+  const T = b.T, big = b.type === "purple" || b.type === "yellow", sc = b.r / 20;
+  const R = b.r * (big ? 1.35 : 1.2), n = (lowFx ? 5 : 8) + (big ? 3 : 0);
+  // Contorno del charco: un círculo con lóbulos (cada uno distinto), aplanado por la perspectiva
+  const path = new Path2D(), s1 = rand(0, TAU), s2 = rand(0, TAU), k1 = 5 + Math.floor(Math.random() * 3), k2 = 9 + Math.floor(Math.random() * 4);
+  for (let i = 0; i <= 48; i++) {
+    const a = (i / 48) * TAU, rr = 1 + 0.16 * Math.sin(a * k1 + s1) + 0.08 * Math.sin(a * k2 + s2);
+    const x = Math.cos(a) * rr, y = Math.sin(a) * rr * 0.42;
+    i ? path.lineTo(x, y) : path.moveTo(x, y);
+  }
+  path.closePath();
+  const drops = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU + rand(-0.3, 0.3), d = R * rand(1.5, 2.7);
+    drops.push({ dx: Math.cos(a) * d, dy: Math.sin(a) * d * 0.42, h: rand(10, 26) * sc, r: rand(1.8, 3.4) * sc ** 0.6, at: rand(0, 0.04), fl: rand(0.26, 0.4) });
+  }
+  if (goos.length > 40) goos.shift();
+  goos.push({ x: b.x, y: b.y + T.bottom * 0.8, R, t: 0, path, drops, color: T.color, light: T.light, dark: mix(T.color, "#000000", 0.22) });
+}
+function updateGoos(dt) { for (let i = goos.length - 1; i >= 0; i--) if ((goos[i].t += dt) >= GOO_DUR) goos.splice(i, 1); }
+// En el piso: la onda, el charco con su brillo y las gotitas que ya cayeron
+function drawGooGround() {
+  for (const g of goos) {
+    const t = g.t, grow = easeOut(clamp((t - 0.05) / 0.2, 0, 1)), fade = clamp((t - 0.7) / (GOO_DUR - 0.7), 0, 1);
+    const a = (PAL.onDark ? 0.78 : 0.9) * Math.pow(1 - fade, 1.4);
+    // Onda suave que se abre sobre el piso
+    if (t < 0.34) {
+      const u = t / 0.34, rr = g.R * (0.9 + 1.7 * easeOut(u));
+      ctx.globalAlpha = 0.32 * (1 - u); ctx.strokeStyle = g.color; ctx.lineWidth = 0.6 + 2.2 * (1 - u);
+      ctx.beginPath(); ctx.ellipse(g.x, g.y, rr, rr * 0.42, 0, 0, TAU); ctx.stroke();
+    }
+    if (grow > 0) {
+      const R = g.R * (0.35 + 0.65 * grow) * (1 - 0.14 * fade);
+      ctx.save(); ctx.translate(g.x, g.y); ctx.scale(R, R);
+      // Grosor: la orilla de abajo un poco más oscura, como un charquito con volumen
+      ctx.globalAlpha = a * 0.55; ctx.fillStyle = g.dark; ctx.translate(0, 0.07); ctx.fill(g.path); ctx.translate(0, -0.07);
+      ctx.globalAlpha = a;
+      if (lowFx) ctx.fillStyle = g.color;
+      else { const gr = ctx.createRadialGradient(-0.25, -0.12, 0.05, 0, 0, 1.15); gr.addColorStop(0, g.light); gr.addColorStop(0.55, g.color); gr.addColorStop(1, g.dark); ctx.fillStyle = gr; }
+      ctx.fill(g.path);
+      // Brillo húmedo
+      ctx.globalAlpha = a * 0.6; ctx.fillStyle = "#FFFFFF";
+      ctx.beginPath(); ctx.ellipse(-0.3, -0.13, 0.3, 0.075, -0.12, 0, TAU); ctx.fill();
+      ctx.globalAlpha = a * 0.45; ctx.beginPath(); ctx.ellipse(0.28, 0.1, 0.07, 0.03, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = a; ctx.fillStyle = g.color;
+    for (const d of g.drops) {
+      if ((t - d.at) / d.fl < 1) continue;
+      ctx.beginPath(); ctx.ellipse(g.x + d.dx, g.y + d.dy, d.r * 1.3, d.r * 0.55, 0, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+// En el aire: el destello del impacto y las gotitas volando
+function drawGooAir() {
+  for (const g of goos) {
+    const t = g.t;
+    if (t < 0.1) {
+      const u = t / 0.1, rr = g.R * (0.8 + 0.8 * u), cy = g.y - g.R * 0.5;
+      const gr = ctx.createRadialGradient(g.x, cy, 0, g.x, cy, rr);
+      gr.addColorStop(0, "rgba(255,255,255,0.9)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.globalAlpha = (1 - u) * 0.7; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(g.x, cy, rr, 0, TAU); ctx.fill();
+    }
+    for (const d of g.drops) {
+      const p = (t - d.at) / d.fl;
+      if (p < 0 || p >= 1) continue;
+      const gx = g.x + d.dx * p, gy = g.y + d.dy * p, z = 4 * d.h * p * (1 - p);
+      ctx.globalAlpha = 0.18 * (1 - z / (d.h + 1) * 0.6); ctx.fillStyle = PAL.shadow;
+      ctx.beginPath(); ctx.ellipse(gx, gy, d.r, d.r * 0.4, 0, 0, TAU); ctx.fill();
+      // La gotita se estira un poco según su velocidad
+      const vy = d.dy - 4 * d.h * (1 - 2 * p) * 1.0, ang = Math.atan2(vy, d.dx), st = 1 + Math.min(0.6, Math.hypot(d.dx, vy) / 160);
+      ctx.globalAlpha = 1; ctx.fillStyle = g.color;
+      ctx.beginPath(); ctx.ellipse(gx, gy - z, d.r * st, d.r / Math.sqrt(st), ang, 0, TAU); ctx.fill();
+      ctx.fillStyle = "#FFFFFF"; ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.arc(gx - d.r * 0.3, gy - z - d.r * 0.3, d.r * 0.32, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 function jag(x1, y1, x2, y2) {
   const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, n = Math.max(3, Math.round(d / 14));
@@ -1779,6 +1857,7 @@ function jag(x1, y1, x2, y2) {
   return pts;
 }
 function updateFx(dt) {
+  if (goos.length) updateGoos(dt);
   if (flames.length || smokes.length) updateFlames(dt);
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
@@ -2461,7 +2540,7 @@ function travel() {
   closeSheet($("#sheet-levels"));
   playTrip(from, n, save.level + 1, () => {
     // Por debajo de la cortina: el mundo nuevo
-    balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; bolts.length = 0;
+    balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
     meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
@@ -3808,7 +3887,7 @@ const closeConfirm = () => { confirmEl.classList.remove("open"); setTimeout(() =
 confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]")) { Sound.tick(); closeConfirm(); } });
 $("#btn-reset-yes").addEventListener("click", () => {
   save = freshSave(); writeSave();
-  balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; timers.length = 0;
+  balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; goos.length = 0; timers.length = 0;
   helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; rains.length = 0; drops.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
   applyLevel(); updateDetonate();
@@ -3881,10 +3960,10 @@ function drawAlien(b) {
   let sx = 1, sy = 1, alpha = 1, lift = 0, tilt = 0;
   if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.45)); sx = sy = 0.35 + 0.65 * k; alpha = k; }
   else if (b.state === "die") {
-    // 1) se aplasta contra el piso  2) se desvanece mientras se encoge
+    // 1) se aplasta contra el piso de golpe  2) se extiende y se funde con el charco que queda abajo
     const u = b.t / DIE;
-    if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.38 * k; sy = 1 - 0.55 * k; }
-    else { const k = (u - 0.35) / 0.65; sx = 1.38 * (1 - 0.35 * k); sy = 0.45 * (1 - 0.6 * k); alpha = 1 - k; }
+    if (u < 0.35) { const k = easeOut(u / 0.35); sx = 1 + 0.5 * k; sy = 1 - 0.62 * k; }
+    else { const k = easeIn((u - 0.35) / 0.65); sx = 1.5 + 0.3 * k; sy = 0.38 * (1 - 0.75 * k); alpha = 1 - k; }
   } else if (b.ride && !b.carried) {
     // Esquiando: sin pasitos; se inclina en las curvas y flexiona un poquito las piernas
     tilt = b.lean * (reduceMotion ? 0.4 : 1);
@@ -3914,7 +3993,8 @@ function drawAlien(b) {
   const fx = Math.sign(b.flip || 1) * Math.max(0.45, Math.abs(b.flip));
   ctx.scale(fx * sx * hpScale, sy * hpScale);
   ctx.drawImage(S.img, -S.cx, -S.ground, S.w, S.h);
-  if (b.flash > 0) { ctx.globalAlpha = alpha * b.flash * 0.55; ctx.drawImage(S.flash, -S.cx, -S.ground, S.w, S.h); }
+  const fl = b.state === "die" ? Math.max(0, 1 - b.t / 0.09) : b.flash;
+  if (fl > 0) { ctx.globalAlpha = alpha * fl * (b.state === "die" ? 0.8 : 0.55); ctx.drawImage(S.flash, -S.cx, -S.ground, S.w, S.h); }
   ctx.restore();
 }
 function render(dt) {
@@ -3928,6 +4008,8 @@ function render(dt) {
     ctx.beginPath(); ctx.ellipse(s.x, s.y, s.rx * (1 + u * 0.15), s.rx * 0.32, 0, 0, TAU); ctx.fill();
     for (let i = 0; i < 4; i++) { const a = s.seed + i * 1.7, d = s.rx * (1.25 + (i % 2) * 0.3); ctx.beginPath(); ctx.ellipse(s.x + Math.cos(a) * d, s.y + Math.sin(a) * d * 0.32, 3 + (i % 3), 1.6 + (i % 2), 0, 0, TAU); ctx.fill(); }
   }
+  // Charquitos de los aplastados
+  if (goos.length) drawGooGround();
   // Huellas de los esquiadores
   if (tracks.length) drawTracks();
   // Niebla del spray (en el piso, detrás de los marcianitos)
@@ -3981,6 +4063,7 @@ function render(dt) {
     for (const b of balls) { const gy = b.y + b.T.bottom; while (pi < pines.length && pines[pi].y <= gy) drawPine(pines[pi++]); drawAlien(b); }
     while (pi < pines.length) drawPine(pines[pi++]);
   } else for (const b of balls) drawAlien(b);
+  if (goos.length) drawGooAir();
   // Anillos (pisotón, aplastado, toque al aire)
   for (const g of rings) {
     const u = g.t / g.dur, k = easeOut(u), r = g.r0 + (g.r1 - g.r0) * k;
@@ -4037,8 +4120,9 @@ function render(dt) {
     ctx.font = `800 ${tt.size}px ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif`;
     const w = ctx.measureText(tt.text).width, cr = tt.size * 0.32, total = w + cr * 2 + 3;
     const x = tt.x + tt.dx * u - total / 2, y = tt.y - 36 * easeOut(u);
-    ctx.fillStyle = "#F1C84D"; ctx.beginPath(); ctx.arc(x + cr, y, cr, 0, TAU); ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.beginPath(); ctx.arc(x + cr * 0.7, y - cr * 0.3, cr * 0.35, 0, TAU); ctx.fill();
+    const ci = coinImg();
+    if (ci) ctx.drawImage(ci, x, y - cr, cr * 2, cr * 2);
+    else { ctx.fillStyle = "#F1C84D"; ctx.beginPath(); ctx.arc(x + cr, y, cr, 0, TAU); ctx.fill(); }
     ctx.fillStyle = tt.color;
     ctx.fillText(tt.text, x + cr * 2 + 3, y);
   }
@@ -4051,6 +4135,14 @@ function render(dt) {
   // Cursor dibujado (solo con mouse)
   if (hover && playing) drawCursor(hover.x, hover.y);
   ctx.globalAlpha = 1;
+}
+// La moneda con $ (la misma del CSS) para los textos que flotan en el campo
+let coinPic = null;
+function coinImg() {
+  if (coinPic) return coinPic.complete && coinPic.naturalWidth ? coinPic : null;
+  const m = /url\("?(.*?)"?\)/.exec(getComputedStyle(document.querySelector(".coin")).backgroundImage || "");
+  coinPic = new Image(); if (m) coinPic.src = m[1];
+  return null;
 }
 function drawCursor(x, y) {
   const id = save.tool, L = lvlOf(id) - 1, down = pointers.size > 0;
