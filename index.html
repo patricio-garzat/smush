@@ -178,6 +178,14 @@ h1, h2, h3, .coins, .home-title, #splash .word, .play-txt b, .hc-t b, .shop-txt 
 /* Pastillas de estadísticas: marcianitos aplastados y monedas por segundo */
 .mini, #rate { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 6px; border-radius: 12px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; }
 .mini img { width: 16px; height: 16px; object-fit: contain; }
+/* De visita: botón para regresar a tu nivel (en el lugar de la cuenta de aplastados) */
+#visit-btn { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px 0 8px; border: 0; border-radius: 12px; background: var(--lvl); color: #FFFFFF; box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; transition: transform 0.14s; }
+#visit-btn[hidden] { display: none; }
+#visit-btn:active { transform: scale(0.96); }
+#visit-btn svg { width: 13px; height: 13px; }
+#smushed-pill[hidden] { display: none; }
+.lvl-status.visit { background: var(--lvl); color: #FFFFFF; }
+.travel-btn.visit { background: var(--lvl-soft); color: var(--lvl); }
 .mini .lbl { color: var(--muted); font-weight: 650; }
 @media (max-width: 370px) { .mini .lbl { display: none; } }
 #rate { display: none; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 6px; border-radius: 11px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12px; font-weight: 750; }
@@ -687,7 +695,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg>
       </button>
     </div>
-      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="smushed-pill" class="mini"><img id="smushed-ic" alt=""><b id="smushed">0</b><span id="goal-of"></span><span class="lbl" id="goal-lbl">smushed</span></span><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
+      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bg" cx="10" cy="10" r="8"/><circle class="fg" id="lvl-ring" cx="10" cy="10" r="8"/></svg><span id="lvl-name">The Void</span><span id="lvl-prog"></span><i class="badge" id="lvl-badge"></i></button><span id="smushed-pill" class="mini"><img id="smushed-ic" alt=""><b id="smushed">0</b><span id="goal-of"></span><span class="lbl" id="goal-lbl">smushed</span></span><button id="visit-btn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span id="visit-txt"></span></button><span id="rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V4.8a1.8 1.8 0 0 1 3.6 0V11"/><path d="M13.6 10.8a1.7 1.7 0 0 1 3.4 0v.8a1.7 1.7 0 0 1 3.4.4V15a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-4.7-2.3L5.4 15.6a1.7 1.7 0 0 1 2.7-2.1L10 15.5"/></svg><span id="rate-v">0</span></span></div>
   </header>
   <main id="field">
     <canvas id="cv" aria-label="Game area"></canvas>
@@ -929,7 +937,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.25.2";
+const VERSION = "0.26.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1206,11 +1214,15 @@ function loadSave() {
   return d;
 }
 let save = loadSave();
+// De visita en un nivel anterior, "save" es una copia para jugar y "real" guarda tu progreso de verdad.
+// Lo de la visita nunca se escribe: se guarda "real" tal cual (con la hora en que te fuiste de visita,
+// así lo que hagan tus ayudantes mientras tanto cuenta como tiempo fuera)
+let real = null;
 let saveTimer = 0;
 function writeSave() {
   clearTimeout(saveTimer); saveTimer = 0;
-  save.lastSeen = Date.now();
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  if (!real) save.lastSeen = Date.now();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(real || save)); } catch (e) {}
 }
 function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
 setInterval(() => { if (!document.hidden) writeSave(); }, 15000);
@@ -1291,6 +1303,8 @@ const STR = {
   beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs, the Tsunami and the Bomber jet.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas, el Tsunami y el Jet bombardero."],
   snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
   cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
+  visitLvl: ["Visit", "Visitar"], visitKicker: ["Just visiting", "De visita"], visitingNow: ["Visiting", "De visita"], backTo: ["Back to", "Regresar a"],
+  visitNote: ["Just a visit: you arrive with your coins, tools and helpers, and you can smush and buy as usual, but nothing there counts. Your progress stays exactly as it is.", "Solo de visita: llegas con tus monedas, herramientas y ayudantes, y puedes aplastar y comprar como siempre, pero nada de lo de allá cuenta. Tu progreso se queda exactamente igual."],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
@@ -2773,7 +2787,7 @@ function drawBubble() {
 
 /* ---------- 10c. Niveles: The Void → The Beach (tema, fondo animado y viaje) ---------- */
 const lvl = () => LEVELS[save.level];
-const nextLvl = () => LEVELS[save.level + 1];
+const nextLvl = () => (real ? null : LEVELS[save.level + 1]); // de visita no hay siguiente nivel
 const ALIEN_URL = {};
 const alienUrl = (k) => ALIEN_URL[k] || (ALIEN_URL[k] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ALIENS[k].svg));
 const levelArt = (id, n) => {
@@ -3060,10 +3074,13 @@ function renderGoal() {
 function renderLevels(animate) {
   const list = $("#levels-list");
   let html = "";
+  const cur = real ? real.level : save.level; // tu nivel de verdad (aunque estés de visita)
   LEVELS.forEach((L, i) => {
-    const here = i === save.level, done = i < save.level, isNext = i === save.level + 1;
-    const status = here ? `<span class="lvl-status">${tx("youAreHere")}</span>` : done ? `<span class="lvl-status done">${tx("completed")}</span>` : `<span class="lvl-status lock">${tx("lockedLvl")}</span>`;
+    const here = i === cur, done = i < cur, isNext = !real && i === cur + 1, visitingThis = !!real && i === save.level;
+    const status = visitingThis ? `<span class="lvl-status visit">${tx("visitingNow")}</span>` : here ? `<span class="lvl-status">${tx("youAreHere")}</span>` : done ? `<span class="lvl-status done">${tx("completed")}</span>` : `<span class="lvl-status lock">${tx("lockedLvl")}</span>`;
     let req = "";
+    if (done && !real) req = `<button class="travel-btn visit" type="button" data-visit="${i}">${tx("visitLvl")} ${L.name}</button><p class="fresh">${tx("visitNote")}</p>`;
+    else if (here && real) req = `<button class="travel-btn go" type="button" data-return>${tx("backTo")} ${L.name}</button>`;
     if (isNext) {
       const s = Math.min(save.smushed, L.smush), okS = s >= L.smush, okC = save.coins >= L.cost;
       req = `<div class="req">
@@ -3074,7 +3091,7 @@ function renderLevels(animate) {
       <p class="fresh">${tx("freshStart")}</p>
       <button class="travel-btn${okS && okC ? " go" : ""}" type="button" data-travel ${okS && okC ? "" : "disabled"}>${!okS ? tx("needSmush") : !okC ? tx("needCoins") : `${tx("travelTo")} ${L.name}`}</button>`;
     }
-    html += `<div class="lvl-card${i > save.level ? " locked" : ""}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`;
+    html += `<div class="lvl-card${i > cur ? " locked" : ""}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`;
   });
   html += `<div class="lvl-card"><div class="lvl-art soon"><canvas data-art="soon" aria-hidden="true"></canvas></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`;
   list.innerHTML = html;
@@ -3111,7 +3128,12 @@ const closeReady = () => { readyEl.classList.remove("open"); setTimeout(() => { 
 // Quedarse: el chip del nivel sigue brillando como recordatorio
 $("#btn-stay").addEventListener("click", () => { Sound.tick(); buzz(8); closeReady(); });
 $("#btn-go").addEventListener("click", () => { closeReady(); setTimeout(travel, 260); });
-$("#levels-list").addEventListener("click", (e) => { if (e.target.closest("[data-travel]")) travel(); });
+$("#levels-list").addEventListener("click", (e) => {
+  if (e.target.closest("[data-travel]")) travel();
+  const v = e.target.closest("[data-visit]");
+  if (v) { Sound.tick(); visitLevel(+v.dataset.visit); }
+  if (e.target.closest("[data-return]")) { Sound.tick(); endVisit(); }
+});
 
 // Pagar y viajar: una cinemática de "viaje a otra isla" y, cuando la cámara cae sobre la arena, el juego ya está ahí
 function travel() {
@@ -3142,15 +3164,60 @@ function travel() {
   });
 }
 
+// Visitar un nivel anterior: llegas con una copia de tus monedas, herramientas y ayudantes, y ahí puedes jugar,
+// comprar y aplastar como siempre, pero nada cuenta. Al regresar, todo vuelve exactamente como estaba.
+function resetWorld() {
+  balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
+  meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+  cars.length = 0; roadkills.length = 0; skids.length = 0; saws.length = 0; slashes.length = 0;
+}
+function goWorld(to, kicker, swap, after) {
+  closeSheet($("#sheet-levels"));
+  placing = -1; toPlace.length = 0; $("#place-hint").classList.remove("on");
+  shopTab = "tools";
+  playTrip(lvl(), LEVELS[to], to + 1, () => {
+    swap();
+    if (!save.tools[save.tool] || !toolHere(save.tool)) save.tool = "finger";
+    helpers.length = 0; syncHelpers(); jetClock = 3;
+    for (const k in cdEnd) delete cdEnd[k];
+    resetWorld();
+    applyLevel(); updateTarget(); renderToolbar(); renderShop(); renderRecords(); updateDetonate(); renderVisit(); uiDirty = true;
+    if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
+    populate();
+    if (after) after();
+  }, kicker);
+}
+function visitLevel(i) {
+  if (real || !(i >= 0 && i < save.level)) return;
+  writeSave(); // tu progreso real queda guardado tal cual
+  const since = Date.now();
+  goWorld(i, tx("visitKicker"), () => {
+    real = save; save = JSON.parse(JSON.stringify(real));
+    save.level = i; save.pending = null; save.readyAsked = i; save.visitAt = since;
+  });
+}
+function endVisit() {
+  if (!real) return;
+  const since = save.visitAt || Date.now();
+  goWorld(real.level, null, () => { save = real; real = null; }, () => { writeSave(); checkAway(since); });
+}
+// En el encabezado: de visita, en lugar de la cuenta de aplastados sale el botón para regresar
+function renderVisit() {
+  const v = !!real;
+  $("#visit-btn").hidden = !v; $("#smushed-pill").hidden = v;
+  if (v) { $("#visit-txt").textContent = `${tx("backTo")} ${LEVELS[real.level].name}`; $("#visit-btn").setAttribute("aria-label", `${tx("backTo")} ${LEVELS[real.level].name}`); }
+}
+$("#visit-btn").addEventListener("click", () => { Sound.unlock(); Sound.tick(); endVisit(); });
+
 /* Cinemática del viaje (5 s, en su propio canvas):
    0.0–0.9  despegue: la cámara está pegada a la isla de origen y se aleja hasta ver el mapa
    0.7–3.0  vuelo: el jet sigue una ruta punteada sobre el mar hasta la isla nueva, con nubes en parallax
    2.9–4.0  llegada: la cámara cae en picada sobre la arena de la isla nueva; aparece el título
    4.0–4.8  la arena se funde con el juego, que ya está en el nivel nuevo */
 const TRIP = { len: 4.8, fly: [0.7, 3.0], dive: [2.9, 4.0], fade: 4.0 };
-function playTrip(from, to, num, onSwitch) {
+function playTrip(from, to, num, onSwitch, kicker) {
   const ov = $("#travel"), cvs = $("#trip-cv"), g = cvs.getContext("2d"), card = ov.querySelector(".travel-text");
-  $("#travel-kicker").textContent = `${tx("level")} ${num}`;
+  $("#travel-kicker").textContent = kicker || `${tx("level")} ${num}`;
   $("#travel-name").textContent = to.name;
   $("#travel-from").textContent = from.name;
   const quick = reduceMotion || !ov.animate;
@@ -5469,18 +5536,19 @@ function renderShop(animate) {
   uiDirty = true;
 }
 function renderRecords() {
+  const sv = real || save; // de visita, los récords son los de tu progreso real
   const rows = [
-    `<div class="row"><span>${tx("currentLevel")}</span><span class="val">${save.level + 1} · ${lvl().name}</span></div>`,
-    `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.earned)}</span></div>`,
-    `<div class="row"><span>${tx("coinsSpent")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.spent)}</span></div>`,
-    `<div class="row"><span>${tx("coinsNow")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmtFull(save.coins)}</span></div>`,
-    `<div class="row"><span>${tx("escaped")}</span><span class="val">${fmt(save.escaped)}</span></div>`,
-    `<div class="row"><span>${tx("awayEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(save.awayEarned)}</span></div>`,
+    `<div class="row"><span>${tx("currentLevel")}</span><span class="val">${sv.level + 1} · ${LEVELS[sv.level].name}</span></div>`,
+    `<div class="row"><span>${tx("coinsEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(sv.earned)}</span></div>`,
+    `<div class="row"><span>${tx("coinsSpent")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(sv.spent)}</span></div>`,
+    `<div class="row"><span>${tx("coinsNow")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmtFull(sv.coins)}</span></div>`,
+    `<div class="row"><span>${tx("escaped")}</span><span class="val">${fmt(sv.escaped)}</span></div>`,
+    `<div class="row"><span>${tx("awayEarned")}</span><span class="val"><span class="coin" style="font-size:12px"></span>${fmt(sv.awayEarned)}</span></div>`,
   ];
   $("#records").innerHTML = rows.join("");
-  $("#rec-big").textContent = fmt(save.smushed);
+  $("#rec-big").textContent = fmt(sv.smushed);
   if (!$("#rec-alien").src) $("#rec-alien").src = alienUrl("green");
-  $("#rec-types").innerHTML = TYPE_ORDER.map((k) => `<div class="rec-type"><img alt="" src="${alienUrl(k)}"><b>${fmtShort(save.byType[k])}</b><small>${tx(k)}</small></div>`).join("");
+  $("#rec-types").innerHTML = TYPE_ORDER.map((k) => `<div class="rec-type"><img alt="" src="${alienUrl(k)}"><b>${fmtShort(sv.byType[k])}</b><small>${tx(k)}</small></div>`).join("");
 }
 function selectTool(id) {
   if (!save.tools[id]) { shopTab = "tools"; openSheet($("#sheet-shop")); focusItem(id); return; }
@@ -5530,7 +5598,7 @@ function applyLang() {
   document.documentElement.lang = LANG;
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = tx(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", tx(el.dataset.i18nAria)));
-  renderToolbar(); renderShop(); renderRecords(); uiDirty = true;
+  renderToolbar(); renderShop(); renderRecords(); renderVisit(); uiDirty = true;
 }
 // Tema: Auto / Claro / Oscuro. Las barras del teléfono toman el color del fondo.
 function applyTheme() {
@@ -5601,7 +5669,7 @@ $("#btn-reset").addEventListener("click", () => { confirmEl.hidden = false; void
 const closeConfirm = () => { confirmEl.classList.remove("open"); setTimeout(() => { if (!confirmEl.classList.contains("open")) confirmEl.hidden = true; }, 250); };
 confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]")) { Sound.tick(); closeConfirm(); } });
 $("#btn-reset-yes").addEventListener("click", () => {
-  save = freshSave(); writeSave();
+  real = null; save = freshSave(); writeSave(); renderVisit();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; goos.length = 0; timers.length = 0;
   helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
@@ -6215,12 +6283,12 @@ const Hero = (() => {
 
 function renderHome() {
   const n = nextLvl();
-  $("#home-level-name").textContent = `${tx("level")} ${save.level + 1} · ${lvl().name}`;
+  $("#home-level-name").textContent = real ? `${tx("visitingNow")} · ${lvl().name}` : `${tx("level")} ${save.level + 1} · ${lvl().name}`;
   $("#home-coins").textContent = fmtFull(save.coins);
   $("#play-label").textContent = save.smushed > 0 ? tx("continue") : tx("play");
   $("#play-sub").textContent = lvl().name;
-  $("#hc-levels").textContent = n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("max");
-  $("#hc-records").textContent = `${fmtShort(save.smushed)} ${tx("smushed")}`;
+  $("#hc-levels").textContent = real ? `${tx("backTo")} ${LEVELS[real.level].name}` : n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("max");
+  $("#hc-records").textContent = `${fmtShort((real || save).smushed)} ${tx("smushed")}`;
   $("#home-ver").textContent = "v" + VERSION;
 }
 // Entra al Inicio: el juego se pausa (lo que hagan los ayudantes se cuenta como tiempo fuera)
