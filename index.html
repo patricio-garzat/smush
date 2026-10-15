@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.45.1";
+const VERSION = "0.45.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2509,7 +2509,9 @@ function spawnBall(inside) {
 function aliveCount() { let n = 0; for (const b of balls) if (b.state !== "die") n++; return n; }
 
 function spawnStep(dt) {
-  const target = Math.min(baseTarget, perfCap + FX.crowdExtra(save.up.crowd)) + evCrowd();
+  // Si el equipo no alcanza (perfCap baja), también se recortan los extra de la mejora "más marcianitos"
+  const perfK = clamp((perfCap - SPAWN.min) / (SPAWN.max - SPAWN.min), 0, 1);
+  const target = Math.min(baseTarget, perfCap + Math.round(FX.crowdExtra(save.up.crowd) * (0.35 + 0.65 * perfK))) + evCrowd();
   const alive = aliveCount();
   if (alive >= target) { spawnClock = Math.max(spawnClock, 0.2); return; }
   spawnClock -= dt;
@@ -2527,11 +2529,15 @@ function populate() {
 }
 const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
+// Cuántos se están quemando ahora (con muchos a la vez, los nuevos se deshacen más rápido y sueltan menos polvo)
+let burnsNow = 0;
 function updateBalls(dt) {
+  burnsNow = 0; for (const b of balls) if (b.burn && b.state === "die") burnsNow++;
   for (let i = balls.length - 1; i >= 0; i--) {
     const b = balls[i];
     b.t += dt;
     if (b.state === "die") {
+      if (b.burn && b.bs > 1) b.t += dt * (b.bs - 1);
       if (b.burn) burnTick(b, dt);
       if (b.drown) drownTick(b, dt);
       if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : b.burn ? BURN_DIE : b.drown ? DROWN_DIE : b.flat ? 0.1 : DIE)) balls.splice(i, 1);
@@ -3042,6 +3048,7 @@ function charOf(S) {
 }
 function burnBurst(b) {
   b.burn = true;
+  b.bs = burnsNow >= 14 ? 2.6 : burnsNow >= 8 ? 1.7 : 1; // con muchos quemándose, este va más rápido
   const T = b.T, gy = b.y + T.bottom;
   splats.push({ x: b.x, y: gy, rx: b.r * 1.05, color: PAL.onDark ? "#000000" : "#2B2320", t: 0, dur: 3.2, seed: Math.random() * 10, a: 0.28 });
   for (let i = 0; i < 4; i++) { const a = rand(0, TAU), s = rand(60, 140); part(b.x, b.y, Math.cos(a) * s, Math.sin(a) * s - 40, rand(1, 1.6), 0.3, "#FFD9A0", "dot", 5, 0); }
@@ -3056,7 +3063,7 @@ function burnTick(b, dt) {
   if (d > 0 && d < 1) {
     // El frente que se deshace (en px del mundo): de la punta de las antenas a los pies
     const S = (b.skin && SKIN_SPR[b.skin]) || T.spr, top = gy - (S ? S.ground : r * 2), y = top + (gy - top) * d;
-    for (let i = 0, n = Math.round(dt * 90); i < n; i++) {
+    for (let i = 0, n = Math.round((dt * 90) / Math.max(1, burnsNow / 5)); i < n; i++) {
       const x = b.x + rand(-r * 0.75, r * 0.75), fall = Math.max(4, gy - y), life = Math.min(0.75, Math.sqrt((2 * fall) / 300) + 0.05);
       part(x, y + rand(-2, 2), rand(-12, 12), rand(5, 30), rand(0.55, 1.1), life, ["#2E2622", "#4A403B", "#6E655F"][Math.floor(Math.random() * 3)], "dot", 1.5, 300);
     }
