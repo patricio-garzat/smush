@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.3";
+const VERSION = "0.41.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1992,10 +1992,11 @@ const Sound = (() => {
       const E = 3.38;
       if (E >= from) {
         const t = E - from, f = BALL_TYPES.green.pitch;
-        tone(f * 0.72, { t, dur: 0.075, vol: 0.09, slide: 1.85, attack: 0.002 });
-        tone(f * 0.5, { t, dur: 0.06, vol: 0.05, slide: 0.6, attack: 0.002 });
-        noise({ t, dur: 0.04, vol: 0.045, freq: 800, q: 0.6, attack: 0.002, kind: "lowpass" });
-        coinRustle(2, t + 0.08, 0.55);
+        tone(f * 0.72, { t, dur: 0.09, vol: 0.24, slide: 1.85, attack: 0.002 });
+        tone(f * 0.5, { t, dur: 0.07, vol: 0.13, slide: 0.6, attack: 0.002 });
+        noise({ t, dur: 0.05, vol: 0.11, freq: 800, q: 0.6, attack: 0.002, kind: "lowpass" });
+        thump({ t, vol: 0.12 });
+        coinRustle(3, t + 0.09, 1.3);
       }
     },
   };
