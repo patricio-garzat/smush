@@ -985,7 +985,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.38.1";
+const VERSION = "0.38.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1065,7 +1065,10 @@ function drawTurning(g, S, Fr, flip, ax, ay, k, walk, t, ph) {
   const drawAnts = (rings) => {
     for (let i = 0; i < Math.max(As.length, Af.length); i++) {
       const A = As[i], B = Af[i];
-      for (const [P, Q, al, sx, isS] of [[A, B, sa, sxS, true], [B, A, fa, sxF, false]]) {
+      // Si hay pareja, se dibuja SOLO la antena de la vista de lado (bien opaca) llevada a donde va la de frente:
+      // así nunca cambia de color ni se ve doble. Las que no tienen pareja se funden como antes
+      const pairs = i < nA ? [[A, B, 1, sxS, true]] : [[A, B, sa, sxS, true], [B, A, fa, sxF, false]];
+      for (const [P, Q, al, sx, isS] of pairs) {
         if (!P || al < 0.01) continue;
         const L = P.L, im = rings ? L.ring : L.c; if (!im) continue;
         let bx = P.bx, by = P.by, rot = 0, ls = 1;
