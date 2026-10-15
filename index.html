@@ -63,6 +63,7 @@
   --scrim: rgba(28, 28, 26, 0.16);
   --is-dark: 0;
   --field-dark: 0;
+  --gold-ink: #B9861C;
   --font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-display: "Outfit", "Plus Jakarta Sans", -apple-system, system-ui, sans-serif;
   color-scheme: light;
@@ -74,7 +75,7 @@
     --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
     --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
-    --is-dark: 1; --field-dark: 1; color-scheme: dark;
+    --is-dark: 1; --field-dark: 1; color-scheme: dark; --gold-ink: #F1C84D;
   }
 }
 :root[data-theme="dark"] {
@@ -83,7 +84,7 @@
   --line: rgba(255, 255, 255, 0.07); --line-strong: rgba(255, 255, 255, 0.18);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
   --accent: #EEEDE8; --on-accent: #191918; --mist: #CBD2CE; --danger: #FF7A6B; --scrim: rgba(0, 0, 0, 0.4);
-  --is-dark: 1; --field-dark: 1; color-scheme: dark;
+  --is-dark: 1; --field-dark: 1; color-scheme: dark; --gold-ink: #F1C84D;
 }
 
 /* Tema de The Beach (nivel 2): arena, mar y cielo cálido. De noche (tema oscuro), playa de luna */
@@ -316,32 +317,40 @@ body::before {
 #detonate.ready::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 6px rgba(229, 72, 77, 0.22); opacity: 0; pointer-events: none; animation: ringPulse 1.6s ease-in-out infinite; }
 .tool .count { font-size: 11px; font-weight: 800; opacity: 0.75; font-variant-numeric: tabular-nums; }
 /* Multiplicador activo: una pastilla arriba del campo con el tiempo que le queda, y un borde dorado (o violeta en ×4) */
+/* El ×2/×4 va pegado a las monedas (en el encabezado, nunca sobre el campo): una pastillita con su barra que se vacía */
 #mult-hud {
-  position: absolute; top: calc(var(--hud-h, 0px) + 8px); left: 50%; display: flex; align-items: center; gap: 9px; padding: 6px 12px 6px 13px;
-  border-radius: 16px; background: var(--card); box-shadow: var(--shadow); pointer-events: none;
-  font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; color: #C9962A;
-  opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.22, 0.8, 0.24, 1);
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex: none; overflow: hidden;
+  max-width: 0; height: 28px; margin-left: 0; padding: 0; border-radius: 14px; background: rgba(241, 200, 77, 0.22); pointer-events: none;
+  font-size: 13px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; color: var(--gold-ink);
+  opacity: 0; transform: scale(0.8); transition: max-width 0.35s cubic-bezier(0.22, 0.8, 0.24, 1), margin-left 0.35s cubic-bezier(0.22, 0.8, 0.24, 1), padding 0.35s cubic-bezier(0.22, 0.8, 0.24, 1), opacity 0.25s ease, transform 0.35s cubic-bezier(0.22, 0.8, 0.24, 1);
 }
-#mult-hud.on { opacity: 1; transform: translate(-50%, 0); }
-#mult-hud.x4 { color: #7C5CE0; }
-#mult-hud i { display: block; width: 64px; height: 5px; border-radius: 3px; background: var(--field); overflow: hidden; }
+#mult-hud.on { max-width: 60px; margin-left: 9px; padding: 0 9px; opacity: 1; transform: none; }
+#mult-hud.x4 { color: #7C5CE0; background: rgba(165, 132, 232, 0.22); }
+#mult-hud i { display: block; width: 26px; height: 3px; border-radius: 2px; background: rgba(0, 0, 0, 0.1); overflow: hidden; }
 #mult-hud b { display: block; width: 100%; height: 100%; border-radius: inherit; background: #F1C84D; transform-origin: left center; }
 #mult-hud.x4 b { background: #A584E8; }
 /* Evento del nivel: una pastilla arriba a la izquierda con el tiempo que le queda, y su título que entra grande */
-#ev-hud { position: absolute; top: calc(var(--hud-h, 0px) + 8px); left: 10px; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 6px 12px 7px 7px; border-radius: 16px; pointer-events: none;
-  background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line);
-  opacity: 0; transform: translateY(-8px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.22, 0.8, 0.24, 1); }
-#ev-hud.on { opacity: 1; transform: none; }
-.ev-ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(150deg, color-mix(in srgb, var(--lvl) 70%, #FFFFFF), var(--lvl)); }
+/* Evento: el chip del nivel se vuelve el chip del evento (nombre y barra del tiempo) mientras dura. Va en el encabezado,
+   así nunca tapa lo que pasa en el campo (conchas, estrellas, marcianitos) */
+.lc-lvl, .lc-ev { display: inline-flex; align-items: center; }
+.lc-lvl { gap: 7px; }
+.lc-ev { display: none; gap: 7px; text-align: left; }
+#lvl-chip.ev { padding: 0 12px 0 5px; background: linear-gradient(135deg, color-mix(in srgb, var(--lvl) 20%, var(--card)), var(--card) 70%); box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--lvl) 30%, transparent); }
+#lvl-chip.ev .lc-lvl { display: none; }
+#lvl-chip.ev .lc-ev { display: inline-flex; animation: chipIn 0.4s cubic-bezier(0.22, 0.8, 0.24, 1) both; }
+#lvl-chip:not(.ev) .lc-lvl { animation: chipIn 0.4s cubic-bezier(0.22, 0.8, 0.24, 1) both; }
+@keyframes chipIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lc-lvl, .lc-ev { animation: none !important; } }
+.ev-ic { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(150deg, color-mix(in srgb, var(--lvl) 70%, #FFFFFF), var(--lvl)); }
 .ev-ic svg { width: 14px; height: 14px; }
-.ev-name { display: block; font-size: 12.5px; font-weight: 850; white-space: nowrap; }
-.ev-bar { display: block; width: 92px; height: 4px; margin-top: 4px; border-radius: 2px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; }
+.ev-name { display: block; font-size: 12.5px; font-weight: 850; line-height: 1.1; white-space: nowrap; }
+.ev-bar { display: block; width: 100%; min-width: 56px; height: 3px; margin-top: 4px; border-radius: 2px; background: color-mix(in srgb, var(--text) 12%, transparent); overflow: hidden; }
 .ev-bar b { display: block; height: 100%; border-radius: inherit; background: var(--lvl); transform-origin: left center; }
-#ev-banner { position: absolute; left: 50%; top: 44%; z-index: 4; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; pointer-events: none; padding: 18px 26px; border-radius: 26px;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--bg) 82%, transparent), color-mix(in srgb, var(--bg) 0%, transparent)); }
+#ev-banner { position: absolute; left: 50%; top: 40%; z-index: 4; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; pointer-events: none;
+  text-shadow: 0 0 14px var(--bg), 0 0 4px var(--bg), 0 1px 1px color-mix(in srgb, var(--bg) 60%, transparent); }
 #ev-banner[hidden] { display: none; }
 #ev-banner .ev-k { font-size: 12px; font-weight: 850; letter-spacing: 0.2em; text-transform: uppercase; color: var(--lvl); }
-#ev-banner .ev-n { font-family: var(--font-display); font-size: clamp(30px, 9vw, 46px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; white-space: nowrap; }
+#ev-banner .ev-n { font-family: var(--font-display); font-size: clamp(26px, 7.5vw, 38px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; white-space: nowrap; }
 #ev-banner .ev-s { font-size: 13.5px; font-weight: 700; color: var(--muted); }
 /* Avisos de logros, misiones y coleccionables (arriba de todo, uno a la vez) */
 #toasts { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 10px); z-index: 260; transform: translateX(-50%); width: min(92vw, 380px); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -817,6 +826,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   <header id="top">
     <div class="wallet">
       <div class="coins"><span class="coin" id="coin-egg"></span><span id="coins">0</span></div>
+      <div id="mult-hud" aria-live="polite"><span id="mult-x">×2</span><i><b id="mult-bar"></b></i></div>
     </div>
     <div class="actions">
       <button id="btn-goals" class="icon-btn" type="button" aria-label="Trophy case" data-i18n-aria="trophyCase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z" fill="currentColor" fill-opacity=".25"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11M12 14v3M8.5 20h7"/></svg><i class="badge"></i></button>
@@ -827,14 +837,12 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg>
       </button>
     </div>
-      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><i class="lvl-dot"></i><span id="lvl-name">The Void</span></button><button id="trip" type="button"><span class="trip-ic" id="trip-ic"></span><span class="trip-body"><small id="trip-cap"></small><b id="trip-title"></b></span><span id="trip-count"></span></button><button id="visit-btn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span id="visit-txt"></span></button></div>
+      <div class="sub stats"><button id="lvl-chip" type="button" aria-label="Levels"><span class="lc-lvl"><i class="lvl-dot"></i><span id="lvl-name">The Void</span></span><span id="ev-hud" class="lc-ev" aria-live="polite"><span class="ev-ic"><svg viewBox="0 0 24 24" fill="#fff"><path d="M13.5 2 4 14h7l-1.5 8L20 10h-7z"/></svg></span><span><b class="ev-name"></b><span class="ev-bar"><b></b></span></span></span></button><button id="trip" type="button"><span class="trip-ic" id="trip-ic"></span><span class="trip-body"><small id="trip-cap"></small><b id="trip-title"></b></span><span id="trip-count"></span></button><button id="visit-btn" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span id="visit-txt"></span></button></div>
   </header>
     <div id="hint" data-i18n="hint">Tap the aliens to smush them</div>
     <div id="place-hint" aria-live="polite"></div>
     <button id="detonate" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="14.5" r="6.5" fill="currentColor" fill-opacity=".3"/><path d="M14.8 9.6 16.6 7.8M16.8 7.4c.5-1.6 2.1-2.3 3.6-1.6"/><circle cx="20.6" cy="5.4" r="1.3" fill="currentColor" stroke="none"/></svg><span data-i18n="detonate">Detonate</span><b id="bomb-count">0/1</b></button>
-    <div id="ev-hud" aria-live="polite"><span class="ev-ic"><svg viewBox="0 0 24 24" fill="#fff"><path d="M13.5 2 4 14h7l-1.5 8L20 10h-7z"/></svg></span><span><b class="ev-name"></b><span class="ev-bar"><b></b></span></span></div>
     <div id="ev-banner" hidden><span class="ev-k"></span><span class="ev-n"></span><span class="ev-s"></span></div>
-    <div id="mult-hud" aria-live="polite"><span id="mult-x">×2</span><i><b id="mult-bar"></b></i></div>
   </main>
   <div id="dock">
   <nav id="tools" aria-label="Tools"></nav>
@@ -1090,7 +1098,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.42.1";
+const VERSION = "0.42.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -9218,6 +9226,16 @@ function onPlayerKill() {
 // (el tiempo que queda para seguir el combo) con el número adentro; a la derecha, "COMBO". Entra deslizándose suave,
 // el número crece un pelín en cada golpe y regresa sin rebote; el color sube de nivel en 10, 25 y 50
 const comboBox = { x: 0, y: 0, w: 0, h: 38 };
+let comboDim = 1, comboDimAt = 0;
+// ¿Hay algo del juego debajo de la pastilla? (marcianitos, estrellas, conchas, el Rey, el coleccionable)
+function comboCovers() {
+  const x0 = comboBox.x - comboBox.w - 8, x1 = comboBox.x + 8, y0 = comboBox.y - 8, y1 = comboBox.y + comboBox.h + 8;
+  const hit = (x, y, r) => x + r > x0 && x - r < x1 && y + r > y0 && y - r < y1;
+  for (const b of balls) if (b.state !== "die" && hit(b.x, b.y, b.r * 1.1)) return true;
+  if (ev) for (const it of ev.items) if (!it.got && hit(it.x, it.y, 18)) return true;
+  if (colItem && hit(colItem.x, colItem.y, 22)) return true;
+  return false;
+}
 const comboTier = (n) => (n >= 50 ? "#9A7BE0" : n >= 25 ? "#F07A45" : n >= 10 ? "#D99A1E" : PAL.onDark ? "#E8E5DE" : "#3A3B36");
 function spaced(g, text, x, y, sp) { for (const ch of text) { g.fillText(ch, x, y); x += g.measureText(ch).width + sp; } }
 function drawCombo() {
@@ -9225,6 +9243,8 @@ function drawCombo() {
   const since = time - comboAt;
   if (since > 1.4) { comboShow = 0; return; }
   const n = comboShow, col = comboTier(n), dark = PAL.onDark;
+  const dt = Math.min(0.05, Math.max(0, time - comboDimAt)); comboDimAt = time;
+  comboDim += ((comboCovers() ? 0.22 : 1) - comboDim) * Math.min(1, dt * 12);
   const kin = reduceMotion ? 1 : easeOut(Math.min(1, (time - comboIn) / 0.32)), kout = since < 1 ? 0 : easeIn((since - 1) / 0.4);
   const pop = reduceMotion ? 0 : Math.pow(Math.max(0, 1 - (time - comboPop) / 0.24), 2);
   const h = comboBox.h, R = h / 2 - 5, lab = "COMBO", sp = 1.6;
@@ -9233,7 +9253,7 @@ function drawCombo() {
   let lw = -sp; for (const ch of lab) lw += ctx.measureText(ch).width + sp;
   const w = 5 + R * 2 + 9 + lw + 13, x1 = W - 12, x0 = x1 - w, y0 = seaTop() + 8;
   comboBox.x = x1; comboBox.y = y0; comboBox.w = w;
-  ctx.globalAlpha = kin * (1 - kout);
+  ctx.globalAlpha = kin * (1 - kout) * comboDim;
   ctx.translate((1 - kin) * 14 + kout * 6, 0);
   // La pastilla: sombrita suave abajo, vidrio y una orillita
   ctx.fillStyle = dark ? "rgba(0,0,0,0.22)" : "rgba(40,42,36,0.08)";
@@ -9358,14 +9378,14 @@ function drawCollectible() {
 
 /* --- Eventos --- */
 let ev = null, evClock = rand(50, 80), goalTide = 0, goalsDirty = true;
-const evHud = () => $("#ev-hud");
+const evHud = () => $("#lvl-chip"); // durante el evento, el chip del nivel muestra el evento
 function startEvent() {
   const lid = lvl().id, E = EVENTS[lid];
   ev = { lid, t: 0, dur: E.dur, kills: 0, items: [], clock: 0, multGiven: false };
   if (lid === "beach") for (let i = 0; i < 7; i++) ev.items.push({ kind: "shell", x: rand(30, W - 30), y: rand(seaTop() + 14, seaTop() + 70), at: 0.4 + i * 0.35, t: 0, got: 0, c: COL_COLS[i % 10] });
   Sound.event(); buzz([10, 60, 10, 60, 18]);
   const h = evHud();
-  h.querySelector(".ev-name").textContent = LX(E.name); h.classList.add("on");
+  h.querySelector(".ev-name").textContent = LX(E.name); h.classList.add("ev");
   const bn = $("#ev-banner");
   bn.querySelector(".ev-k").textContent = LX(["Event", "Evento"]); bn.querySelector(".ev-n").textContent = LX(E.name); bn.querySelector(".ev-s").textContent = LX(E.sub);
   bn.hidden = false;
@@ -9373,20 +9393,20 @@ function startEvent() {
     const E2 = "cubic-bezier(.2,.8,.2,1)";
     bn.animate([{ opacity: 0, transform: "translate(-50%,-50%) scale(.6)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1.06)", offset: 0.55 }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }], { duration: 560, easing: E2, fill: "both" });
     bn.querySelector(".ev-n").animate([{ letterSpacing: "0.2em", opacity: 0 }, { letterSpacing: "-0.02em", opacity: 1 }], { duration: 700, easing: E2, fill: "both" });
-    setTimeout(() => bn.animate([{ opacity: 1, transform: "translate(-50%,-50%) scale(1)" }, { opacity: 0, transform: "translate(-50%,-80%) scale(.9)" }], { duration: 420, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" }).onfinish = () => { bn.hidden = true; }, 1900);
-  } else setTimeout(() => { bn.hidden = true; }, 1800);
+    setTimeout(() => bn.animate([{ opacity: 1, transform: "translate(-50%,-50%) scale(1)" }, { opacity: 0, transform: "translate(-50%,-80%) scale(.9)" }], { duration: 420, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" }).onfinish = () => { bn.hidden = true; }, 1300);
+  } else setTimeout(() => { bn.hidden = true; }, 1500);
 }
 function endEvent() {
   if (!ev) return;
   if (tracking() && ev.kills >= 20 && !save.g.ev[ev.lid]) { save.g.ev[ev.lid] = 1; markSave(); }
   else if (tracking() && ev.kills >= 20) { save.g.ev[ev.lid]++; markSave(); }
-  ev = null; evHud().classList.remove("on");
+  ev = null; evHud().classList.remove("ev");
   Sound.boostEnd(); checkAch();
 }
 const evOn = (lid) => ev && ev.lid === lid && ev.t < ev.dur;
 const evRamp = () => (ev ? Math.min(1, ev.t / 1, (ev.dur - ev.t) / 1) : 0);
 function updateEvent(dt) {
-  if (ev && ev.lid !== lvl().id) { ev = null; evHud().classList.remove("on"); }
+  if (ev && ev.lid !== lvl().id) { ev = null; evHud().classList.remove("ev"); }
   if (!ev) {
     goalTide += (0 - goalTide) * Math.min(1, dt * 2);
     if (!playing || document.querySelector(".sheet.open, .dialog.open")) return;
@@ -9568,7 +9588,7 @@ function updateGoals(dt) {
   if (goalsDirty) { goalsDirty = false; renderGoalsBadge(); if (!$("#sheet-goals").hidden) renderGoals(); }
 }
 function goalsTap(x, y) { return tapEvent(x, y) || tapCollectible(x, y); }
-function goalsOnLevel() { if (ev) { ev = null; evHud().classList.remove("on"); } evClock = rand(50, 80); rareClock = rand(70, 120); colClock = rand(25, 45); colItem = null; combo = 0; goalTide = 0; goalsDirty = true; }
+function goalsOnLevel() { if (ev) { ev = null; evHud().classList.remove("ev"); } evClock = rand(50, 80); rareClock = rand(70, 120); colClock = rand(25, 45); colItem = null; combo = 0; goalTide = 0; goalsDirty = true; }
 
 /* --- La vitrina (hoja con tres pestañas: Misiones, Colección, Trofeos) --- */
 let goalsTab = "mis";
