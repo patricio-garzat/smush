@@ -719,7 +719,7 @@ body::before {
 .row.vol-row { min-height: 40px; gap: 12px; padding-top: 0; padding-bottom: 10px; border-top: 0; transition: opacity 0.25s ease; }
 .row.vol-row.off { opacity: 0.4; pointer-events: none; }
 .vol-row .vi { width: 18px; height: 18px; flex: none; color: var(--muted); }
-#music-vol { --v: 60%; flex: 1; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; touch-action: pan-x; cursor: pointer; }
+#music-vol { --v: 100%; flex: 1; height: 28px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; touch-action: pan-x; cursor: pointer; }
 #music-vol::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #4A86D8 var(--v), var(--field) var(--v)); }
 #music-vol::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #4A86D8 var(--v), var(--field) var(--v)); }
 #music-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25), 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
@@ -950,7 +950,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
       <div class="group">
         <div class="row"><span class="lbl"><span class="si" style="--c:#F2557A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span><span data-i18n="sound">Sound</span></span><button class="switch" id="sw-sound" role="switch" type="button" aria-checked="true" aria-label="Sound"></button></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#4A86D8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg></span><span class="lbl2"><span data-i18n="music">Music</span><small data-i18n="musicSub">Plays in The Beach and The Slopes</small></span></span><button class="switch" id="sw-music" role="switch" type="button" aria-checked="true" aria-label="Music"></button></div>
-        <div class="row vol-row" id="music-vol-row"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M5 9.5h3L12 6v12l-4-3.5H5z"/></svg><input type="range" id="music-vol" min="0" max="100" step="1" value="60" aria-label="Music volume" data-i18n-aria="musicVol"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></div>
+        <div class="row vol-row" id="music-vol-row"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M5 9.5h3L12 6v12l-4-3.5H5z"/></svg><input type="range" id="music-vol" min="0" max="100" step="1" value="100" aria-label="Music volume" data-i18n-aria="musicVol"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#8E7CE8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect fill="currentColor" fill-opacity=".35" x="8" y="4" width="8" height="16" rx="2"/><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/></svg></span><span data-i18n="vibration">Vibration</span></span><button class="switch" id="sw-vibe" role="switch" type="button" aria-checked="true" aria-label="Vibration"></button></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#4B5BD6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><path fill="currentColor" d="M12 4.5a7.5 7.5 0 0 1 0 15z"/></svg></span><span data-i18n="theme">Theme</span></span>
           <div class="seg" id="seg-theme"><button type="button" data-v="auto" data-i18n="auto">Auto</button><button type="button" data-v="light" data-i18n="light">Light</button><button type="button" data-v="dark" data-i18n="dark">Dark</button></div>
@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.5";
+const VERSION = "0.41.6";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1508,8 +1508,10 @@ function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
 setInterval(() => { if (!document.hidden) writeSave(); }, 15000);
 window.addEventListener("pagehide", () => writeSave()); // "sigo aquí" para calcular el tiempo fuera
 
-const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 0.6, buyQty: "1" };
+const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 1, buyQty: "1", mv: 2 };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); } catch (e) {}
+// El volumen de la música empieza hasta arriba (desde 0.41.6 el máximo ya suena un poco más bajito que antes)
+if (settings.mv !== 2) { settings.musicVol = 1; settings.mv = 2; try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }
 const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} };
 
 /* ---------- 3. Idioma: inglés por defecto, español en Ajustes ---------- */
@@ -2010,7 +2012,7 @@ let musicReady = false; // suena hasta que terminan las intros
 const Music = (() => {
   const bufs = {}, loading = {}, failed = {};
   let c = null, out = null, voices = [], cur = null, playing = null; // playing = la canción que suena ahora
-  const target = () => (settings.music ? settings.musicVol : 0) * 0.9;
+  const target = () => (settings.music ? settings.musicVol : 0) * 0.48; // con el control hasta arriba, un poco más bajito que antes (0.6 × 0.9)
   function load(src) {
     if (bufs[src] || loading[src] || failed[src]) return;
     loading[src] = true;
