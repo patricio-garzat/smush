@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.0";
+const VERSION = "0.41.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1807,7 +1807,7 @@ const Sound = (() => {
   let lastPop = 0, popsInRow = 0, lastSplat = 0;
   // Clips grabados (como el "huy huy" de las flechas): se bajan una vez y se decodifican con el audio actual
   const clips = {};
-  function loadClip(url) { if (!clips[url]) { const C = (clips[url] = { raw: null, buf: null, ctx: null }); fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).then((a) => { C.raw = a; }).catch(() => {}); } return clips[url]; }
+  function loadClip(url) { if (!clips[url]) { const C = (clips[url] = { raw: null, buf: null, ctx: null }); fetch(url).then((r) => (r.ok || r.status === 0 ? r.arrayBuffer() : null)).then((a) => { C.raw = a; }).catch(() => {}); } return clips[url]; }
   function clip(url, vol = 0.85) {
     const c = ensure(); if (!c) return;
     const C = loadClip(url);
@@ -2004,10 +2004,10 @@ const Music = (() => {
   function load(src) {
     if (bufs[src] || loading[src] || failed[src]) return;
     loading[src] = true;
-    fetch(src).then((r) => { if (!r.ok) throw new Error("music"); return r.arrayBuffer(); })
+    fetch(src).then((r) => { if (!r.ok && r.status !== 0) throw new Error("music"); return r.arrayBuffer(); }) // en la app (capacitor://) llegan con status 0
       .then((a) => new Promise((res, rej) => c.decodeAudioData(a, res, rej)))
       .then((b) => { bufs[src] = b; loading[src] = false; tick(); })
-      .catch(() => { loading[src] = false; failed[src] = true; });
+      .catch(() => { loading[src] = false; failed[src] = true; setTimeout(() => { delete failed[src]; }, 8000); }); // se vuelve a intentar
   }
   // Una vuelta de la canción: entra subiendo y sale bajando (así se cruza con la siguiente)
   function voice(buf, at) {
@@ -2065,6 +2065,8 @@ const Music = (() => {
     info: () => ({ playing, voices: voices.length, left: cur && c ? Math.round(cur.end - c.currentTime) : null, vol: out ? Math.round(out.gain.value * 100) / 100 : 0 }), // para revisar
   };
 })();
+
+document.addEventListener("pointerdown", () => { if (settings.sound || settings.music) { Sound.unlock(); Music.tick(); } }, { capture: true, passive: true });
 
 /* ---------- 5. Vibración: plugin Haptics en la app; navigator.vibrate donde exista ---------- */
 const isNative = () => document.documentElement.classList.contains("native");
@@ -9547,6 +9549,8 @@ function startGame() {
   const onStart = () => { t0 = performance.now(); if (pending) { pending = false; Sound.studio(0); } };
   const afterStudio = () => playSplash(() => showHome(true));
   if (studio) playStudio(studio, afterStudio, onStart); else { onStart(); afterStudio(); }
+  // En la app el sonido puede empezar sin esperar un toque (la vista lo permite): la intro y la música suenan desde el inicio
+  if (isNative()) { Sound.unlock(); Music.tick(); }
   if (!settings.sound) return;
   if (Sound.probe()) { if (t0 === null) pending = true; else Sound.studio(0); return; }
   const late = () => {

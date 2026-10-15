@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -60,4 +61,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+}
+
+/// La vista del juego: igual a la de Capacitor, pero el sonido puede empezar sin esperar un toque
+/// (la intro de BluBer y la música del Inicio suenan desde que abre la app, como en cualquier juego).
+class GameViewController: CAPBridgeViewController {
+    override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
+        let config = super.webViewConfiguration(for: instanceConfiguration)
+        config.mediaTypesRequiringUserActionForPlayback = []
+        config.allowsInlineMediaPlayback = true
+        return config
+    }
 }
