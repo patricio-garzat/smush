@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.44.0";
+const VERSION = "0.44.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2208,6 +2208,9 @@ const RES = 1.3; // un poco más de resolución para que se vea nítido al aplas
 // Contraste: en los pisos claros donde se pierden (verdes en la selva, morados en la luna lila, amarillos en la arena,
 // el yeti en la nieve) llevan un contorno delgado del tono oscuro de su propio color, como calcomanía
 const OUTLINE_COL = { green: "#1E6F52", orange: "#A9441C", purple: "#47309A", yellow: "#94660A", purpleYeti: "#4D7CA6" };
+// Trajes que se pierden en su piso: contorno más grueso y oscuro, y un filito claro por fuera (como estampa).
+// El verde de la jungla (menta con su hoja) se confundía con el pasto en el tema claro
+const OUTLINE_STRONG = { jungleGreen: { col: "#0E3B28", k: 1.7, halo: "rgba(255,255,240,0.9)" } };
 const needOutline = () => !PAL.dark && ["void", "beach", "snow", "jungle"].includes(lvl().id);
 function alienSprite(A, img, r, key) {
   const [vx, vy, vw, vh] = A.vb, [bx, by, bw, bh] = A.body;
@@ -2257,7 +2260,8 @@ function rigSprite(id, r, olOn) {
   const gy = R.gy != null ? R.gy : A.vb[1] + A.vb[3] - A.pad;
   const S = { id, w: W0 * s, h: H0 * s, cx: (bx + bw / 2 - X0) * s, cy: (by + bh / 2 - Y0) * s, ground: (gy - Y0) * s, vhPx: A.vb[3] * (2 * r) / ((A.body[2] + A.body[3]) / 2), layers: [] };
   if (!imgs || imgs.length < R.layers.length || imgs.some((im) => !im)) return S;
-  const ol = OUTLINE_COL[R.base] && (olOn == null ? needOutline() : olOn) ? clamp(r * 0.085, 1.2, 2) : 0;
+  const OS = OUTLINE_STRONG[id.replace(/_f$/, "")], olW = clamp(r * 0.085, 1.2, 2) * (OS ? OS.k : 1);
+  const ol = OUTLINE_COL[R.base] && (olOn == null ? needOutline() : olOn) ? olW : 0, olCol = OS ? OS.col : OUTLINE_COL[R.base];
   S.ol = ol;
   const cw = Math.ceil(S.w * k), ch = Math.ceil(S.h * k), full = document.createElement("canvas"); full.width = cw; full.height = ch;
   const fg = full.getContext("2d");
@@ -2268,12 +2272,20 @@ function rigSprite(id, r, olOn) {
     if (L.a === "eyes") { S.eyeI = S.layers.length; S.ex = lay.px - S.cx; S.ey = lay.py - S.ground; S.gap = (L.g || 1) * s; S.layers.push(lay); return; }
     if (ol) {
       // Anillo: la silueta de la capa en el color del contorno, corrida en un círculo alrededor
-      const pd = Math.ceil((ol + 1) * k), d = ol * k, sil = document.createElement("canvas"), ring = document.createElement("canvas");
+      const hl = OS && OS.halo ? 1.2 * k : 0; // el filito claro de afuera
+      const pd = Math.ceil((ol + 1) * k + hl), d = ol * k, sil = document.createElement("canvas"), ring = document.createElement("canvas");
       sil.width = ring.width = cr.c.width + pd * 2; sil.height = ring.height = cr.c.height + pd * 2;
-      const gs = sil.getContext("2d"); gs.drawImage(cr.c, pd, pd); gs.globalCompositeOperation = "source-in"; gs.fillStyle = OUTLINE_COL[R.base]; gs.fillRect(0, 0, sil.width, sil.height);
-      const gr = ring.getContext("2d"); gr.globalAlpha = 0.18;
-      for (let j = 0; j < 16; j++) { const a = (j / 16) * TAU; gr.drawImage(sil, Math.cos(a) * d, Math.sin(a) * d); }
-      gr.globalAlpha = 1; gr.globalCompositeOperation = "source-in"; gr.fillStyle = OUTLINE_COL[R.base]; gr.globalAlpha = 0.85; gr.fillRect(0, 0, ring.width, ring.height);
+      const gs = sil.getContext("2d"); gs.drawImage(cr.c, pd, pd); gs.globalCompositeOperation = "source-in"; gs.fillStyle = olCol; gs.fillRect(0, 0, sil.width, sil.height);
+      const gr = ring.getContext("2d");
+      const stamp = (dd, col, al) => {
+        const tmp = document.createElement("canvas"); tmp.width = ring.width; tmp.height = ring.height;
+        const gt = tmp.getContext("2d"); gt.globalAlpha = 0.18;
+        for (let j = 0; j < 16; j++) { const a = (j / 16) * TAU; gt.drawImage(sil, Math.cos(a) * dd, Math.sin(a) * dd); }
+        gt.globalAlpha = al; gt.globalCompositeOperation = "source-in"; gt.fillStyle = col; gt.fillRect(0, 0, tmp.width, tmp.height);
+        gr.drawImage(tmp, 0, 0);
+      };
+      if (hl) stamp(d + hl, OS.halo, 1);
+      stamp(d, olCol, OS ? 1 : 0.85);
       Object.assign(lay, { ring, rx: lay.x - pd / k, ry: lay.y - pd / k, rw: ring.width / k, rh: ring.height / k });
     }
     S.layers.push(lay);
