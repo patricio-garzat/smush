@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.42.0";
+const VERSION = "0.42.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1947,8 +1947,9 @@ const Sound = (() => {
       thump({ t: 0.3, vol: 0.13 }); thump({ t: 0.55, vol: 0.08 });
     },
     // Logros, misiones, combos y eventos: notitas tipo kalimba (son premios), suaves y cálidas
-    combo(n) { const sc = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51]; pluck(sc[Math.min(sc.length - 1, n - 3)], { vol: 0.045, dur: 0.5 }); },
-    comboBig() { pluck(659.25, { vol: 0.07 }); pluck(783.99, { t: 0.08, vol: 0.07 }); pluck(1046.5, { t: 0.16, vol: 0.08, dur: 1.2 }); coinRustle(6, 0.1, 0.8); },
+    // Combo: nada en cada golpe; cada 5, una notita grave y muy bajita (siempre la misma, no va subiendo)
+    combo(n) { if (n % 5 === 0) pluck(392, { vol: 0.022, dur: 0.5 }); },
+    comboBig() { pluck(523.25, { vol: 0.045 }); pluck(659.25, { t: 0.09, vol: 0.045 }); pluck(783.99, { t: 0.18, vol: 0.05, dur: 1.1 }); coinRustle(5, 0.12, 0.7); },
     trophy() { breath({ dur: 0.9, vol: 0.04, from: 400, to: 1500 }); pluck(523.25, { t: 0.05, vol: 0.08 }); pluck(659.25, { t: 0.15, vol: 0.08 }); pluck(783.99, { t: 0.25, vol: 0.08 }); pluck(1046.5, { t: 0.37, vol: 0.09, dur: 1.6 }); coinRustle(5, 0.4, 0.7); },
     mission() { pluck(587.33, { vol: 0.07 }); pluck(783.99, { t: 0.1, vol: 0.07 }); pluck(987.77, { t: 0.2, vol: 0.075, dur: 1.2 }); },
     found() { pluck(880, { vol: 0.06 }); pluck(1174.66, { t: 0.09, vol: 0.065, dur: 1.2 }); breath({ dur: 0.4, vol: 0.03, from: 800, to: 1800 }); },
@@ -9193,17 +9194,17 @@ function claimMission(id, btn) {
 }
 
 /* --- Combos --- */
-let combo = 0, comboAt = -9, comboShow = 0, comboPop = -9;
+let combo = 0, comboAt = -9, comboShow = 0, comboPop = -9, comboIn = -9;
 const COMBO_GAP = 0.95, COMBO_MS = [10, 25, 50, 100, 200];
 const speedLog = [];
 function onPlayerKill() {
   if (time - comboAt <= COMBO_GAP) combo++; else combo = 1;
   comboAt = time;
-  if (combo >= 3) { comboShow = combo; comboPop = time; Sound.combo(combo); }
+  if (combo >= 3) { if (!comboShow) comboIn = time; comboShow = combo; comboPop = time; if (!COMBO_MS.includes(combo)) Sound.combo(combo); }
   if (COMBO_MS.includes(combo)) {
     const b = nice(avgReward() * combo * 0.4);
     save.coins += b; save.earned += b; uiDirty = true; coinBump = true;
-    if (W) { floatText(W - 70, seaTop() + 70, "+" + fmtShort(b), "#C9962A", 22); ring(W - 60, seaTop() + 40, 6, 46, 0.6, "#F1C84D", 3, 0.6); }
+    if (W) { const c = comboBox; floatText(c.x - c.w / 2, c.y + c.h + 26, "+" + fmtShort(b), "#C9962A", 22); ring(c.x - c.h / 2, c.y + c.h / 2, c.h * 0.45, c.h * 1.1, 0.6, comboTier(combo), 2, 0.45); }
     Sound.comboBig(); buzz([12, 40, 12]);
   }
   if (tracking()) {
@@ -9213,22 +9214,49 @@ function onPlayerKill() {
     if (speedLog.length > save.g.best.speed) { save.g.best.speed = speedLog.length; markSave(); }
   }
 }
+// El combo: una pastillita de vidrio arriba a la derecha (debajo del encabezado). A la izquierda, un aro que se vacía
+// (el tiempo que queda para seguir el combo) con el número adentro; a la derecha, "COMBO". Entra deslizándose suave,
+// el número crece un pelín en cada golpe y regresa sin rebote; el color sube de nivel en 10, 25 y 50
+const comboBox = { x: 0, y: 0, w: 0, h: 38 };
+const comboTier = (n) => (n >= 50 ? "#9A7BE0" : n >= 25 ? "#F07A45" : n >= 10 ? "#D99A1E" : PAL.onDark ? "#E8E5DE" : "#3A3B36");
+function spaced(g, text, x, y, sp) { for (const ch of text) { g.fillText(ch, x, y); x += g.measureText(ch).width + sp; } }
 function drawCombo() {
   if (comboShow < 3) return;
   const since = time - comboAt;
   if (since > 1.4) { comboShow = 0; return; }
-  const a = since < 1 ? 1 : 1 - (since - 1) / 0.4, pop = Math.max(0, 1 - (time - comboPop) / 0.22), n = comboShow;
-  const col = n >= 50 ? "#A584E8" : n >= 25 ? "#FF7A45" : n >= 10 ? "#E0A622" : PAL.text;
-  const x = W - 16, y = seaTop() + 44;
-  ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(1 + 0.28 * pop, 1 + 0.28 * pop);
-  ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
-  ctx.font = `900 ${n >= 10 ? 34 : 28}px Outfit, -apple-system, system-ui, sans-serif`;
-  ctx.lineWidth = 5; ctx.strokeStyle = PAL.dark ? "rgba(0,0,0,.45)" : "rgba(255,255,255,.85)"; ctx.lineJoin = "round";
-  ctx.strokeText("×" + n, 0, 0); ctx.fillStyle = col; ctx.fillText("×" + n, 0, 0);
-  ctx.font = "800 11px Outfit, -apple-system, system-ui, sans-serif"; ctx.strokeText("COMBO", 0, 14); ctx.fillStyle = col; ctx.fillText("COMBO", 0, 14);
-  // La rayita que se vacía (cuánto queda para seguir el combo)
-  const k = Math.max(0, 1 - since / COMBO_GAP);
-  ctx.globalAlpha = a * 0.9; ctx.fillStyle = PAL.dark ? "rgba(255,255,255,.18)" : "rgba(0,0,0,.1)"; ctx.fillRect(-52, 20, 52, 3); ctx.fillStyle = col; ctx.fillRect(-52 * k, 20, 52 * k, 3);
+  const n = comboShow, col = comboTier(n), dark = PAL.onDark;
+  const kin = reduceMotion ? 1 : easeOut(Math.min(1, (time - comboIn) / 0.32)), kout = since < 1 ? 0 : easeIn((since - 1) / 0.4);
+  const pop = reduceMotion ? 0 : Math.pow(Math.max(0, 1 - (time - comboPop) / 0.24), 2);
+  const h = comboBox.h, R = h / 2 - 5, lab = "COMBO", sp = 1.6;
+  ctx.save();
+  ctx.font = "800 10px Outfit, -apple-system, system-ui, sans-serif";
+  let lw = -sp; for (const ch of lab) lw += ctx.measureText(ch).width + sp;
+  const w = 5 + R * 2 + 9 + lw + 13, x1 = W - 12, x0 = x1 - w, y0 = seaTop() + 8;
+  comboBox.x = x1; comboBox.y = y0; comboBox.w = w;
+  ctx.globalAlpha = kin * (1 - kout);
+  ctx.translate((1 - kin) * 14 + kout * 6, 0);
+  // La pastilla: sombrita suave abajo, vidrio y una orillita
+  ctx.fillStyle = dark ? "rgba(0,0,0,0.22)" : "rgba(40,42,36,0.08)";
+  ctx.beginPath(); ctx.roundRect(x0, y0 + 2, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = dark ? "rgba(30,32,38,0.78)" : "rgba(255,255,255,0.86)";
+  ctx.beginPath(); ctx.roundRect(x0, y0, w, h, h / 2); ctx.fill();
+  ctx.strokeStyle = dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"; ctx.lineWidth = 1; ctx.stroke();
+  // El aro con el tiempo que queda
+  const cx = x0 + 5 + R, cy = y0 + h / 2, k = Math.max(0, 1 - since / COMBO_GAP);
+  ctx.lineCap = "round"; ctx.lineWidth = 2.6;
+  ctx.strokeStyle = dark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+  if (k > 0) { ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + TAU * k); ctx.stroke(); }
+  // El número
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(1 + 0.16 * pop, 1 + 0.16 * pop);
+  ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = col;
+  ctx.font = `800 ${n >= 100 ? 11.5 : n >= 10 ? 13.5 : 15}px Outfit, -apple-system, system-ui, sans-serif`;
+  ctx.fillText(String(n), 0, 1);
+  ctx.restore();
+  // "COMBO"
+  ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.font = "800 10px Outfit, -apple-system, system-ui, sans-serif";
+  ctx.fillStyle = n >= 10 ? col : dark ? "rgba(232,229,222,0.7)" : "rgba(36,37,33,0.55)";
+  spaced(ctx, lab, cx + R + 9, cy + 0.5, sp);
   ctx.restore(); ctx.globalAlpha = 1;
 }
 
