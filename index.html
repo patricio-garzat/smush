@@ -1098,7 +1098,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.42.2";
+const VERSION = "0.43.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1268,8 +1268,9 @@ const TOOLS = {
   // Click: 10 niveles. El 1 aplasta uno a la vez; luego un área de 24 a 90 px (máximo 90 en cualquier pantalla)
   finger: { price: 0, max: 10, upgrades: ups(150, 1.8).slice(0, 9), radius: Array.from({ length: 10 }, (_, i) => (i === 0 ? 0 : Math.round(24 * (90 / 24) ** ((i - 1) / 8)))), slop: 10 },
   bolt:   { price: 1200, max: 20, upgrades: ups(2000, 1.42), chains: L20((v) => 2 + Math.floor((v - 1) * 0.55)), range: L20((v) => Math.round(curve(130, 230, v))), hop: 0.05 }, // de 2 a 12 en cadena
-  // Sierra: mantén y arrastra. 5 niveles; cada mejora cuesta el doble que la anterior (20k, 40k, 80k, 160k) y su radio crece de 22 a 90 px
-  saw:    { price: 10000, max: 5, upgrades: [20000, 40000, 80000, 160000], radius: Array.from({ length: 5 }, (_, i) => Math.round(22 * (90 / 22) ** (i / 4))) },
+  // Sierra: mantén y arrastra. 4 niveles; cada mejora cuesta el doble que la anterior (20k, 40k, 80k).
+  // radius = px en el celular (20 → 35); en pantallas más grandes crece en proporción (ver sawRadius)
+  saw:    { price: 10000, max: 4, upgrades: [20000, 40000, 80000], radius: [20, 25, 30, 35] },
   // The Beach
   bomb:   { price: 4000, world: 1, max: 20, upgrades: ups(1500, 1.38), count: L20((v) => Math.min(10, v)), radius: L20((v) => Math.round(curve(70, 185, v))) }, // hasta 10 bombas; luego, más grandes
   wave:   { price: 15000, world: 1, only: 1, max: 20, upgrades: ups(20000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.5, v) * 10) / 10), dur: L20((v) => curve(1.8, 1.2, v)) }, // tsunami: baja desde el mar y arrastra a todos
@@ -1284,6 +1285,8 @@ const TOOLS = {
 const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car", "arrows"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
+// Radio de la sierra en esta pantalla (l = nivel 1–4): en el celular, exacto; en la compu, más grande en proporción
+const sawRadius = (l) => { const r = TOOLS.saw.radius[clamp(l, 1, TOOLS.saw.max) - 1]; return W && W < PHONE_WIDTH ? r : Math.round(r * clamp(RS / 0.65, 1, 1.6)); };
 const toolWorld = (id) => TOOLS[id].world || 0;
 const toolGone = (id) => TOOLS[id].only != null && save.level > TOOLS[id].only; // ya no existe en este nivel
 const toolHere = (id) => toolWorld(id) <= save.level && !toolGone(id);
@@ -1291,16 +1294,15 @@ const toolHere = (id) => toolWorld(id) <= save.level && !toolGone(id);
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
 const upCost = (base, g) => (l) => nice(base * g ** l); // precio del nivel l+1
 const UP = {
-  // Ayudantes: hasta 5, los acomodas tú. Son dedos o nubes (uno u otro)
-  hire:   { tab: "helpers", max: 5, cost: [100, 350, 1000, 2500, 6000] },       // cuántos ayudantes (máximo 5)
-  cloud:  { tab: "helpers", max: 1, cost: [3000] },                              // desbloquea las nubes eléctricas
-  // Mejoras de los dedos
-  fspeed: { tab: "helpers", max: 20, cost: upCost(200, 1.4) },   // toques por segundo (2 → 10)
-  farea:  { tab: "helpers", max: 10, cost: upCost(500, 1.6) },   // área de cada toque (22 → 90 px, 10 niveles)
-  fmove:  { tab: "helpers", max: 1, cost: [25000] },             // los dedos dejan su lugar y persiguen marcianitos
+  // Ayudantes (desde 0.43): primero se desbloquean y llegan las nubes (3 en el celular, 5 en la compu), ya trabajando
+  // en lugares fijos (las puedes mover). Luego, los dedos cazadores: más caros, cada uno persigue marcianitos solo
+  hire:    { tab: "helpers", max: 1, cost: [1500] },                              // desbloquea a los ayudantes: llegan las nubes
   // Mejoras de las nubes
-  carea:  { tab: "helpers", max: 20, cost: upCost(800, 1.42) },  // qué tan lejos alcanzan
-  cchain: { tab: "helpers", max: 20, cost: upCost(600, 1.42) },  // marcianitos por descarga (2 → 10) y distancia del salto
+  carea:   { tab: "helpers", max: 20, cost: upCost(800, 1.42), need: "hire" },    // qué tan lejos alcanzan
+  cchain:  { tab: "helpers", max: 20, cost: upCost(600, 1.42), need: "hire" },    // marcianitos por descarga (2 → 10) y distancia del salto
+  // Dedos cazadores (hasta 3 en el celular, 5 en la compu) y su única mejora: la velocidad
+  fingers: { tab: "helpers", max: 5, cost: [5000, 12000, 30000, 70000, 160000], need: "hire" },
+  fspeed:  { tab: "helpers", max: 16, cost: upCost(400, 1.45), need: "fingers" }, // toques por segundo de cada dedo (2 → 10)
   // Ayudante de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
   // Mejoras
   value:  { tab: "boosts", max: 20, cost: upCost(80, 1.5) },     // más monedas
@@ -1309,18 +1311,20 @@ const UP = {
   night:  { tab: "boosts", max: 20, cost: upCost(300, 1.5) },    // más horas fuera
 };
 const HELPER_MAX = 5; // ayudantes como máximo (se usa al cargar el guardado: tiene que estar definido antes)
-const HELPER_KEYS = ["hire"]; // los que se pueden apagar
+const HELPER_KEYS = ["hire", "fingers"]; // los que se pueden apagar (las nubes y los dedos)
 // Cuántos trabajan de verdad: los contratados, salvo que estén apagados
 // En el celular caben menos: máximo 3 ayudantes (dedos o nubes). Si ya tenías más, siguen siendo tuyos, pero ahí trabajan 3
 const HELPER_MAX_PHONE = 3;
 const helperCap = () => (W && W < PHONE_WIDTH ? HELPER_MAX_PHONE : HELPER_MAX);
-const upMax = (k) => (k === "hire" ? helperCap() : UP[k].max);
-const active = (k) => (save.off[k] ? 0 : k === "hire" ? Math.min(save.up.hire, helperCap()) : save.up[k]);
-const UP_ORDER = ["hire", "cloud", "fspeed", "farea", "fmove", "carea", "cchain", "value", "crowd", "luck", "night"];
+const upMax = (k) => (k === "fingers" ? helperCap() : UP[k].max);
+const active = (k) => (save.off[k] ? 0 : save.up[k]);
+const cloudsActive = () => (save.up.hire && !save.off.hire ? helperCap() : 0);     // las nubes: todas llegan al desbloquear
+const fingersActive = () => (save.off.fingers ? 0 : Math.min(save.up.fingers, helperCap()));
+const UP_ORDER = ["hire", "carea", "cchain", "fingers", "fspeed", "value", "crowd", "luck", "night"];
 // Qué hace cada nivel (l = nivel comprado, 0 = sin comprar)
 const FX = {
-  fingerRate: (l) => Math.round((2 + 0.4 * l) * 10) / 10,  // toques por segundo de cada dedo (2 → 10)
-  fingerArea: (l) => Math.round(22 * (90 / 22) ** (l / 10)), // radio del área de cada dedo (22 → 90 px, igual en cualquier pantalla)
+  fingerRate: (l) => 2 + 0.5 * l,                           // toques por segundo de cada dedo cazador (2 → 10)
+  fingerArea: () => 22,                                     // radio del toque de cada dedo (px, igual en cualquier pantalla)
   cloudArea: (l) => Math.round(64 * 2.4 ** (l / 20)),      // qué tan lejos alcanza cada nube (64 → 154 px)
   cloudHits: (l) => 2 + Math.floor((l * 8) / 20),          // a cuántos marcianitos llega cada descarga (2 → 10)
   cloudJump: (l) => 100 + 4 * l,                           // qué tan lejos salta la descarga de uno a otro (px)
@@ -1357,9 +1361,7 @@ const ICONS = {
   hire:   svgI(`<path ${SOFT} d="M9 12.5V5.6a1.6 1.6 0 0 1 3.2 0v5.2l3.7.6a2.4 2.4 0 0 1 2 2.6l-.4 3.6A4 4 0 0 1 13.5 21h-2.2a4 4 0 0 1-3.2-1.6l-2.4-3.2a1.5 1.5 0 0 1 2.3-1.9L9 15.5z"/>`),
   cloud:  svgI(`<path ${SOFT} d="M7 15.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.4 3.3 3.3 0 0 1 .5 6.6z"/><path d="M12.5 15.5 11 19h2.5L12 22.5"/>`),
   fspeed: svgI(`<circle ${SOFT} cx="12" cy="13.5" r="7.5"/><path d="M12 13.5 15 10.5M10 2.5h4M18.6 6.4l1.3-1.3"/>`),
-  fmove:  svgI(`<circle ${SOFT} cx="15" cy="9" r="5.5"/><circle cx="15" cy="9" r="1.6"/><path d="M3 20c2.5-1 4-3 5-6M3 15.5c1.6-.6 2.6-1.8 3.2-3.5"/>`),
   cchain: svgI(`<circle ${SOFT} cx="5" cy="17" r="2.6"/><circle ${SOFT} cx="12" cy="7" r="2.6"/><circle ${SOFT} cx="19" cy="16" r="2.6"/><path d="M6.6 14.6 9.8 9.6M14.2 9.2 17 13.4" stroke-width="1.8"/>`),
-  farea:  svgI(`<circle ${SOFT} cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 1.8v2.4M12 19.8v2.4M1.8 12h2.4M19.8 12h2.4"/>`),
   carea:  svgI(`<circle ${SOFT} cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 1.8v2.4M12 19.8v2.4M1.8 12h2.4M19.8 12h2.4"/>`),
   value:  svgI(`<ellipse ${SOFT} cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>`),
   crowd:  svgI(`<circle ${SOFT} cx="6.8" cy="15" r="3.4"/><circle ${SOFT} cx="17.2" cy="15" r="3.4"/><circle ${SOFT} cx="12" cy="11" r="4"/><path d="M10.6 7.1 9.6 4.4M13.4 7.1l1-2.7"/>`),
@@ -1374,7 +1376,7 @@ const ICONS = {
 const HUE = {
   finger: "#7D8AA3", boot: "#4F86E8", saw: "#E5653A", bolt: "#F0A12E", bomb: "#4A5068", meteor: "#EE7537", wave: "#2C9FC2",
   jet: "#5C7CFA", aval: "#5E9BE0", car: "#E2604F", arrows: "#C8763A",
-  hire: "#8E99AE", cloud: "#6C7FA8", fspeed: "#22B07D", farea: "#E5534B", fmove: "#F0A12E", carea: "#4F86E8", cchain: "#7C5CE0",
+  hire: "#6C7FA8", fingers: "#8E99AE", fspeed: "#22B07D", carea: "#4F86E8", cchain: "#7C5CE0",
   value: "#E3A21A", crowd: "#47B47E", luck: "#EFAE2A", night: "#4B5BD6",
 };
 
@@ -1407,13 +1409,13 @@ const freshSave = () => ({
   coins: 0, earned: 0, spent: 0, smushed: 0, awayEarned: 0, escaped: 0,
   byType: { green: 0, orange: 0, purple: 0, yellow: 0 },
   tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0, car: 0, arrows: 0 }, // 0 = sin comprar; 1+ = nivel
-  up: { hire: 0, cloud: 0, fspeed: 0, farea: 0, fmove: 0, carea: 0, cchain: 0, value: 0, crowd: 0, luck: 0, night: 0 },
+  up: { hire: 0, carea: 0, cchain: 0, fingers: 0, fspeed: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
-  v: 4, // versión del guardado
+  v: 5, // versión del guardado
   level: 0, // nivel actual (la meta del siguiente usa el total de aplastados, que nunca se reinicia)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
   readyAsked: -1, // nivel en el que ya avisamos que podías viajar (solo se avisa una vez por nivel)
-  spots: [], hmode: "finger", // dónde acomodaste a cada ayudante (fracción del área) y si son dedos o nubes
+  spots: [], // dónde está cada nube (fracción del área); llegan solas a su lugar y las puedes mover
   off: {}, // ayudantes apagados con su interruptor (siguen contratados, solo no trabajan)
   g: freshGoals(), // misiones, coleccionables, combos, reyes y trofeos
 });
@@ -1438,6 +1440,8 @@ function loadSave() {
     if (sawOld > 10) { const old = ups(12000, 1.4), m = LEVELS[d.level].coinMult || 1; for (let n = 11; n <= sawOld; n++) { const c = nice(old[n - 2] * m); d.coins += c; d.spent = Math.max(0, d.spent - c); } }
     // Y desde 0.41.8 tiene 5: los niveles 6 a 10 también se devuelven (al precio de los 10 niveles)
     if (sawOld > 5) { const old = ups(12000, 1.6), m = LEVELS[d.level].coinMult || 1; for (let n = 6; n <= Math.min(10, sawOld); n++) { const c = nice(old[n - 2] * m); d.coins += c; d.spent = Math.max(0, d.spent - c); } }
+    // Y desde 0.43 tiene 4: el nivel 5 se devuelve (lo que costaba: 160k en monedas de The Void)
+    if (sawOld >= 5) { const c = nice(160000 * (LEVELS[d.level].coinMult || 1)); d.coins += c; d.spent = Math.max(0, d.spent - c); }
     // La Bota (herramienta) ya no existe: se devuelve lo que costó
     const boot = clamp(Math.floor(num(s.tools && s.tools.boot)), 0, 3);
     if (boot) { const c = [100, 200, 600].slice(0, boot).reduce((a, b) => a + b, 0); d.coins += c; d.spent = Math.max(0, d.spent - c); }
@@ -1473,7 +1477,6 @@ function loadSave() {
       try {
         if (Array.isArray(s.spots)) d.spots = s.spots.slice(0, HELPER_MAX).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)).map((p) => ({ x: clamp(p.x, 0, 1), y: clamp(p.y, 0, 1) }));
       } catch (e) {}
-      if (s.hmode === "cloud" && d.up.cloud) d.hmode = "cloud";
     }
     delete d.up.boltH;
     // Velocidad y Área de antes (compartidas): ahora dedos y nubes tienen sus propias mejoras; se devuelve lo que costaron
@@ -1483,7 +1486,20 @@ function loadSave() {
         for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); }
       }
     }
-    d.v = 4;
+    // Ayudantes de antes de 0.43 (hasta 5 dedos o nubes que acomodabas, Área, Cazadores): se devuelve lo que costaron.
+    // Si ya tenías ayudantes, las nubes nuevas llegan gratis
+    if (s.v >= 3 && s.v < 5) {
+      const u = s.up || {}, m = LEVELS[d.level].coinMult || 1, int = (v, mx) => clamp(Math.floor(num(v)), 0, mx);
+      const back = (c) => { c = nice(c * m); d.coins += c; d.spent = Math.max(0, d.spent - c); };
+      const oldHire = int(u.hire, 5);
+      [100, 350, 1000, 2500, 6000].slice(0, oldHire).forEach(back);
+      if (int(u.cloud, 1)) back(3000);
+      for (let l = 0; l < int(u.fspeed, 20); l++) back(200 * 1.4 ** l);
+      for (let l = 0; l < int(u.farea, 10); l++) back(500 * 1.6 ** l);
+      if (int(u.fmove, 1)) back(25000);
+      d.up.hire = oldHire > 0 ? 1 : 0; d.up.fingers = 0; d.up.fspeed = 0;
+    }
+    d.v = 5;
     // La Lluvia ácida ya no existe, y los Meteoritos ahora son de The Slopes: se devuelve lo que costaron
     const refund = (l, prices) => { for (let i = 0; i < l; i++) { d.coins += prices[i]; d.spent = Math.max(0, d.spent - prices[i]); } };
     refund(clamp(Math.floor(num(s.tools && s.tools.acid)), 0, 3), [20000, 35000, 60000]);
@@ -1534,7 +1550,7 @@ const STR = {
   shopCan: ["things you can buy", "cosas que puedes comprar"], shopCan1: ["thing you can buy", "cosa que puedes comprar"],
   tabTools: ["Tools", "Herramientas"], tabHelpers: ["Helpers", "Ayudantes"], tabBoosts: ["Boosts", "Mejoras"],
   noteTools: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
-  noteHelpers: ["Helpers stay where you put them and tap that spot on their own, even while you're away. Drag them to move them.", "Los ayudantes se quedan donde los pones y tocan ese lugar solos, incluso cuando no estás. Arrástralos para moverlos."],
+  noteHelpers: ["Helpers work on their own, even while you're away. Clouds stay in their spot (drag them to move them); hunting fingers chase the aliens.", "Los ayudantes trabajan solos, incluso cuando no estás. Las nubes se quedan en su lugar (arrástralas para moverlas); los dedos cazadores persiguen a los marcianitos."],
   working: ["Working", "Trabajando"], turnedOff: ["Off", "Apagado"],
   noteBoosts: ["Permanent upgrades that make every smush count more.", "Mejoras permanentes para que cada aplastón rinda más."],
   settings: ["Settings", "Ajustes"],
@@ -1555,7 +1571,7 @@ const STR = {
   how2: ["Spend coins in the Shop on tools, helpers and boosts.", "Usa tus monedas en la Tienda: herramientas, ayudantes y mejoras."],
   how3: ["Switch tools anytime from the bar below. Hold and drag to use the Saw.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar la Sierra."],
   how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 60.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 60."],
-  how5: ["Hire up to 5 helpers and place them anywhere: they tap their spot on their own, even while you're away. Make them fingers or shock clouds.", "Contrata hasta 5 ayudantes y acomódalos donde quieras: tocan su lugar solos, incluso cuando no estás. Pueden ser dedos o nubes eléctricas."],
+  how5: ["Unlock helpers and shock clouds arrive to zap aliens on their own (drag them anywhere). Then hire hunting fingers that chase the aliens. They keep working while you're away.", "Desbloquea a los ayudantes y llegan nubes eléctricas que electrocutan marcianitos solas (arrástralas a donde quieras). Luego contrata dedos cazadores que persiguen a los marcianitos. Siguen trabajando cuando no estás."],
   how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there with a few coins of that world; your smush count comes with you.", "Cada marcianito que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marcianito vale más. Ahí empiezas de cero con unas monedas de ese mundo; tu cuenta de aplastados viaja contigo."],
   how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
   data: ["Data", "Datos"],
@@ -1612,20 +1628,19 @@ const STR = {
   stay: ["Stay a bit", "Un rato más"], travelNow: ["Travel now", "Viajar ya"], unlocked: ["unlocked", "desbloqueado"],
   readyTitle: ["is waiting for you", "te espera"], welcomeTo: ["Welcome to", "Bienvenido a"],
   currentLevel: ["Level", "Nivel"],
-  cloud: ["Shock clouds", "Nubes eléctricas"], cloudD: ["Turn your helpers into clouds that zap whatever passes near their spot, in a chain. Switch between fingers and clouds anytime.", "Convierte a tus ayudantes en nubes que electrocutan en cadena a lo que pase cerca de su lugar. Cambia entre dedos y nubes cuando quieras."],
   needFinger: ["Needs a finger", "Falta un dedo"], needBoot: ["Needs a boot", "Falta una bota"],
   convert: ["Convert", "Convertir"],
   escaped: ["Got away", "Se escaparon"],
-  hire: ["Helpers", "Ayudantes"], hireD: ["Place them anywhere on the field: each one taps its spot on its own, even while you're away. Up to 5.", "Acomódalos donde quieras: cada uno toca su lugar solo, incluso cuando no estás. Hasta 5."],
-  fspeed: ["Finger speed", "Velocidad"], fspeedD: ["How many times per second each finger taps (up to 10).", "Cuántas veces por segundo toca cada dedo (hasta 10)."],
-  farea: ["Finger area", "Área"], fareaD: ["A bigger area for every tap.", "Un área más grande en cada toque."],
-  fmove: ["Hunting fingers", "Dedos cazadores"], fmoveD: ["Your fingers leave their spot and chase the aliens on their own.", "Tus dedos dejan su lugar y persiguen a los marcianitos solos."],
+  hire: ["Helpers", "Ayudantes"], hireD: ["Unlock your helpers: shock clouds arrive and start zapping aliens on their own, even while you're away. Drag them anywhere you like.", "Desbloquea a tus ayudantes: llegan nubes eléctricas que electrocutan marcianitos solas, incluso cuando no estás. Arrástralas a donde quieras."],
+  fingers: ["Hunting fingers", "Dedos cazadores"], fingersD: ["Each one chases the aliens on its own and smushes them. Upgrade their speed.", "Cada uno persigue a los marcianitos solo y los aplasta. Mejora su velocidad."],
+  needHire: ["Unlock helpers first", "Primero desbloquea"], unlocked: ["Unlocked", "Desbloqueado"], needFingers: ["Hire a finger first", "Primero contrata un dedo"],
+  fspeed: ["Finger speed", "Velocidad"], fspeedD: ["How many times per second each hunting finger taps (up to 10).", "Cuántas veces por segundo toca cada dedo cazador (hasta 10)."],
   carea: ["Cloud reach", "Alcance"], careaD: ["How far around its spot each cloud can zap.", "Qué tan lejos de su lugar alcanza a electrocutar cada nube."],
   cchain: ["Chain shock", "Descarga en cadena"], cchainD: ["How many aliens each shock jumps through (up to 10).", "A cuántos marcianitos salta cada descarga (hasta 10)."],
-  secFingers: ["Finger upgrades", "Mejoras de los dedos"], secClouds: ["Cloud upgrades", "Mejoras de las nubes"],
+  secFingers: ["Hunting fingers", "Dedos cazadores"], secClouds: ["Shock clouds", "Nubes eléctricas"],
   toPlace: ["to place when you close the Shop", "por acomodar al cerrar la Tienda"], placeLeft: ["more", "más"],
   modeFingers: ["Fingers", "Dedos"], modeClouds: ["Clouds", "Nubes"], unlock: ["Unlock", "Desbloquear"],
-  placeHint: ["Tap where your helper should go", "Toca donde quieres poner a tu ayudante"], dragHint: ["Drag them on the field to move them.", "Arrástralos en el campo para moverlos."],
+  placeHint: ["Tap where your helper should go", "Toca donde quieres poner a tu ayudante"], dragHint: ["Drag the clouds on the field to move them.", "Arrastra las nubes en el campo para moverlas."],
   value: ["Golden touch", "Toque de oro"], valueD: ["Every alien is worth more coins.", "Cada marcianito vale más monedas."],
   crowd: ["Busy planet", "Planeta lleno"], crowdD: ["More aliens, arriving faster.", "Más marcianitos, y llegan más rápido."],
   luck: ["Lucky star", "Estrella de la suerte"], luckD: ["Golden aliens show up more often.", "Los dorados aparecen más seguido."],
@@ -1650,7 +1665,7 @@ function statText(id, lvl) {
   const i = lvl - 1, es = LANG === "es";
   if (id === "finger") { const r = TOOLS.finger.radius[i]; return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
 
-  if (id === "saw") { const r = Math.max(8, px(TOOLS.saw.radius[i])); return es ? `Radio de ${r} px` : `${r} px radius`; }
+  if (id === "saw") { const r = sawRadius(lvl); return es ? `Radio de ${r} px` : `${r} px radius`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]); return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   if (id === "car") { const c = TOOLS.car.cooldown[i]; return es ? `Atropella un carril · cada ${c} s` : `Runs over a lane · every ${c}s`; }
@@ -1662,7 +1677,7 @@ function statShort(id, lvl) {
   const i = lvl - 1;
   if (id === "finger") return `${TOOLS.finger.radius[i]} px`;
 
-  if (id === "saw") return `${Math.max(8, px(TOOLS.saw.radius[i]))} px`;
+  if (id === "saw") return `${sawRadius(lvl)} px`;
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${px(TOOLS.bolt.range[i])} px`;
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval" || id === "car") return `${TOOLS[id].cooldown[i]}${s}`;
@@ -1674,13 +1689,11 @@ function statShort(id, lvl) {
 function upText(k, l, short) {
   const es = LANG === "es", n = (x) => x.toLocaleString(loc(), { maximumFractionDigits: 1 });
   switch (k) {
-    case "hire": return short ? String(l) : es ? `${l} de ${helperCap()} ${l === 1 ? "ayudante" : "ayudantes"}` : `${l} of ${helperCap()} ${l === 1 ? "helper" : "helpers"}`;
-    case "cloud": return !l ? (es ? "Bloqueadas" : "Locked") : save.hmode === "cloud" ? (es ? "Usando nubes" : "Using clouds") : es ? "Usando dedos" : "Using fingers";
+    case "hire": { const c = helperCap(); return short ? `${c}` : !l ? (es ? `Bloqueados · llegan ${c} nubes` : `Locked · ${c} clouds arrive`) : es ? `${c} nubes trabajando` : `${c} clouds working`; }
+    case "fingers": return short ? String(l) : es ? `${l} de ${helperCap()} ${l === 1 ? "dedo" : "dedos"}` : `${l} of ${helperCap()} ${l === 1 ? "finger" : "fingers"}`;
     case "fspeed": { const r = FX.fingerRate(l); return short ? `${r}/s` : es ? `${r} toques por segundo` : `${r} taps per second`; }
-    case "fmove": return !l ? (es ? "Se quedan en su lugar" : "Stay in their spot") : es ? "Persiguen marcianitos" : "Chase aliens";
     case "carea": { const r = px(FX.cloudArea(l)); return short ? `${r} px` : es ? `Alcance de ${r} px` : `${r} px reach`; }
     case "cchain": { const r = FX.cloudHits(l), j = px(FX.cloudJump(l)); return short ? `${r} · ${j} px` : es ? `${r} marcianitos por descarga · saltos de ${j} px` : `${r} aliens per shock · ${j} px jumps`; }
-    case "farea": { const r = FX.fingerArea(l); return short ? `${r} px` : es ? `Área de ${r} px` : `${r} px area`; }
     case "jet": {
       if (!l) return tx("notHired");
       const s = n(FX.jetEvery(l));
@@ -2394,7 +2407,7 @@ function resize() {
   buildBackground();
   for (const b of balls) keepInside(b);
   for (const h of helpers) { h.x = clamp(h.x, 0, W); h.y = clamp(h.y, 0, H); }
-  if (helpers.length !== active("hire")) { syncHelpers(); if (typeof renderShop === "function") renderShop(); }
+  if (helpers.length !== cloudsActive() + fingersActive()) { syncHelpers(); if (typeof renderShop === "function") renderShop(); }
   updateTarget();
 }
 function updateTarget() {
@@ -2882,7 +2895,7 @@ function sawSprite(R) {
 }
 // La sierra va centrada justo donde pones el dedo (o el mouse)
 function sawTick(p, dt) {
-  const R = Math.round(Math.max(16, TOOLS.saw.radius[lvlOf("saw") - 1] * RS)); // en el celular nunca más chica que un marcianito
+  const R = sawRadius(lvlOf("saw"));
   let s = p.saw;
   if (!s || !saws.includes(s)) { s = p.saw = { p, x: p.x, y: p.y, rot: rand(0, TAU), spin: 14, vx: 0, vy: 0, R, held: true, fade: 1, cutT: 0 }; saws.push(s); }
   s.R = R;
@@ -3076,50 +3089,55 @@ function updateMeteors(dt) {
   }
 }
 
-/* ---------- 10. Ayudantes: hasta 5, cada uno en el lugar donde tú lo pongas. Tocan ese punto solos (también si no estás).
-   Son dedos (aplastan el área bajo ellos) o nubes eléctricas (electrocutan al que pase cerca, en cadena): uno u otro. ---------- */
+/* ---------- 10. Ayudantes (desde 0.43). Se desbloquean y llegan las nubes eléctricas (3 en el celular, 5 en la compu):
+   cada una se pone sola en su lugar y electrocuta al que pase cerca, en cadena; las puedes arrastrar a donde quieras.
+   Luego, los dedos cazadores (más caros): cada uno persigue a los marcianitos solo y los aplasta; se mejora su velocidad.
+   Todos trabajan también cuando no estás. ---------- */
 const helpers = [];
 const helperImg = {};
-// Lugares de inicio (en fracciones del área de juego) antes de que los muevas
-const SPOT0 = [[0.3, 0.45], [0.7, 0.45], [0.5, 0.66], [0.24, 0.8], [0.76, 0.8]];
-const helperKind = () => (save.hmode === "cloud" && save.up.cloud ? "bolt" : "finger");
-const helperArea = () => (helperKind() === "bolt" ? FX.cloudArea(save.up.carea) * RS : FX.fingerArea(save.up.farea));
+// Lugares de las nubes (en fracciones del área de juego) antes de que las muevas
+const SPOT0 = [[0.28, 0.42], [0.72, 0.42], [0.5, 0.68], [0.24, 0.82], [0.76, 0.82]];
+// A dónde regresan los dedos cuando no hay a quién perseguir
+const FHOME = [[0.5, 0.56], [0.3, 0.72], [0.7, 0.72], [0.35, 0.44], [0.65, 0.44]];
+const cloudArea = () => FX.cloudArea(save.up.carea) * RS;
+const helperArea = cloudArea; // el área que se dibuja en el piso (solo las nubes tienen lugar)
 const CLOUD_RATE = 2; // descargas por segundo de cada nube
-const helperRateNow = () => (helperKind() === "bolt" ? CLOUD_RATE : FX.fingerRate(save.up.fspeed));
-// Dónde va cada ayudante en px (dentro del área y nunca en el mar ni en los picos)
+// Dónde va cada nube en px (dentro del área y nunca en el mar ni en los picos)
 function spotPos(i) {
   const s = save.spots[i] || { x: SPOT0[i][0], y: SPOT0[i][1] }, top = (seaTop() || 0) + 30;
   return { x: clamp(s.x * W, 20, W - 20), y: clamp(s.y * H, Math.min(top, H - 20), H - 20) };
 }
+function fingerHome(i) {
+  const [fx, fy] = FHOME[i % FHOME.length], top = (seaTop() || 0) + 30;
+  return { x: clamp(fx * W, 20, W - 20), y: clamp(fy * H, Math.min(top, H - 20), H - 20) };
+}
 function syncHelpers() {
-  while (save.spots.length < save.up.hire) { const [x, y] = SPOT0[save.spots.length]; save.spots.push({ x, y }); }
-  const n = active("hire"), kind = helperKind();
-  while (helpers.length < n) { const i = helpers.length, p = spotPos(i); helpers.push({ i, kind, x: p.x, y: p.y, timer: rand(0, 0.5), press: 0, born: 0, bob: rand(0, TAU) }); }
-  helpers.length = Math.min(helpers.length, n);
-  for (const h of helpers) {
-    if (h.kind === kind) continue;
-    // Cambió de dedo a nube (o al revés): un destellito
-    ring(h.x, h.y, 6, 26, 0.5, "#F1C84D", 2, 0.45);
-    for (let k = 0; k < 5; k++) { const a = rand(0, TAU); part(h.x, h.y - 20, Math.cos(a) * 90, Math.sin(a) * 90, rand(1.4, 2.4), 0.6, "#FFF3C4", "star", 3, 0); }
-    h.kind = kind; h.born = 0;
-  }
+  const nc = cloudsActive(), nf = fingersActive();
+  while (save.spots.length < nc) { const [x, y] = SPOT0[save.spots.length]; save.spots.push({ x, y }); }
+  const cl = helpers.filter((h) => h.kind === "bolt"), fi = helpers.filter((h) => h.kind === "finger");
+  const add = (list, kind, p) => list.push({ i: list.length, kind, x: p.x, y: p.y, timer: rand(0, 0.5), press: 0, born: 0, bob: rand(0, TAU) });
+  while (cl.length < nc) add(cl, "bolt", spotPos(cl.length));
+  while (fi.length < nf) add(fi, "finger", fingerHome(fi.length));
+  cl.length = nc; fi.length = nf;
+  helpers.length = 0; helpers.push(...cl, ...fi);
 }
 // Altura a la que flota cada tipo (px sobre el piso)
 const HOVER = { finger: 7, bolt: 46 };
 const HELPER_ALPHA = 0.88;
 function updateHelpers(dt) {
   if (!helpers.length) return;
-  const iv = 1 / helperRateNow(), R = helperArea(), pressDur = Math.min(0.16, iv * 0.7);
+  const fiv = 1 / FX.fingerRate(save.up.fspeed), civ = 1 / CLOUD_RATE, FR = FX.fingerArea(), CR = cloudArea();
   for (const h of helpers) {
+    const iv = h.kind === "finger" ? fiv : civ, R = h.kind === "finger" ? FR : CR, pressDur = Math.min(0.16, iv * 0.7);
     h.born = Math.min(1, h.born + dt * 2.5);
     h.bob += dt * 2.2;
     h.press = Math.max(0, h.press - dt / pressDur);
-    if (h.kind === "finger" && save.up.fmove && !h.drag) {
-      // Dedos cazadores: van tras el marcianito más cercano (cerca de su lugar, y sin amontonarse); si no hay, regresan
+    if (h.kind === "finger") {
+      // Dedos cazadores: van tras el marcianito más cercano (sin amontonarse); si no hay, regresan a su lugar
       const t = h.target;
       if (!t || t.state === "die" || t.pull || isOut(t)) {
         h.target = null;
-        const home = spotPos(h.i);
+        const home = fingerHome(h.i);
         let best = null, bs = Infinity;
         for (const b of balls) {
           if (b.state === "die" || b.pull || !b.entered) continue;
@@ -3129,7 +3147,7 @@ function updateHelpers(dt) {
         }
         h.target = best;
       }
-      const dest = h.target || spotPos(h.i), dx = dest.x - h.x, dy = dest.y - h.y, d = Math.hypot(dx, dy);
+      const dest = h.target || fingerHome(h.i), dx = dest.x - h.x, dy = dest.y - h.y, d = Math.hypot(dx, dy);
       if (d > 0.5) { const step = Math.min(d, (110 + d * 3) * dt); h.x += (dx / d) * step; h.y += (dy / d) * step; }
     } else {
       // Se queda en su lugar (si lo mueves, llega deslizándose)
@@ -3161,9 +3179,10 @@ function updateHelpers(dt) {
 // El área de cada ayudante en el piso (sutil), para ver qué cubre; más visible mientras lo acomodas
 function drawHelperSpots() {
   if (!helpers.length) return;
-  const R = helperArea();
+  const R = cloudArea();
   ctx.lineWidth = 1.5; ctx.strokeStyle = PAL.text; ctx.setLineDash([4, 6]);
   for (const h of helpers) {
+    if (h.kind !== "bolt") continue; // los dedos no tienen lugar: persiguen
     const sel = h.drag || placing === h.i;
     ctx.globalAlpha = h.born * (sel ? 0.4 : 0.13);
     ctx.lineDashOffset = -time * 8;
@@ -3217,6 +3236,7 @@ function placeAt(x, y) {
 function helperAt(x, y) {
   let best = null, bd = 30;
   for (const h of helpers) {
+    if (h.kind !== "bolt") continue; // solo las nubes se mueven a mano
     const d = Math.min(Math.hypot(h.x - x, h.y - y), Math.hypot(h.x - x, h.y - HOVER[h.kind] - y));
     if (d < bd) { bd = d; best = h; }
   }
@@ -3229,14 +3249,14 @@ function coinsPerTap(dmg) {
   return (coins / taps) * FX.valueMult(save.up.value) * lvl().coinMult;
 }
 function helperRate() {
-  let rate = 0;
-  const n = active("hire");
-  if (n) {
-    // Qué tan seguido hay alguien en su área cuando toca: depende de cuántos marcianitos hay y del tamaño del área
-    const R = helperArea(), area = Math.max(60000, (W || 360) * (H || 600)), crowd = Math.min(baseTarget, perfCap) + FX.crowdExtra(save.up.crowd);
-    const p = Math.min(1, (crowd * Math.PI * R * R * 0.62) / area * (save.up.fmove && helperKind() === "finger" ? 3 : 1)), perClick = helperKind() === "bolt" ? p * (1 + (FX.cloudHits(save.up.cchain) - 1) * 0.5) : p * 1.15;
-    rate += Math.min(n * helperRateNow() * perClick, 7) * coinsPerTap(1); // los marcianitos solo aparecen tan rápido
-  }
+  // Marcianitos por segundo: qué tan seguido hay alguien en el área cuando tocan (depende de cuántos hay y del área)
+  const area = Math.max(60000, (W || 360) * (H || 600)), crowd = Math.min(baseTarget, perfCap) + FX.crowdExtra(save.up.crowd);
+  const reach = (R, k) => Math.min(1, (crowd * Math.PI * R * R * 0.62 * k) / area);
+  let aliens = 0;
+  const nc = cloudsActive(), nf = fingersActive();
+  if (nc) aliens += nc * CLOUD_RATE * reach(cloudArea(), 1) * (1 + (FX.cloudHits(save.up.cchain) - 1) * 0.5);
+  if (nf) aliens += nf * FX.fingerRate(save.up.fspeed) * reach(FX.fingerArea(), 3) * 1.15; // los cazadores casi siempre llegan
+  const rate = Math.min(aliens, 7) * coinsPerTap(1); // los marcianitos solo aparecen tan rápido
   // Jets (de The Beach en adelante): ~3 marcianitos por bomba
   return rate;
 }
@@ -3781,7 +3801,7 @@ function travel() {
   save.coins = startCoins(save.level); // en el nivel nuevo empiezas con START_BASE × su multiplicador (lo demás se queda atrás)
   // Nivel nuevo, desde cero: herramientas, ayudantes y mejoras se reinician; empiezas con startCoins(nivel).
   const fresh = freshSave();
-  save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.spots = []; save.hmode = "finger"; save.tool = "finger"; placing = -1; toPlace.length = 0; $("#place-hint").classList.remove("on");
+  save.tools = fresh.tools; save.up = fresh.up; save.off = {}; save.spots = []; save.tool = "finger"; placing = -1; toPlace.length = 0; $("#place-hint").classList.remove("on");
   helpers.length = 0; syncHelpers();
   jetClock = 3;
   for (const k in cdEnd) delete cdEnd[k];
@@ -7181,7 +7201,8 @@ function bulk(kind, key) {
 }
 // Las conversiones necesitan algo que convertir: un dedo para hacer una bota, una bota para hacer una nube
 // Los ayudantes de The Beach se desbloquean al llegar ahí
-function upReady(k) { return (UP[k].world || 0) <= save.level; }
+function upReady(k) { return (UP[k].world || 0) <= save.level && upNeedMet(k); }
+const upNeedMet = (k) => !UP[k].need || save.up[UP[k].need] > 0;
 function afterBuy(was, card) {
   goalsDirty = true; setTimeout(checkAch, 400);
   Sound.buy(was); buzz([10, 60, 18]);
@@ -7210,10 +7231,8 @@ function buyUp(k, n = 1) {
   if (!c) return;
   if (save.coins < total || !upReady(k)) { Sound.nope(); return; }
   save.coins -= total; save.spent += total; save.up[k] = l0 + c;
-  if (k === "cloud") save.hmode = "cloud";
-  if (k === "hire" || k === "cloud") syncHelpers();
-  // Ayudantes nuevos: se acomodan al cerrar la Tienda (puedes comprar varios y luego acomodarlos uno por uno)
-  if (k === "hire") for (let i = l0; i < l0 + c; i++) toPlace.push(i);
+  // Al desbloquear llegan las nubes (ya trabajando, en su lugar); cada dedo nuevo sale a cazar
+  if (k === "hire" || k === "fingers") { syncHelpers(); for (const h of helpers) if (h.born === 0) ring(h.x, h.y, 6, 30, 0.5, "#F1C84D", 2, 0.45); }
   if (k === "crowd") updateTarget();
   afterBuy(Math.min(l0, 2), k);
 }
@@ -7315,7 +7334,7 @@ function updateCooldownUI() {
 }
 const qtyWhat = (label, n) => (n > 1 ? `${label} ×${n}` : label);
 function buyButton(kind, key, price, label, blocked) {
-  if (price == null) return `<span class="maxed"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>${tx("maxShort")}</span>`;
+  if (price == null) return `<span class="maxed"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>${tx(key === "hire" ? "unlocked" : "maxShort")}</span>`;
   const b = bulk(kind, key);
   return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}" data-label="${label}" data-n="${b.n}"${save.coins < b.cost || blocked ? " disabled" : ""}>
     <span class="what">${qtyWhat(label, b.n)}</span><span class="cost">${b.cost ? '<span class="coin"></span>' + fmtShort(b.cost) : ""}</span></button>`;
@@ -7345,18 +7364,17 @@ function toolCard(id) {
 }
 function upCard(k) {
   const mx = upMax(k), l = Math.min(save.up[k], mx), u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
-  const stat = l >= mx ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
-  const hireLike = k === "hire";
-  const btn = !ready
+  const stat = l >= mx || k === "hire" ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
+  const needTx = u.need === "hire" ? "needHire" : "needFingers";
+  const btn = wl > save.level
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
-    : buyButton("up", k, price, hireLike ? tx("hireBtn") : k === "cloud" ? tx("unlock") : l === 0 ? tx("buy") : tx("upgrade"));
-  const art = { hire: helperKind() === "bolt" ? "bolt" : isSnow() ? "fingerSnow" : "finger", cloud: "bolt", jet: "jet" }[k];
+    : !ready ? `<button class="buy" type="button" disabled><span class="what">${tx(needTx)}</span></button>`
+    : buyButton("up", k, price, k === "hire" ? tx("unlock") : k === "fingers" ? tx("hireBtn") : l === 0 ? tx("buy") : tx("upgrade"));
+  const art = { hire: "bolt", fingers: isSnow() ? "fingerSnow" : "finger", jet: "jet" }[k];
   const icon = art && helperSpr[art] ? `<img alt="" src="${helperSpr[art].toDataURL()}">` : ICONS[k];
   const on = !save.off[k], canOff = HELPER_KEYS.includes(k) && l > 0 && ready;
   let extra = canOff ? `<div class="hsw"><button class="switch sm" type="button" role="switch" aria-checked="${on}" data-off="${k}" aria-label="${tx(k)}"></button><span>${tx(on ? "working" : "turnedOff")}</span></div>` : "";
-  if (k === "hire" && l > 0) extra += `<p class="tip">${toPlace.length ? `${toPlace.length} ${tx("toPlace")}` : tx("dragHint")}</p>`;
-  // Dedos o nubes: un selector (las nubes primero se desbloquean)
-  if (k === "cloud" && l > 0) extra += `<div class="seg mode" role="radiogroup"><button type="button" data-hmode="finger" aria-pressed="${save.hmode !== "cloud"}">${tx("modeFingers")}</button><button type="button" data-hmode="cloud" aria-pressed="${save.hmode === "cloud"}">${tx("modeClouds")}</button></div>`;
+  if (k === "hire" && l > 0) extra += `<p class="tip">${tx("dragHint")}</p>`;
   return shopCard({
     key: k, cls: (art ? " art" : "") + (price == null ? " done" : "") + (!ready ? " locked-world" : "") + (canOff && !on ? " off" : ""), icon, name: tx(k), extra,
     tags: wl ? `<span class="tag">${LEVELS[wl].name}</span>` : "",
@@ -7374,8 +7392,9 @@ function renderShop(animate) {
       + sect("secCity") + ["car"].filter((id) => !toolGone(id)).map(toolCard).join("")
       + sect("secJungle") + ["arrows"].map(toolCard).join("");
   } else if (shopTab === "helpers") {
-    html = sect("secTeam") + ["hire", "cloud"].map(upCard).join("")
-      + (helperKind() === "bolt" ? sect("secClouds") + ["carea", "cchain"].map(upCard).join("") : sect("secFingers") + ["fspeed", "farea", "fmove"].map(upCard).join(""))
+    html = sect("secTeam") + upCard("hire")
+      + sect("secClouds") + ["carea", "cchain"].map(upCard).join("")
+      + sect("secFingers") + ["fingers", "fspeed"].map(upCard).join("");
 
   } else {
     html = sect("secBoostWorld") + ["value", "crowd", "luck", "night"].map(upCard).join("");
@@ -7543,12 +7562,6 @@ document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (
 })();
 $("#shop-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === shopTab) return; shopTab = b.dataset.tab; renderShop(true); $("#shop-body").scrollTop = 0; Sound.tick(); });
 $("#shop-list").addEventListener("click", (e) => {
-  const m = e.target.closest("[data-hmode]");
-  if (m) {
-    if (save.hmode === m.dataset.hmode) return;
-    save.hmode = m.dataset.hmode; syncHelpers(); markSave(); renderShop(); uiDirty = true; Sound.tick(); buzz(8);
-    return;
-  }
   // Encender o apagar un ayudante (sigue contratado; solo deja de trabajar)
   const sw = e.target.closest("[data-off]");
   if (sw) {
@@ -7892,7 +7905,7 @@ function drawCursor(x, y) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else if (id === "saw" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = id === "finger" ? TOOLS.finger.radius[L] : (id === "saw" ? TOOLS.saw.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
+    const R = id === "saw" ? sawRadius(L + 1) : (id === "finger" ? TOOLS.finger.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
@@ -9073,7 +9086,7 @@ for (const L of LEVELS) addAch("ev_" + L.id, "events", "bolt", 1, EVENTS[L.id].n
 for (const L of LEVELS) addAch("col_" + L.id, "collect", "gem", 2, COL[L.id].name, [`Collect all 10 in ${L.name}`, `Junta las 10 de ${L.name}`], () => [(save.g.col[L.id] || []).length, 10]);
 [[5, 0], [25, 1], [100, 2]].forEach(([n, t]) =>
   addAch("mis" + n, "missions", "check", t, [`${n} missions`, `${n} misiones`], [`Complete ${n} missions`, `Completa ${n} misiones`], () => [save.g.misDone, n]));
-addAch("helpers", "helpers", "cloud", 1, ["Full team", "Equipo completo"], ["Hire every helper you can", "Contrata a todos los ayudantes que puedas"], () => [save.up.hire, helperCap()]);
+addAch("helpers", "helpers", "cloud", 1, ["Full team", "Equipo completo"], ["Hire every hunting finger you can", "Contrata a todos los dedos cazadores que puedas"], () => [save.up.fingers, helperCap()]);
 const ACH_GROUPS = [["smush", ["Smushed", "Aplastados"]], ["speed", ["Speed", "Velocidad"]], ["combo", ["Combos", "Combos"]], ["rare", ["Kings", "Reyes"]], ["events", ["Events", "Eventos"]], ["collect", ["Collections", "Colecciones"]], ["missions", ["Missions", "Misiones"]], ["spent", ["Spending", "Gastos"]], ["levels", ["Travel", "Viajes"]], ["helpers", ["Helpers", "Ayudantes"]]];
 const achCount = () => ACH.filter((a) => save.g.ach[a.id]).length;
 
