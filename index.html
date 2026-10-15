@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.43.4";
+const VERSION = "0.44.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -4008,7 +4008,40 @@ function showArrival(kick, name) {
     gl.animate([{ opacity: 1 }, { opacity: 0 }], { delay: 150, duration: 450, fill: "forwards" }).onfinish = () => { el.hidden = true; };
   }, 2400);
 }
-const TRIP = { len: 4.8, fly: [0.7, 3.0], dive: [2.9, 4.0], fade: 4.0 };
+const TRIP = { len: 4.8, fly: [0.55, 3.05], dive: [2.4, 3.7], fade: 4.0 };
+const TRIP_COL = ["#7C5CE0", "#2FA3C4", "#4A86D8", "#E2604F", "#2E9E62"]; // el color de cada nivel (letreros del viaje)
+// Nubes del viaje: 4 formas con volumen (panza azulada, cuerpo blanco, orillas suaves), dibujadas una vez
+const TRIP_CLOUD = {};
+function tripCloudSprites(dark) {
+  const key = dark ? "d" : "l";
+  if (TRIP_CLOUD[key]) return TRIP_CLOUD[key];
+  const out = [];
+  for (let v = 0; v < 4; v++) {
+    const c = document.createElement("canvas"); c.width = 360; c.height = 220;
+    const q = c.getContext("2d"), R = artRng(91 + v * 17), n = 7 + v;
+    const puffs = Array.from({ length: n }, (_, i) => { const u = i / (n - 1); return { x: 72 + u * 216 + (R() - 0.5) * 26, y: 128 - Math.sin(u * Math.PI) * (32 + R() * 26) + (R() - 0.5) * 14, r: 36 + Math.sin(u * Math.PI) * 26 + R() * 12 }; });
+    const blob = (dy, k, c0, c1, c2) => {
+      for (const p of puffs) {
+        const gr = q.createRadialGradient(p.x - p.r * 0.2, p.y + dy - p.r * 0.32, p.r * 0.1, p.x, p.y + dy, p.r * k);
+        gr.addColorStop(0, c0); gr.addColorStop(0.7, c1); gr.addColorStop(1, c2);
+        q.fillStyle = gr; q.beginPath(); q.arc(p.x, p.y + dy, p.r * k, 0, TAU); q.fill();
+      }
+    };
+    if (dark) { blob(14, 1.04, "rgba(72,88,116,0.95)", "rgba(66,80,106,0.85)", "rgba(66,80,106,0)"); blob(0, 0.96, "rgba(170,184,208,1)", "rgba(132,148,176,0.92)", "rgba(132,148,176,0)"); }
+    else { blob(14, 1.04, "rgba(186,204,228,0.95)", "rgba(176,196,222,0.85)", "rgba(176,196,222,0)"); blob(0, 0.96, "rgba(255,255,255,1)", "rgba(244,248,253,0.95)", "rgba(244,248,253,0)"); }
+    out.push(c);
+  }
+  return (TRIP_CLOUD[key] = out);
+}
+// Que los trajes de un nivel estén listos (para las islas del viaje)
+function ensureSkinSprites(lid) {
+  const L = SKINS[lid]; if (!L) return;
+  for (const k in L) for (const id of L[k]) {
+    const r = BALL_TYPES[SKIN_BASE[id]].r, ol = olFor(lid);
+    if (!SKIN_SPR[id]) SKIN_SPR[id] = cachedSprite(id, r, ol);
+    if (!SKIN_SPR_F[id] && RIG[id + "_f"]) SKIN_SPR_F[id] = cachedSprite(id + "_f", r, ol);
+  }
+}
 function playTrip(from, to, num, onSwitch, kicker) {
   // Desde que despega hasta que cambia la isla, el juego no corre (si no, se oían las muertes durante el vuelo)
   flying = true;
@@ -4030,156 +4063,58 @@ function playTrip(from, to, num, onSwitch, kicker) {
     setTimeout(() => { ov.hidden = true; Music.tick(); showArrival(title, to.name); }, 900);
     return;
   }
-  // El mapa: islas en coordenadas de mundo; la ruta es una curva suave que sube y baja
-  const unit = Math.min(vw, vh), R = unit * 0.2;
-  // Hacia un nivel de más arriba se vuela a la derecha; de regreso a uno anterior, a la izquierda
+  // --- El mundo del viaje, en px del Inicio: la isla de donde sales en (0, 0) y la nueva arriba, hacia un lado.
+  // Cámara en 3D de verdad: Hc = su altura; algo a la altura h se ve con escala 1 / (Hc − h). Al subir, las nubes
+  // (entre la cámara y el mar) crecen y pasan junto a ti; el avión, más arriba que el mar, se ve más grande que él
   const fi = LEVELS.findIndex((l) => l.id === from.id), ti = LEVELS.findIndex((l) => l.id === to.id), dir = ti < fi ? -1 : 1;
-  const A = { x: 0, y: 0 }, B = { x: dir * unit * 1.55, y: -unit * 0.55 }, C = { x: dir * unit * 0.7, y: -unit * 0.95 };
+  const dark = PAL.dark, IR = { rx: 160, ry: 66 }; // islas del mismo tamaño que en el Inicio
+  const A = { x: 0, y: 0 }, B = { x: dir * 760, y: -580 }, C = { x: dir * 140, y: -620 };
   const bez = (u) => ({ x: (1 - u) ** 2 * A.x + 2 * (1 - u) * u * C.x + u * u * B.x, y: (1 - u) ** 2 * A.y + 2 * (1 - u) * u * C.y + u * u * B.y });
-  // El mar con detalle (siempre igual para el mismo viaje): zonas más hondas y más bajitas, islotes con palmera o
-  // piedras, barquitos con su estela, gaviotas, y la estela de humo del avión
+  const z0 = clamp(Math.min((vw * 0.4) / IR.rx, (vh * 0.2) / IR.ry), 0.55, 1.7);
+  const zW = Math.min(vw / (Math.abs(B.x - A.x) + IR.rx * 3.4), vh / (Math.abs(B.y - A.y) + IR.ry * 10));
+  const H0 = 1 / z0, HW = Math.max(H0 * 2.3, 1 / zW), DH = HW - H0;
+  let Hc = H0, cx = 0, cy = 0;
+  const P = (x, y, h = 0) => { const k = 1 / Math.max(0.02, Hc - h); return [vw / 2 + (x - cx) * k, vh / 2 + (y - cy) * k, k]; };
+  // Lo que hay en el mar (siempre igual para el mismo viaje)
   const wr = artRng(fi * 7 + ti * 13 + 5), wrr = (a, b) => a + (b - a) * wr();
-  const minX = Math.min(A.x, B.x) - unit * 1.3, maxX = Math.max(A.x, B.x) + unit * 1.3, minY = -unit * 1.7, maxY = unit * 1;
-  const depths = Array.from({ length: 24 }, () => ({ x: wrr(minX, maxX), y: wrr(minY, maxY), r: wrr(0.15, 0.45) * unit, deep: wr() < 0.6 }));
-  const nearRoute = (x, y, m) => { for (let i = 0; i <= 20; i++) { const q = bez(i / 20); if (Math.hypot(q.x - x, q.y - y) < m) return true; } return Math.hypot(x - A.x, y - A.y) < R * 2.4 || Math.hypot(x - B.x, y - B.y) < R * 2.6; };
-  const islets = [];
-  for (let i = 0; i < 60 && islets.length < 7; i++) { const x = wrr(minX, maxX), y = wrr(minY, maxY); if (!nearRoute(x, y, unit * 0.22) && islets.every((o) => Math.hypot(o.x - x, o.y - y) > unit * 0.35)) islets.push({ x, y, r: wrr(0.04, 0.085) * unit, palm: wr() < 0.55, seed: Math.floor(wr() * 1000) }); }
+  const minX = Math.min(A.x, B.x) - 760, maxX = Math.max(A.x, B.x) + 760, minY = B.y - 950, maxY = A.y + 950;
+  const nearIsle = (x, y, m) => Math.hypot(x - A.x, (y - A.y) * 1.8) < m || Math.hypot(x - B.x, (y - B.y) * 1.8) < m;
+  const depths = Array.from({ length: 14 }, () => ({ x: wrr(minX, maxX), y: wrr(minY, maxY), r: wrr(220, 520), deep: wr() < 0.6 }));
+  const bars = [];
+  for (let i = 0; i < 80 && bars.length < 5; i++) { const x = wrr(minX, maxX), y = wrr(minY, maxY); if (!nearIsle(x, y, 430) && bars.every((o) => Math.hypot(o.x - x, o.y - y) > 360)) bars.push({ x, y, r: wrr(24, 46), rocks: wr() < 0.5, seed: wr() * 10 }); }
   const boats = [];
-  for (let i = 0; i < 30 && boats.length < 4; i++) { const x = wrr(minX, maxX), y = wrr(minY, maxY); if (!nearRoute(x, y, unit * 0.15)) boats.push({ x, y, a: wrr(0, TAU), v: wrr(0.03, 0.06) * unit, s: wrr(0.055, 0.07) * unit, col: ["#FF8A65", "#FFFFFF", "#F1C84D", "#2FA3C4"][Math.floor(wr() * 4)] }); }
-  const gulls = Array.from({ length: 5 }, () => ({ x: wr(), y: wr(), s: wrr(0.7, 1.2), ph: wrr(0, TAU), v: wrr(0.04, 0.08) }));
+  for (let i = 0; i < 40 && boats.length < 3; i++) { const x = wrr(minX, maxX), y = wrr(minY, maxY); if (!nearIsle(x, y, 380) && bars.every((o) => Math.hypot(o.x - x, o.y - y) > 140)) boats.push({ x, y, a: wrr(0, TAU), v: wrr(14, 24), s: wrr(20, 26), col: ["#FF8A65", "#FFFFFF", "#F1C84D", "#2FA3C4"][Math.floor(wr() * 4)] }); }
+  const glint = { x: A.x + (B.x - A.x) * 0.55 + dir * 160, y: A.y - 300 }, sparks = Array.from({ length: 70 }, () => { const a = wrr(0, TAU), d = Math.sqrt(wr()); return { x: glint.x + Math.cos(a) * d * 420, y: glint.y + Math.sin(a) * d * 240, ph: wrr(0, TAU), s: wrr(0.6, 1.4) }; });
+  // Nubes: unas cerca de cada isla (las atraviesas al subir y al bajar) y otras en el camino; cada una a su altura
+  const clouds = [];
+  const cloudAt = (x, y) => clouds.push({ x, y, h: H0 + DH * wrr(0.3, 0.85), s: wrr(200, 330), v: Math.floor(wr() * 4), drift: wrr(4, 9) });
+  for (let i = 0; i < 3; i++) cloudAt(A.x + wrr(-260, 260), A.y + wrr(-200, 160));
+  for (let i = 0; i < 3; i++) cloudAt(B.x + wrr(-260, 260), B.y + wrr(-160, 200));
+  for (let i = 0; i < 10; i++) cloudAt(wrr(minX, maxX), wrr(minY, maxY));
+  const CS = tripCloudSprites(dark);
+  // Los marcianitos de cada isla, con la ropa de su nivel (como en el Inicio)
+  for (const L of [from.id, to.id]) ensureSkinSprites(L);
+  const crowd = (lid) => ["green", "orange", "purple", "yellow", "green"].map((k, i) => {
+    const a = i * 2.4 + rand(-0.3, 0.3), d = 0.22 + (i % 3) * 0.17;
+    return { k, skin: (SKINS[lid] && SKINS[lid][k] && SKINS[lid][k][0]) || null, ph: rand(0, TAU), ride: k === "orange" && lid === "snow" ? "ski" : null, x: 2000 + Math.cos(a) * IR.rx * d, y: 2000 + Math.sin(a) * IR.ry * d, h: rand(0, TAU), sp: BALL_TYPES[k].speed * 0.35, walk: rand(0, TAU), face: 1, flip: 1, born: 1, die: 0 };
+  });
+  const isles = [{ lid: from.id, x: A.x, y: A.y, crew: crowd(from.id), name: from.name, col: TRIP_COL[fi] }, { lid: to.id, x: B.x, y: B.y, crew: crowd(to.id), name: to.name, col: TRIP_COL[ti] }];
+  const walkCrew = (list, dt, tt) => {
+    for (const a of list) {
+      a.h += Math.sin(tt * 0.7 + a.walk * 0.3) * 0.8 * dt;
+      const nx = (a.x - 2000) / IR.rx, ny = (a.y - 2000) / IR.ry;
+      if (nx * nx + ny * ny > 0.42) a.h += angDiff(Math.atan2(2000 - a.y, 2000 - a.x), a.h) * Math.min(1, dt * 3);
+      const vx = Math.cos(a.h) * a.sp, vy = Math.sin(a.h) * a.sp * 0.55;
+      a.x += vx * dt; a.y += vy * dt;
+      if (vx > 2) a.face = 1; else if (vx < -2) a.face = -1;
+      turnStep(a, dt); a.walk += dt * (5 + a.sp * 0.08);
+    }
+  };
   const trail = [];
-  const clouds = Array.from({ length: 11 }, () => ({ x: rand(-0.3, 1.3), y: rand(-0.2, 1.2), s: rand(0.6, 1.5), z: rand(0.35, 1) }));
   const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
   const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
-  const img = (k) => (alienImg[k] ? alienImg[k] : null);
-  let t0 = performance.now(), switched = false, sfx = { jet: false, arrive: false, dive: false };
+  let t0 = performance.now(), prevNow = 0, switched = false, sfx = { jet: false, arrive: false, dive: false };
   ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: "ease", fill: "forwards" });
-
-  // Islas en 3D (vistas desde arriba, de frente): la cara de arriba, su costado, agua clara alrededor con espuma
-  // que va y viene, y encima unas cuantas cosas acomodadas por profundidad (sin exagerar en detalle)
-  function obj(list, y, fn) { list.push({ y, fn }); }
-  function alienAt(k, x, y, h, t, ph) {
-    const im = img(k); if (!im) return;
-    const w = h * (im.width / im.height), bob = Math.abs(Math.sin(t * 4 + ph)) * h * 0.05;
-    g.globalAlpha = 0.25; g.fillStyle = "#000"; g.beginPath(); g.ellipse(x, y, w * 0.38, h * 0.08, 0, 0, TAU); g.fill(); g.globalAlpha = 1;
-    g.drawImage(im, x - w / 2, y - h - bob, w, h);
-  }
-  function island(kind, x, y, r, t) {
-    const ry = r * 0.6, dep = r * 0.2;
-    const ellipseTop = (cx, cy, rx, ryy, wob) => {
-      g.beginPath();
-      for (let i = 0; i <= 64; i++) { const a = (i / 64) * TAU, k = 1 + (wob ? 0.035 * Math.sin(a * 5 + 1) + 0.02 * Math.sin(a * 11) : 0); const px = cx + Math.cos(a) * rx * k, py = cy + Math.sin(a) * ryy * k; i ? g.lineTo(px, py) : g.moveTo(px, py); }
-      g.closePath();
-    };
-    const objs = [];
-    if (kind === "void") {
-      // Isla flotante: su sombra en el agua, la roca por debajo en punta, la cara de arriba y cristales que brillan
-      const fy = y - r * 0.18 + Math.sin(t * 1.3) * r * 0.025;
-      g.fillStyle = "rgba(10,20,50,0.28)"; g.beginPath(); g.ellipse(x + r * 0.15, y + r * 0.55, r * 0.75, ry * 0.5, 0, 0, TAU); g.fill();
-      const glow = g.createRadialGradient(x, fy + r * 0.4, r * 0.1, x, fy + r * 0.4, r * 1.3);
-      glow.addColorStop(0, "rgba(165,132,232,0.45)"); glow.addColorStop(1, "rgba(165,132,232,0)");
-      g.fillStyle = glow; g.beginPath(); g.arc(x, fy + r * 0.4, r * 1.3, 0, TAU); g.fill();
-      const rock = g.createLinearGradient(x - r, fy, x + r, fy + r);
-      rock.addColorStop(0, "#5A47A8"); rock.addColorStop(1, "#231A4A");
-      g.fillStyle = rock; g.beginPath(); g.moveTo(x - r, fy);
-      g.lineTo(x - r * 0.75, fy + r * 0.35); g.lineTo(x - r * 0.45, fy + r * 0.5); g.lineTo(x - r * 0.2, fy + r * 0.85); g.lineTo(x + r * 0.05, fy + r * 1.05);
-      g.lineTo(x + r * 0.25, fy + r * 0.7); g.lineTo(x + r * 0.55, fy + r * 0.55); g.lineTo(x + r * 0.8, fy + r * 0.28); g.lineTo(x + r, fy); g.closePath(); g.fill();
-      g.strokeStyle = "rgba(255,255,255,0.12)"; g.lineWidth = r * 0.02; g.beginPath(); g.moveTo(x - r * 0.6, fy + r * 0.3); g.lineTo(x - r * 0.25, fy + r * 0.7); g.moveTo(x + r * 0.2, fy + r * 0.5); g.lineTo(x + r * 0.05, fy + r * 0.85); g.stroke();
-      const top = g.createRadialGradient(x - r * 0.3, fy - ry * 0.4, r * 0.1, x, fy, r);
-      top.addColorStop(0, "#B8A6F2"); top.addColorStop(1, "#7A63CF");
-      g.fillStyle = top; ellipseTop(x, fy, r, ry, true); g.fill();
-      g.strokeStyle = "rgba(230,220,255,0.7)"; g.lineWidth = r * 0.025; g.beginPath(); g.ellipse(x, fy, r * 0.99, ry * 0.99, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
-      for (const [u, v, s] of [[0.45, -0.35, 1], [0.6, -0.1, 0.7], [-0.6, -0.3, 0.8]]) obj(objs, fy + v * ry, () => {
-        const cxx = x + u * r, cyy = fy + v * ry, hh = r * 0.32 * s;
-        g.fillStyle = "rgba(200,180,255,0.35)"; g.beginPath(); g.arc(cxx, cyy - hh * 0.5, hh * 0.7, 0, TAU); g.fill();
-        g.fillStyle = "#E7DCFF"; g.beginPath(); g.moveTo(cxx, cyy - hh); g.lineTo(cxx + hh * 0.22, cyy - hh * 0.3); g.lineTo(cxx, cyy); g.lineTo(cxx - hh * 0.22, cyy - hh * 0.3); g.closePath(); g.fill();
-        g.fillStyle = "#A584E8"; g.beginPath(); g.moveTo(cxx, cyy - hh); g.lineTo(cxx + hh * 0.22, cyy - hh * 0.3); g.lineTo(cxx, cyy); g.closePath(); g.fill();
-      });
-      obj(objs, fy + ry * 0.15, () => alienAt("green", x - r * 0.3, fy + ry * 0.15, r * 0.3, t, 0));
-      obj(objs, fy + ry * 0.35, () => alienAt("purple", x + r * 0.1, fy + ry * 0.35, r * 0.36, t, 1.6));
-    } else {
-      const snow = kind === "snow", town = kind === "city", jung = kind === "jungle";
-      // Agua clara alrededor y espuma que va y viene
-      // Agua bajita alrededor: turquesa que se desvanece hacia el mar hondo, con unas piedritas en la orilla
-      g.save(); g.translate(x, y + dep * 0.7); g.scale(1, ry / r);
-      const reef = g.createRadialGradient(0, 0, r * 0.9, 0, 0, r * 1.55);
-      const rc = snow ? "205,232,248" : town ? "175,225,235" : jung ? "150,220,190" : "150,235,228";
-      reef.addColorStop(0, `rgba(${rc},0.75)`); reef.addColorStop(1, `rgba(${rc},0)`);
-      g.fillStyle = reef; g.beginPath(); g.arc(0, 0, r * 1.55, 0, TAU); g.fill(); g.restore();
-      for (const a of [0.4, 2.3, 3.6]) { const px = x + Math.cos(a) * r * 1.12, py = y + dep * 0.8 + Math.sin(a) * ry * 1.15; g.fillStyle = "rgba(0,30,50,0.2)"; g.beginPath(); g.ellipse(px + r * 0.01, py + r * 0.01, r * 0.05, r * 0.025, 0, 0, TAU); g.fill(); g.fillStyle = snow ? "#C9D5E4" : "#A8A49C"; g.beginPath(); g.ellipse(px, py, r * 0.045, r * 0.028, 0, 0, TAU); g.fill(); }
-      g.strokeStyle = "rgba(255,255,255,0.85)"; g.lineWidth = r * 0.025;
-      g.beginPath();
-      for (let i = 0; i <= 64; i++) { const a = (i / 64) * TAU, k = 1.1 + 0.025 * Math.sin(a * 9 + t * 2.5); const px = x + Math.cos(a) * r * k, py = y + dep * 0.75 + Math.sin(a) * ry * k; i ? g.lineTo(px, py) : g.moveTo(px, py); }
-      g.stroke();
-      // Costado (la orilla que baja al agua)
-      const side = g.createLinearGradient(0, y, 0, y + ry + dep);
-      if (snow) { side.addColorStop(0, "#AFC0D6"); side.addColorStop(1, "#7E92AE"); } else if (town) { side.addColorStop(0, "#C9C4BA"); side.addColorStop(1, "#97928A"); } else if (jung) { side.addColorStop(0, "#9C7650"); side.addColorStop(1, "#6E5236"); } else { side.addColorStop(0, "#E2C089"); side.addColorStop(1, "#C29A5E"); }
-      g.fillStyle = side; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x - r, y + dep);
-      g.ellipse(x, y + dep, r, ry, 0, Math.PI, 0, true); g.lineTo(x + r, y); g.ellipse(x, y, r, ry, 0, 0, Math.PI, false); g.closePath(); g.fill();
-      // Cara de arriba
-      const top = g.createRadialGradient(x - r * 0.3, y - ry * 0.4, r * 0.1, x, y, r);
-      if (snow) { top.addColorStop(0, "#FFFFFF"); top.addColorStop(1, "#DCE7F3"); } else if (town) { top.addColorStop(0, "#F1EEE8"); top.addColorStop(1, "#D9D4CB"); } else if (jung) { top.addColorStop(0, "#C2E3A2"); top.addColorStop(1, "#86BE6C"); } else { top.addColorStop(0, "#FFF6E0"); top.addColorStop(1, "#F0D6A2"); }
-      g.fillStyle = top; ellipseTop(x, y, r, ry, true); g.fill();
-      g.strokeStyle = "rgba(255,255,255,0.75)"; g.lineWidth = r * 0.02; g.beginPath(); g.ellipse(x, y, r * 0.98, ry * 0.98, 0, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
-      if (snow) {
-        // Una montaña con su lado de sombra y su capa de nieve, pinos y dos marcianitos
-        const mx = x + r * 0.12, my = y - ry * 0.25, mh = r * 0.95, mw = r * 0.62;
-        obj(objs, my, () => {
-          g.fillStyle = "#9DB4D6"; g.beginPath(); g.moveTo(mx - mw, my); g.lineTo(mx, my - mh); g.lineTo(mx + mw * 0.1, my); g.closePath(); g.fill();
-          g.fillStyle = "#6F89B3"; g.beginPath(); g.moveTo(mx + mw * 0.1, my); g.lineTo(mx, my - mh); g.lineTo(mx + mw, my); g.closePath(); g.fill();
-          g.fillStyle = "#FFFFFF"; g.beginPath(); g.moveTo(mx, my - mh); g.lineTo(mx - mw * 0.36, my - mh * 0.62); g.lineTo(mx - mw * 0.18, my - mh * 0.68); g.lineTo(mx - mw * 0.04, my - mh * 0.58); g.lineTo(mx + mw * 0.12, my - mh * 0.68); g.lineTo(mx + mw * 0.36, my - mh * 0.62); g.closePath(); g.fill();
-          g.fillStyle = "rgba(160,185,220,0.6)"; g.beginPath(); g.moveTo(mx, my - mh); g.lineTo(mx + mw * 0.12, my - mh * 0.68); g.lineTo(mx + mw * 0.36, my - mh * 0.62); g.closePath(); g.fill();
-        });
-        for (const [u, v, s] of [[-0.62, -0.15, 0.5], [-0.42, 0.05, 0.42], [0.72, 0.05, 0.4]]) obj(objs, y + v * ry, () => paintPine(g, x + u * r, y + v * ry, r * s, false));
-        obj(objs, y + ry * 0.45, () => { drawRide(g, x - r * 0.15, y + ry * 0.45, 0.2, r * 0.1, "ski", 1); alienAt("orange", x - r * 0.15, y + ry * 0.45, r * 0.26, 0, 0); });
-        obj(objs, y + ry * 0.55, () => paintSnowman(g, x - r * 0.62, y + ry * 0.55, r / 150, false));
-        obj(objs, y + ry * 0.4, () => alienAt("green", x + r * 0.35, y + ry * 0.4, r * 0.28, t, 1.2));
-      } else if (jung) {
-        // Dos árboles de selva, un helecho, un arbusto con flores y dos marcianitos
-        obj(objs, y - ry * 0.3, () => paintJungleTree(g, x - r * 0.5, y - ry * 0.3, r * 1.15, false, 11));
-        obj(objs, y - ry * 0.4, () => paintJungleTree(g, x + r * 0.45, y - ry * 0.4, r * 0.95, false, 12));
-        obj(objs, y + ry * 0.35, () => paintFern(g, x + r * 0.6, y + ry * 0.35, r / 80, false, 3));
-        obj(objs, y + ry * 0.5, () => paintFlowerBush(g, x - r * 0.55, y + ry * 0.5, r / 90, false, 7));
-        obj(objs, y + ry * 0.2, () => alienAt("green", x - r * 0.05, y + ry * 0.2, r * 0.28, t, 0));
-        obj(objs, y + ry * 0.6, () => alienAt("orange", x + r * 0.2, y + ry * 0.6, r * 0.25, t, 1.4));
-      } else if (town) {
-        // Un cruce de calles con sus cebras, tres edificios con tienda, un poste de luz y dos marcianitos
-        g.save(); ellipseTop(x, y, r, ry, true); g.clip();
-        g.fillStyle = "#71767F"; g.fillRect(x - r * 0.15, y - ry * 1.2, r * 0.3, ry * 2.4); g.fillRect(x - r * 1.2, y - ry * 0.17, r * 2.4, ry * 0.34);
-        g.fillStyle = "rgba(255,255,255,0.9)";
-        for (let i = 0; i < 5; i++) {
-          const sw = (r * 0.26) / 9;
-          for (const s of [-1, 1]) g.fillRect(x - r * 0.13 + i * sw * 2, y + s * ry * 0.26 - (s < 0 ? ry * 0.14 : 0), sw, ry * 0.14);
-          const sh = (ry * 0.3) / 9;
-          for (const s of [-1, 1]) g.fillRect(x + s * r * 0.2 - (s < 0 ? r * 0.12 : 0), y - ry * 0.15 + i * sh * 2, r * 0.12, sh);
-        }
-        g.fillStyle = "#F2C14E"; g.fillRect(x - r * 0.006, y - ry * 1.2, r * 0.012, ry * 0.8); g.fillRect(x - r * 0.006, y + ry * 0.42, r * 0.012, ry * 0.8);
-        g.restore();
-        for (const [u, v, bw, bh, ci, sd] of [[-0.55, -0.28, 0.38, 0.6, 1, 1], [0.52, -0.3, 0.34, 0.85, 3, -1], [0.55, 0.62, 0.3, 0.42, 5, -1]]) {
-          obj(objs, y + v * ry, () => { g.fillStyle = "rgba(30,30,40,0.18)"; g.fillRect(x + u * r - (bw * r) / 2, y + v * ry - 1, bw * r + 4, 3); paintMiniBuilding(g, x + u * r, y + v * ry, bw * r, ry * 0.3, bh * r, CITY_WALLS[ci], false, sd, 40 + ci, CITY_AWN[ci % 5]); });
-        }
-        obj(objs, y + ry * 0.48, () => paintLamp(g, x - r * 0.45, y + ry * 0.48, r * 0.42, 0, 1, 0, r * 0.12, false));
-        obj(objs, y + ry * 0.66, () => paintTree(g, x - r * 0.68, y + ry * 0.66, r * 0.42, false, 7));
-        obj(objs, y + ry * 0.12, () => alienAt("green", x - r * 0.02, y + ry * 0.12, r * 0.28, t, 0));
-        obj(objs, y + ry * 0.62, () => alienAt("orange", x - r * 0.2, y + ry * 0.62, r * 0.25, t, 1.4));
-      } else {
-        // Palmera, sombrilla con toalla, y dos marcianitos
-        obj(objs, y - ry * 0.1, () => { g.fillStyle = "rgba(120,90,50,0.18)"; g.beginPath(); g.ellipse(x + r * 0.55, y - ry * 0.05, r * 0.3, ry * 0.12, 0, 0, TAU); g.fill(); paintPalm(g, x + r * 0.42, y - ry * 0.1, r * 0.95, 1, false); });
-        obj(objs, y + ry * 0.05, () => {
-          g.save(); g.translate(x - r * 0.3, y + ry * 0.28); g.rotate(-0.15);
-          g.fillStyle = "#2FA3C4"; g.beginPath(); g.roundRect(-r * 0.2, -r * 0.06, r * 0.4, r * 0.12, r * 0.02); g.fill();
-          g.fillStyle = "#F2FBFF"; for (const s of [-0.1, 0, 0.1]) g.fillRect(s * r - r * 0.015, -r * 0.06, r * 0.03, r * 0.12);
-          g.restore();
-          paintUmbrella(g, x - r * 0.5, y + ry * 0.05, r * 0.5, ["#FF8A65", "#FFF3E8"], -0.1, false);
-        });
-        obj(objs, y + ry * 0.5, () => alienAt("orange", x - r * 0.05, y + ry * 0.5, r * 0.26, t, 0));
-        obj(objs, y + ry * 0.62, () => paintCastle(g, x + r * 0.5, y + ry * 0.62, r / 170, false));
-        obj(objs, y + ry * 0.35, () => alienAt("yellow", x + r * 0.3, y + ry * 0.35, r * 0.27, t, 1.3));
-      }
-    }
-    objs.sort((a, b) => a.y - b.y).forEach((o) => o.fn());
-    g.globalAlpha = 1;
-  }
   // El avión: blanco con detalles del juego (puntas coral y menta, aleta lavanda), cabina y hélice girando.
   // Visto desde arriba, apuntando a +x; bank = qué tanto se ladea en la curva
   function plane(px, py, ang, L, bank, alpha, t, shadow) {
@@ -4220,128 +4155,171 @@ function playTrip(from, to, num, onSwitch, kicker) {
     g.fillStyle = "#4A5366"; g.beginPath(); g.arc(0.535 * L, 0, 0.025 * L, 0, TAU); g.fill();
     g.restore(); g.globalAlpha = 1;
   }
-  function label(text, x, y, zoom, alpha) {
-    if (alpha <= 0) return;
+  // Un letrerito con el nombre de cada isla (se ve cuando vas alto)
+  function label(text, col, x, y, alpha) {
+    if (alpha <= 0.01) return;
     g.save(); g.globalAlpha = alpha;
-    g.font = `800 ${14 / Math.max(0.6, zoom)}px Outfit, -apple-system, system-ui, sans-serif`;
-    const w = g.measureText(text).width + 22 / zoom, h = 26 / zoom;
-    g.fillStyle = "rgba(255,255,255,0.92)"; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, h / 2); g.fill();
-    g.fillStyle = "#242521"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, x, y + 0.5 / zoom);
+    g.font = "800 13px Outfit, -apple-system, system-ui, sans-serif";
+    const tw = g.measureText(text).width, w = tw + 34, h = 28;
+    g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(10,40,70,0.18)"; g.beginPath(); g.roundRect(x - w / 2, y - h / 2 + 2, w, h, h / 2); g.fill();
+    g.fillStyle = dark ? "rgba(36,40,48,0.94)" : "rgba(255,255,255,0.95)"; g.beginPath(); g.roundRect(x - w / 2, y - h / 2, w, h, h / 2); g.fill();
+    g.fillStyle = col; g.beginPath(); g.arc(x - w / 2 + 14, y, 4.5, 0, TAU); g.fill();
+    g.globalAlpha = alpha * 0.25; g.beginPath(); g.arc(x - w / 2 + 14, y, 7.5, 0, TAU); g.fill(); g.globalAlpha = alpha;
+    g.fillStyle = dark ? "#EEEDE8" : "#242521"; g.textAlign = "left"; g.textBaseline = "middle"; g.fillText(text, x - w / 2 + 24, y + 0.5);
     g.restore();
   }
-  function frame(now) {
-    const t = (now - t0) / 1000;
-    // --- La cámara: despega de la isla de origen, sigue al jet y cae en picada sobre la isla nueva
-    const pFly = ease(seg(t, TRIP.fly[0], TRIP.fly[1])), pDive = seg(t, TRIP.dive[0], TRIP.dive[1]);
-    const plane0 = bez(pFly);
-    const lift = ease(seg(t, 0, 0.9));
-    let zoom = 2.8 + (0.82 - 2.8) * lift;
-    zoom *= 1 - 0.04 * Math.sin(seg(t, 0.9, 2.9) * Math.PI);
-    zoom = zoom + (6 - zoom) * Math.pow(pDive, 2.4);
-    const follow = ease(seg(t, 0.6, 3.1));
-    let cx = A.x + (B.x - A.x) * follow, cy = A.y + (B.y - A.y) * follow;
-    cx += (plane0.x - cx) * 0.35 * Math.sin(follow * Math.PI); cy += (plane0.y - cy) * 0.35 * Math.sin(follow * Math.PI);
-    // --- Fondo: el mar, con un degradado de profundidad
-    const sea = g.createLinearGradient(0, 0, 0, vh);
-    sea.addColorStop(0, "#215F88"); sea.addColorStop(0.55, "#2E80A8"); sea.addColorStop(1, "#4AB3D1");
-    g.globalAlpha = 1; g.fillStyle = sea; g.fillRect(0, 0, vw, vh);
-    g.save();
-    g.translate(vw / 2, vh / 2); g.scale(zoom, zoom); g.translate(-cx, -cy);
-    // Zonas más hondas (oscuras) y más bajitas (claras)
+  // El mar (todo lo que está a la altura 0): profundidades, oleaje, el brillo del sol, bancos de arena, barquitos
+  function sea(t) {
     for (const d of depths) {
-      const col = d.deep ? "15,55,95" : "140,220,235", gr = g.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
-      gr.addColorStop(0, `rgba(${col},${d.deep ? 0.22 : 0.16})`); gr.addColorStop(1, `rgba(${col},0)`);
+      const col = d.deep ? (dark ? "0,8,20" : "12,50,92") : dark ? "60,120,150" : "140,222,238", gr = g.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
+      gr.addColorStop(0, `rgba(${col},${d.deep ? 0.24 : 0.14})`); gr.addColorStop(1, `rgba(${col},0)`);
       g.fillStyle = gr; g.fillRect(d.x - d.r, d.y - d.r, d.r * 2, d.r * 2);
     }
-    // Islotes: arrecife, arena, espuma y una palmerita o unas piedras
-    for (const o of islets) {
-      const reef = g.createRadialGradient(o.x, o.y, o.r * 0.6, o.x, o.y, o.r * 2.2);
-      reef.addColorStop(0, "rgba(150,235,228,0.7)"); reef.addColorStop(1, "rgba(150,235,228,0)");
-      g.fillStyle = reef; g.beginPath(); g.ellipse(o.x, o.y, o.r * 2.2, o.r * 1.5, 0, 0, TAU); g.fill();
-      g.strokeStyle = "rgba(255,255,255,0.7)"; g.lineWidth = o.r * 0.08; g.beginPath(); g.ellipse(o.x, o.y + o.r * 0.12, o.r * (1.15 + 0.05 * Math.sin(t * 2 + o.seed)), o.r * (0.72 + 0.03 * Math.sin(t * 2 + o.seed)), 0, 0, TAU); g.stroke();
-      g.fillStyle = "#D9B57A"; g.beginPath(); g.ellipse(o.x, o.y + o.r * 0.12, o.r, o.r * 0.62, 0, 0, TAU); g.fill();
-      g.fillStyle = "#F6E2B8"; g.beginPath(); g.ellipse(o.x, o.y, o.r, o.r * 0.6, 0, 0, TAU); g.fill();
-      if (o.palm) paintPalm(g, o.x - o.r * 0.2, o.y + o.r * 0.1, o.r * 1.5, o.seed % 2 ? 1 : -1, false);
-      else for (const [dx, dy, k] of [[-0.3, 0, 0.32], [0.15, -0.1, 0.42], [0.35, 0.15, 0.25]]) { g.fillStyle = "#8F8A84"; g.beginPath(); g.ellipse(o.x + dx * o.r, o.y + dy * o.r, k * o.r, k * o.r * 0.7, 0, Math.PI, TAU); g.fill(); g.fillStyle = "#B5B0A8"; g.beginPath(); g.ellipse(o.x + dx * o.r - k * o.r * 0.2, o.y + dy * o.r - k * o.r * 0.35, k * o.r * 0.45, k * o.r * 0.2, 0, 0, TAU); g.fill(); }
+    // Oleaje: rizos que se mueven despacio (más finos entre más alto vas)
+    const k = 1 / Hc, step = 120;
+    g.strokeStyle = dark ? "rgba(170,210,255,0.08)" : "rgba(255,255,255,0.16)"; g.lineWidth = 1.5 / k; g.lineCap = "round";
+    const x0 = Math.floor((cx - vw / 2 / k) / step) * step, y0 = Math.floor((cy - vh / 2 / k) / step) * step;
+    g.beginPath();
+    for (let gx = x0; gx < cx + vw / 2 / k + step; gx += step) for (let gy = y0; gy < cy + vh / 2 / k + step; gy += step) {
+      const ox = ((((gx * 7.3 + gy * 3.1) % step) + step) % step) * 0.6, wx = gx + ox + Math.sin(t * 1.1 + gy * 0.01) * 10, wy = gy + ((((gx * 1.7) % step) + step) % step) * 0.5;
+      g.moveTo(wx, wy); g.quadraticCurveTo(wx + 9, wy - 5, wx + 18, wy); g.quadraticCurveTo(wx + 27, wy + 5, wx + 36, wy);
     }
-    // Barquitos que navegan despacio con su estela en V
+    g.stroke();
+    // El brillo del sol (o de la luna) en el agua: destellitos que titilan
+    g.fillStyle = dark ? "#DCE6FF" : "#FFFFFF";
+    for (const s of sparks) {
+      const tw = Math.pow(Math.max(0, Math.sin(t * 3 + s.ph)), 6); if (tw < 0.05) continue;
+      g.globalAlpha = tw * (dark ? 0.45 : 0.75); g.fillRect(s.x - 5 * s.s, s.y - 0.7 * s.s, 10 * s.s, 1.4 * s.s); g.fillRect(s.x - 0.7 * s.s, s.y - 2.2 * s.s, 1.4 * s.s, 4.4 * s.s);
+    }
+    g.globalAlpha = 1;
+    // Bancos de arena con su arrecife turquesa y espuma que va y viene
+    for (const o of bars) {
+      const reef = g.createRadialGradient(o.x, o.y, o.r * 0.6, o.x, o.y, o.r * 2.6);
+      reef.addColorStop(0, dark ? "rgba(60,140,150,0.55)" : "rgba(150,235,228,0.75)"); reef.addColorStop(1, "rgba(150,235,228,0)");
+      g.fillStyle = reef; g.beginPath(); g.ellipse(o.x, o.y, o.r * 2.6, o.r * 1.7, 0, 0, TAU); g.fill();
+      g.strokeStyle = dark ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.8)"; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(o.x, o.y + 3, o.r * (1.16 + 0.04 * Math.sin(t * 2 + o.seed)), o.r * (0.66 + 0.03 * Math.sin(t * 2 + o.seed)), 0, 0, TAU); g.stroke();
+      g.fillStyle = dark ? "#7A6A4E" : "#D9B57A"; g.beginPath(); g.ellipse(o.x, o.y + 4, o.r, o.r * 0.56, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? "#9C8A68" : "#F6E2B8"; g.beginPath(); g.ellipse(o.x, o.y, o.r * 0.96, o.r * 0.52, 0, 0, TAU); g.fill();
+      if (o.rocks) for (const [dx, dy, kk] of [[-0.3, -0.05, 0.3], [0.12, -0.12, 0.4], [0.38, 0.1, 0.24]]) {
+        const rx = o.x + dx * o.r, ry = o.y + dy * o.r, rr = kk * o.r;
+        g.fillStyle = "rgba(0,0,0,0.15)"; g.beginPath(); g.ellipse(rx + rr * 0.2, ry + rr * 0.15, rr, rr * 0.45, 0, 0, TAU); g.fill();
+        g.fillStyle = dark ? "#5E5A55" : "#9A958E"; g.beginPath(); g.ellipse(rx, ry, rr, rr * 0.62, 0, Math.PI, TAU); g.lineTo(rx + rr, ry); g.ellipse(rx, ry, rr, rr * 0.3, 0, 0, Math.PI); g.fill();
+        g.fillStyle = dark ? "#7A766F" : "#C2BDB5"; g.beginPath(); g.ellipse(rx - rr * 0.2, ry - rr * 0.25, rr * 0.5, rr * 0.25, 0, 0, TAU); g.fill();
+      }
+    }
+    // Barquitos con su estela en V
     for (const b of boats) {
       const bx = b.x + Math.cos(b.a) * b.v * t, by = b.y + Math.sin(b.a) * b.v * t, s2 = b.s;
       g.save(); g.translate(bx, by); g.rotate(b.a);
-      g.strokeStyle = "rgba(255,255,255,0.55)"; g.lineWidth = s2 * 0.08;
-      for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(-s2 * 0.4, 0); g.quadraticCurveTo(-s2 * 1.6, sd * s2 * 0.35, -s2 * 2.8, sd * s2 * 0.9); g.stroke(); }
-      g.fillStyle = "rgba(0,30,50,0.25)"; g.beginPath(); g.ellipse(s2 * 0.05, s2 * 0.08, s2 * 0.62, s2 * 0.24, 0, 0, TAU); g.fill();
-      g.fillStyle = b.col; g.beginPath(); g.moveTo(s2 * 0.65, 0); g.quadraticCurveTo(s2 * 0.3, -s2 * 0.24, -s2 * 0.55, -s2 * 0.2); g.lineTo(-s2 * 0.55, s2 * 0.2); g.quadraticCurveTo(s2 * 0.3, s2 * 0.24, s2 * 0.65, 0); g.fill();
+      g.strokeStyle = dark ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.6)"; g.lineWidth = 2;
+      for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(-s2 * 0.4, 0); g.quadraticCurveTo(-s2 * 1.6, sd * s2 * 0.35, -s2 * 3, sd * s2 * 1); g.stroke(); }
+      g.fillStyle = "rgba(0,30,50,0.25)"; g.beginPath(); g.ellipse(s2 * 0.08, s2 * 0.12, s2 * 0.62, s2 * 0.24, 0, 0, TAU); g.fill();
+      g.fillStyle = dark ? mix(b.col, "#000000", 0.35) : b.col; g.beginPath(); g.moveTo(s2 * 0.65, 0); g.quadraticCurveTo(s2 * 0.3, -s2 * 0.24, -s2 * 0.55, -s2 * 0.2); g.lineTo(-s2 * 0.55, s2 * 0.2); g.quadraticCurveTo(s2 * 0.3, s2 * 0.24, s2 * 0.65, 0); g.fill();
       g.fillStyle = b.col === "#FFFFFF" ? "#2FA3C4" : "#FFFFFF"; g.fillRect(-s2 * 0.3, -s2 * 0.11, s2 * 0.32, s2 * 0.22);
       g.restore();
     }
-    // Olitas del mar que se mueven
-    g.strokeStyle = "rgba(255,255,255,0.18)"; g.lineWidth = 2 / zoom; g.lineCap = "round";
-    const step = unit * 0.22, x0 = Math.floor((cx - vw / zoom) / step) * step, y0 = Math.floor((cy - vh / zoom) / step) * step;
-    for (let gx = x0; gx < cx + vw / zoom; gx += step) for (let gy = y0; gy < cy + vh / zoom; gy += step) {
-      const ox = ((gx * 7.3 + gy * 3.1) % step + step) % step * 0.5, wx = gx + ox + Math.sin(t * 1.2 + gy) * step * 0.08, wy = gy + ((gx * 1.7) % step + step) % step * 0.4;
-      g.beginPath(); g.moveTo(wx, wy); g.quadraticCurveTo(wx + step * 0.06, wy - step * 0.04, wx + step * 0.12, wy); g.quadraticCurveTo(wx + step * 0.18, wy + step * 0.04, wx + step * 0.24, wy); g.stroke();
+    // Sombras de las nubes en el agua (más corridas entre más alta va la nube)
+    for (const c of clouds) {
+      const off = (c.h / H0) * 22, x = c.x + c.drift * t + off, y = c.y + off * 1.4, rx = c.s * 0.46, ry = c.s * 0.22;
+      const gr = g.createRadialGradient(x, y, 0, x, y, rx);
+      gr.addColorStop(0, dark ? "rgba(0,0,0,0.22)" : "rgba(8,40,70,0.16)"); gr.addColorStop(0.7, dark ? "rgba(0,0,0,0.12)" : "rgba(8,40,70,0.09)"); gr.addColorStop(1, "rgba(8,40,70,0)");
+      g.fillStyle = gr; g.save(); g.translate(x, y); g.scale(1, ry / rx); g.translate(-x, -y); g.beginPath(); g.arc(x, y, rx, 0, TAU); g.fill(); g.restore();
     }
-    // Ruta punteada que se dibuja detrás del jet
-    if (pFly > 0) {
-      g.setLineDash([12 / zoom * 1.4, 10 / zoom * 1.4]); g.strokeStyle = "rgba(255,255,255,0.85)"; g.lineWidth = 3.2 / zoom;
-      g.lineDashOffset = -t * 30 / zoom;
-      g.beginPath(); for (let i = 0; i <= 50; i++) { const q = bez((i / 50) * pFly); i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); } g.stroke();
-      g.setLineDash([]);
-    }
-    // La estela del avión: bolitas de humo que se abren y se desvanecen
-    for (const q of trail) {
-      const age = t - q.t; if (age > 1.3) continue;
-      g.globalAlpha = 0.45 * (1 - age / 1.3); g.fillStyle = "#FFFFFF";
-      g.beginPath(); g.arc(q.x, q.y, unit * 0.012 * (1 + age * 2.2), 0, TAU); g.fill();
-    }
-    g.globalAlpha = 1;
-    island(from.id, A.x, A.y, R, t);
-    island(to.id, B.x, B.y, R * 1.08, t);
-    const lab = seg(t, 0.7, 1.1) * (1 - seg(t, 2.7, 3.0));
-    label(from.name, A.x, A.y + R * 1.5, zoom, lab);
-    label(to.name, B.x, B.y + R * 1.55, zoom, lab);
-    // El avión: despega chiquito, se ladea en las curvas y al llegar baja y se desvanece; su sombra va en el agua
-    if (t > TRIP.fly[0] - 0.1 && t < TRIP.fly[1] + 0.35) {
-      const ahead = bez(Math.min(1, pFly + 0.01)), behind = bez(Math.max(0, pFly - 0.01));
-      const ang = Math.atan2(ahead.y - plane0.y, ahead.x - plane0.x) || -0.4, ang0 = Math.atan2(plane0.y - behind.y, plane0.x - behind.x) || ang;
-      const bank = clamp(angDiff(ang, ang0) * 6, -0.5, 0.5);
-      const appear = seg(t, TRIP.fly[0] - 0.1, TRIP.fly[0] + 0.3), land = seg(t, TRIP.fly[1], TRIP.fly[1] + 0.35);
-      const L = unit * 0.3 * (0.6 + 0.4 * appear) * (1 - 0.6 * land), alt = Math.sin(pFly * Math.PI) * unit * 0.1;
-      if (appear > 0.5 && land < 0.5 && (!trail.length || t - trail[trail.length - 1].t > 0.03)) trail.push({ x: plane0.x - Math.cos(ang) * L * 0.5, y: plane0.y - Math.sin(ang) * L * 0.5, t });
-      plane(plane0.x + alt * 0.6, plane0.y + alt, ang, L * 0.95, bank, 0.18 * appear * (1 - land), t, true);
-      plane(plane0.x, plane0.y, ang, L, bank, appear * (1 - land), t, false);
+  }
+  function cloud(c, t, alpha) {
+    const d = Hc - c.h; if (d <= 0.03 * H0) return;
+    const [sx, sy, k] = P(c.x + c.drift * t, c.y, c.h), W = c.s * k, Hh = W * 0.61;
+    if (sx + W / 2 < -20 || sx - W / 2 > vw + 20 || sy + Hh / 2 < -20 || sy - Hh / 2 > vh + 20) return;
+    // Cuando pasa junto a la cámara se vuelve neblina (se desvanece mientras crece)
+    const a = clamp((d - 0.03 * H0) / (0.55 * H0), 0, 1) * alpha;
+    if (a <= 0.01) return;
+    g.globalAlpha = a * 0.95; g.drawImage(CS[c.v], sx - W / 2, sy - Hh / 2, W, Hh);
+  }
+  function frame(now) {
+    const t = (now - t0) / 1000, dt = prevNow ? Math.min(0.05, (now - prevNow) / 1000) : 1 / 60;
+    prevNow = now;
+    // --- Cámara: sube desde la isla (atravesando las nubes), sigue al avión y baja a la isla nueva
+    const up = smooth01(0.3, 1.55, t), down = smooth01(2.4, 3.7, t);
+    Hc = Math.exp(Math.log(H0) + (Math.log(HW) - Math.log(H0)) * (up - down)) / (1 + 0.1 * smooth01(3.5, 4.0, t));
+    // El avión sigue la ruta y, al llegar, pasa bajito sobre la isla nueva y sigue de largo (la cámara se queda en la isla)
+    const pFly = ease(seg(t, TRIP.fly[0], TRIP.fly[1])), endV = { x: B.x - C.x, y: B.y - C.y }, endL = Math.hypot(endV.x, endV.y) || 1;
+    const over = Math.max(0, t - TRIP.fly[1]), pos = over > 0 ? { x: B.x + (endV.x / endL) * 560 * over, y: B.y + (endV.y / endL) * 560 * over } : bez(pFly);
+    const fol = ease(seg(t, 0.45, 3.65)), wgt = 0.55 * Math.sin(Math.PI * fol);
+    const bx = A.x + (B.x - A.x) * fol, by = A.y + (B.y - A.y) * fol;
+    const fp = over > 0 ? B : pos;
+    cx = bx + (fp.x - bx) * wgt; cy = by + (fp.y - by) * wgt;
+    const alt = clamp((Hc - H0) / DH, 0, 1);
+    // --- El mar de fondo
+    const sg = g.createLinearGradient(0, 0, 0, vh);
+    if (dark) { sg.addColorStop(0, "#0A2036"); sg.addColorStop(0.6, "#10314D"); sg.addColorStop(1, "#174463"); }
+    else { sg.addColorStop(0, "#1C6893"); sg.addColorStop(0.6, "#2683B0"); sg.addColorStop(1, "#3FA2CB"); }
+    g.globalAlpha = 1; g.fillStyle = sg; g.fillRect(0, 0, vw, vh);
+    // --- Todo lo que está a nivel del mar (con la cámara)
+    const k0 = 1 / Hc;
+    g.save(); g.translate(vw / 2, vh / 2); g.scale(k0, k0); g.translate(-cx, -cy);
+    sea(t);
+    for (const I of isles) {
+      walkCrew(I.crew, dt, t);
+      g.save(); g.translate(I.x - 2000, I.y - 2000); Hero.paintIsle(g, I.lid, I.crew, t, IR.rx, IR.ry); g.restore();
     }
     g.restore();
-    // --- Luz del sol (arriba a la izquierda) y gaviotas que planean
-    const sun = g.createRadialGradient(vw * 0.1, vh * 0.05, 0, vw * 0.1, vh * 0.05, Math.max(vw, vh) * 0.8);
-    sun.addColorStop(0, "rgba(255,248,225,0.22)"); sun.addColorStop(1, "rgba(255,248,225,0)");
-    g.globalAlpha = 1; g.fillStyle = sun; g.fillRect(0, 0, vw, vh);
-    const gullA = seg(t, 0.5, 1.2) * (1 - seg(t, 3.2, 3.7));
-    if (gullA > 0) for (const b of gulls) {
-      const x = ((((b.x - (cx / unit) * 0.25 * dir + t * b.v * dir) % 1.4) + 1.4) % 1.4 - 0.2) * vw, y = ((((b.y - (cy / unit) * 0.25) % 1.2) + 1.2) % 1.2 - 0.1) * vh, w = unit * 0.022 * b.s, f = Math.sin(t * 7 + b.ph) * 0.5;
-      g.globalAlpha = gullA * 0.25; g.fillStyle = "#0A2A40"; g.beginPath(); g.ellipse(x + unit * 0.05, y + unit * 0.07, w * 0.8, w * 0.25, 0, 0, TAU); g.fill();
-      g.globalAlpha = gullA * 0.9; g.strokeStyle = "#F4F6FA"; g.lineWidth = w * 0.22; g.lineCap = "round"; g.lineJoin = "round";
-      g.beginPath(); g.moveTo(x - w, y - w * f); g.quadraticCurveTo(x - w * 0.45, y - w * 0.55 - w * f * 0.4, x, y); g.quadraticCurveTo(x + w * 0.45, y - w * 0.55 - w * f * 0.4, x + w, y - w * f); g.stroke();
+    // --- La altura se siente: un velo de aire entre más alto vas
+    if (alt > 0) { g.globalAlpha = alt * (dark ? 0.16 : 0.1); g.fillStyle = dark ? "#0A1828" : "#D6ECF8"; g.fillRect(0, 0, vw, vh); g.globalAlpha = 1; }
+    // --- Letreros de las islas (cuando vas alto)
+    const labA = smooth01(0.35, 0.8, alt) * (1 - seg(t, 3.0, 3.35));
+    for (const I of isles) { const [lx, ly] = P(I.x, I.y + IR.ry * 1.9); label(I.name, I.col, lx, ly, labA); }
+    // --- El avión: despega de la isla, sube entre las nubes, se ladea en las curvas y baja a la isla nueva
+    const climb = ease(seg(t, TRIP.fly[0], TRIP.fly[0] + 1.25)), desc = ease(seg(t, TRIP.fly[1] - 1.1, TRIP.fly[1]));
+    const hTop = H0 + DH * 0.55, hRaw = H0 * 0.05 + (hTop - H0 * 0.05) * climb + (H0 * 0.38 - hTop) * desc;
+    const hp = Math.max(0, Math.min(hRaw, Hc - H0 * 0.4));
+    const appear = seg(t, TRIP.fly[0] - 0.05, TRIP.fly[0] + 0.3), pa = appear * (1 - seg(t, 3.55, 3.85));
+    const ahead = over > 0 ? { x: pos.x + endV.x, y: pos.y + endV.y } : bez(Math.min(1, pFly + 0.01)), behind = over > 0 ? { x: pos.x - endV.x, y: pos.y - endV.y } : bez(Math.max(0, pFly - 0.01));
+    const ang = Math.atan2(ahead.y - pos.y, ahead.x - pos.x) || -0.6, ang0 = Math.atan2(pos.y - behind.y, pos.x - behind.x) || ang;
+    const bank = clamp(angDiff(ang, ang0) * 6, -0.5, 0.5), PL = 66;
+    // Estela de las puntas de las alas
+    if (pa > 0.6 && hp > H0 * 0.15 && (!trail.length || t - trail[trail.length - 1].t > 0.025)) {
+      const nx = -Math.sin(ang), ny = Math.cos(ang), bx2 = pos.x - Math.cos(ang) * PL * 0.06, by2 = pos.y - Math.sin(ang) * PL * 0.06;
+      trail.push({ t, h: hp, a: [bx2 + nx * PL * 0.55, by2 + ny * PL * 0.55], b: [bx2 - nx * PL * 0.55, by2 - ny * PL * 0.55] });
     }
-    // --- Nubes en primer plano (parallax): pasan rápido y en la picada se abren hacia los lados
+    if (pa > 0) {
+      // Su sombra en el mar: más chica, más clara y más lejos entre más alto va
+      const off = (hp / H0) * 26, [hx, hy, kk] = P(pos.x + off, pos.y + off * 1.4, 0);
+      plane(hx, hy, ang, PL * kk, bank, pa * (dark ? 0.3 : 0.2) * (1 - 0.55 * clamp(hp / (H0 + DH * 0.55), 0, 1)), t, true);
+    }
+    // Nubes de abajo del avión, el avión con su estela, y las de arriba
+    const below = clouds.filter((c) => c.h <= hp).sort((a, b) => a.h - b.h), above = clouds.filter((c) => c.h > hp).sort((a, b) => a.h - b.h);
+    const ca = seg(t, 0.15, 0.6);
+    for (const c of below) cloud(c, t, ca);
     g.globalAlpha = 1;
-    for (const c of clouds) {
-      const par = c.z * 1.6, sx = ((c.x - (cx / unit) * par * 0.35) % 1.6 + 1.6) % 1.6 - 0.3, sy = ((c.y - (cy / unit) * par * 0.35) % 1.4 + 1.4) % 1.4 - 0.2;
-      let x = sx * vw, y = sy * vh;
-      const spread = Math.pow(pDive, 1.6) * 1.8;
-      x += (x - vw / 2) * spread; y += (y - vh / 2) * spread;
-      const r = unit * 0.09 * c.s * (1 + spread * 1.2) * (0.7 + c.z * 0.5);
-      g.globalAlpha = (0.45 + 0.35 * c.z) * seg(t, 0.4, 1.2) * (1 - seg(t, 3.6, 4.0));
-      // Con volumen: la panza un poco azulada, el cuerpo blanco y un brillo arriba
-      const puff = (dy, k) => { g.beginPath(); g.arc(x, y + dy, r * k, 0, TAU); g.arc(x + r * 0.9, y + r * 0.15 + dy, r * 0.75 * k, 0, TAU); g.arc(x - r * 0.9, y + r * 0.2 + dy, r * 0.7 * k, 0, TAU); g.arc(x + r * 0.35, y - r * 0.45 + dy, r * 0.6 * k, 0, TAU); g.fill(); };
-      g.fillStyle = "#D6E2EF"; puff(r * 0.14, 1);
-      g.fillStyle = "#FFFFFF"; puff(0, 0.94);
-      g.fillStyle = "rgba(255,255,255,0.9)"; g.beginPath(); g.arc(x - r * 0.25, y - r * 0.35, r * 0.45, 0, TAU); g.fill();
+    g.lineCap = "round";
+    for (const side of ["a", "b"]) {
+      let prev = null;
+      for (const q of trail) {
+        // Si la cámara ya bajó a la altura de la estela, se deja de ver (si no, se estira por toda la pantalla)
+        const age = t - q.t, near = clamp((Hc - hp - H0 * 0.45) / (H0 * 0.5), 0, 1) * clamp((q.h - H0 * 0.5) / (H0 * 0.9), 0, 1);
+        if (age > 1.2 || near <= 0) { prev = null; continue; }
+        const [x, y, kk] = P(q[side][0], q[side][1], hp);
+        if (prev) { g.globalAlpha = 0.55 * (1 - age / 1.2) * near * (dark ? 0.6 : 1); g.strokeStyle = "#FFFFFF"; g.lineWidth = (1.4 + age * 3.2) * kk * 1.2; g.beginPath(); g.moveTo(prev[0], prev[1]); g.lineTo(x, y); g.stroke(); }
+        prev = [x, y];
+      }
     }
     g.globalAlpha = 1;
-    // --- La arena llena la pantalla al final de la picada (se funde con el juego)
-    const sandK = seg(t, 3.55, 4.0);
+    if (pa > 0) { const [px, py, kk] = P(pos.x, pos.y, hp); plane(px, py, ang, PL * kk * (0.85 + 0.15 * appear), bank, pa, t, false); }
+    for (const c of above) cloud(c, t, ca);
+    g.globalAlpha = 1;
+    // --- Al atravesar la capa de nubes, una neblina blanca
+    const mid = H0 + DH * 0.57, mist = clamp(1 - Math.abs(Hc - mid) / (DH * 0.32), 0, 1) * (1 - alt * alt * 0.6);
+    if (mist > 0) { g.globalAlpha = mist * (dark ? 0.22 : 0.3); g.fillStyle = dark ? "#3A4A62" : "#FFFFFF"; g.fillRect(0, 0, vw, vh); g.globalAlpha = 1; }
+    // --- Luz: el sol (o la luna) arriba a la izquierda y las orillas un poco más oscuras
+    const sun = g.createRadialGradient(vw * 0.08, vh * 0.04, 0, vw * 0.08, vh * 0.04, Math.max(vw, vh) * 0.85);
+    sun.addColorStop(0, dark ? "rgba(190,210,255,0.14)" : "rgba(255,246,220,0.3)"); sun.addColorStop(1, "rgba(255,246,220,0)");
+    g.fillStyle = sun; g.fillRect(0, 0, vw, vh);
+    const vig = g.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.45, vw / 2, vh / 2, Math.max(vw, vh) * 0.78);
+    vig.addColorStop(0, "rgba(0,20,40,0)"); vig.addColorStop(1, dark ? "rgba(0,0,0,0.35)" : "rgba(0,30,60,0.22)");
+    g.fillStyle = vig; g.fillRect(0, 0, vw, vh);
+    // --- Al final, la isla nueva se funde con el juego
+    const sandK = seg(t, 3.6, 4.0);
     if (sandK > 0) { g.globalAlpha = sandK; g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#FCFAF5"; g.fillRect(0, 0, vw, vh); g.globalAlpha = 1; }
     // --- Sonido y vibración en los momentos clave
     if (!sfx.jet && t > TRIP.fly[0]) { sfx.jet = true; Sound.jet(); buzz([8, 40, 8]); }
@@ -8732,7 +8710,14 @@ const Hero = (() => {
   }
   // Para las flechas del teclado
   function swipe(d) { if (!sw && !drag.on) commit(d); }
-  return { start, stop, size, swipe };
+  // El viaje en avión pinta las islas igual que aquí (sus cosas y sus marcianitos con la ropa de su nivel), en otro
+  // lienzo: la isla queda centrada en (2000, 2000) de ese lienzo (quien llama acomoda la cámara)
+  function paintIsle(ctx, lid, list, tt, rx, ry) {
+    const g0 = g, w0 = w, h0 = hh, t1 = t;
+    g = ctx; w = 4000; hh = 4000; t = tt;
+    try { drawWorld({ cx: 2000, cy: 2000, rx, ry }, lid, list, 0, 0, false); } finally { g = g0; w = w0; hh = h0; t = t1; }
+  }
+  return { start, stop, size, swipe, paintIsle };
 })();
 // En compu, las flechas ← → cambian de nivel desde el Inicio
 document.addEventListener("keydown", (ev) => {

@@ -70,6 +70,10 @@
     closeSheet(document.getElementById("sheet-goals")); await wait(800);
     showHome(); await wait(1500);
     await measure("home after", 4000);
+    // El viaje en avión (solo en memoria): de la isla 1 a la 2
+    save.level = 0; resetWorld(); applyLevel(); ensureBg(); enterGame(); await wait(1500);
+    save.smushed = 1e6; save.coins = 1e12;
+    await Promise.all([measure("trip", 4500), (async () => { travel(); })()]);
     log({ done: true });
   });
 })();
