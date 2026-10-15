@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.6";
+const VERSION = "0.41.7";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1508,10 +1508,12 @@ function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
 setInterval(() => { if (!document.hidden) writeSave(); }, 15000);
 window.addEventListener("pagehide", () => writeSave()); // "sigo aquí" para calcular el tiempo fuera
 
-const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 1, buyQty: "1", mv: 2 };
-try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")); } catch (e) {}
-// El volumen de la música empieza hasta arriba (desde 0.41.6 el máximo ya suena un poco más bajito que antes)
-if (settings.mv !== 2) { settings.musicVol = 1; settings.mv = 2; try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }
+const settings = { sound: true, vibe: true, theme: "auto", lang: "en", music: true, musicVol: 1, buyQty: "1" };
+let savedSettings = {};
+try { savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") || {}; Object.assign(settings, savedSettings); } catch (e) {}
+// La barra de la música empieza hasta arriba: a quien la tenía guardada en otro lado se le sube una vez
+// (el máximo ya suena más bajito, así que no se oye más fuerte)
+if (savedSettings.mv !== 3) { settings.musicVol = 1; settings.mv = 3; try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }
 const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} };
 
 /* ---------- 3. Idioma: inglés por defecto, español en Ajustes ---------- */
@@ -2012,7 +2014,7 @@ let musicReady = false; // suena hasta que terminan las intros
 const Music = (() => {
   const bufs = {}, loading = {}, failed = {};
   let c = null, out = null, voices = [], cur = null, playing = null; // playing = la canción que suena ahora
-  const target = () => (settings.music ? settings.musicVol : 0) * 0.48; // con el control hasta arriba, un poco más bajito que antes (0.6 × 0.9)
+  const target = () => (settings.music ? settings.musicVol : 0) * 0.42; // la barra va hasta arriba; el máximo suena más bajito (antes 0.6 × 0.9)
   function load(src) {
     if (bufs[src] || loading[src] || failed[src]) return;
     loading[src] = true;
