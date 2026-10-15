@@ -2,7 +2,7 @@
 # Uso: python3 tools/characters.py <carpeta de salida>
 #   - board5.html / big5.html / front_board.html: tableros para revisar
 #   - rig.json: las capas que van en index.html como `const RIG = ...;` (pegar en una sola línea)
-# Lee los marcianitos originales (ALIENS) de index.html y, de tools/front/, los de frente y el yeti (dibujos del usuario).
+# Lee los marcianitos originales (ALIENS) de index.html y, de tools/front/, los de frente, el yeti y dónde están los ojos.
 # Las coordenadas (u, v) van de 0 a 10 sobre la caja del cuerpo.
 import re, json, math, sys
 D = sys.argv[1]
@@ -499,6 +499,7 @@ open(D + '/big5.html', 'w').write(''.join(big))
 print("ok")
 
 # ===================== Exportar para el juego: capas por personaje =====================
+FRONT_DIR0 = __import__('os').path.join(__import__('os').path.dirname(__file__), 'front')
 BASE_PARTS = {
     "green": {"ant": [("antL", (-720.6, -551.6), ['M-720.6-551.6', 'cx="-769.6"']), ("antR", (-611.6, -548.6), ['M-611.6-548.6', 'cx="-567.6"'])],
               "feetB": [((-715, -285), 0.5, 'M-698.5-268.2')], "feetF": [((-790, -335), 0, 'M-779.6-288.8'), ((-595, -288), 1, 'M-544.2-214.5')]},
@@ -523,9 +524,19 @@ BASE_PARTS.update({
     "f_yeti": {"ant": [("antL", (485.3, 372.4), ['M485.3,372.4', 'cx="418.9"']), ("antR", (615, 330), ['M677.5,247.2', 'cx="722.4"'])],
                "feetB": [((395, 725), 0, 'M418.9,823.6'), ((650, 720), 1, 'M744.1,890.9'), ((525, 815), 0.5, 'M584.4,805.5')], "feetF": []},
 })
+EYES_INFO = json.load(open(__import__('os').path.join(FRONT_DIR0, 'eyes.json')))
+EYE_KEYS = {
+    "green": ("side_green", ['M-612.9-360.8', 'M-529.9-363.8']), "orange": ("side_orange", ['M-211.9-348.3', 'cx="-165.6"']),
+    "purple": ("side_purple", ['M255.1-369', 'M339.1-382.3']), "yellow": ("side_yellow", ['M611.1-418', 'M681.5-430.5']),
+    "yeti": ("side_yeti", ['M642.7,665.8', 'M766.5,646.2']),
+    "f_green": ("f_green", ['M315.5,488.4', 'M415.8,488.3']), "f_orange": ("f_orange", ['M342.8,475.2', 'M390.2,470.5']),
+    "f_purple": ("f_purple", ['M336.2,574.5', 'M495.5,568.9']), "f_yellow": ("f_yellow", ['M375.7,489.3', 'M476.8,508.7']),
+    "f_yeti": ("f_yeti", ['M463.8,743.7', 'M589.1,739.9']),
+}
 DEF_RE = re.compile(r'<(linearGradient|radialGradient|clipPath|filter|mask)\b[^>]*?\bid="([^"]+)"[^>]*?(?:/>|>.*?</\1>)', re.S)
 def take(content, key):
-    m = re.search(r'<(path|ellipse|circle|polygon)\b[^>]*' + re.escape(key) + r'[^>]*?(?:/>|>\s*</\1>)', content)
+    kk = key if key.startswith(('cx=', 'cy=')) else 'd="' + key
+    m = re.search(r'<(path|ellipse|circle|polygon)\b[^>]*' + re.escape(kk) + r'[^>]*?(?:/>|>\s*</\1>)', content)
     if not m: return content, None
     return content[:m.start()] + content[m.end():], m.group(0)
 def prune(defs, content):
@@ -584,10 +595,21 @@ def export(c, base, expand):
             for piv, ph, k2 in lst:
                 content, el = take(content, k2)
                 if el: out.append((piv, ph, el))
+    eyes = ''
+    if base in EYE_KEYS:
+        info, keys = EYE_KEYS[base]
+        for k2 in keys:
+            while True:
+                content, el = take(content, k2)
+                if not el: break
+                eyes += el
     items(c.back)
     for kind, piv, el in ants: anim(kind, piv, el)
     for piv, ph, el in fb: anim('foot', piv, el, ph)
     buf.append(content)
+    if eyes:
+        flush(); E = EYES_INFO[EYE_KEYS[base][0]]
+        layers.append({"s": svg(eyes), "a": "eyes", "x": E['mid'][0], "y": E['mid'][1], "p": 0, "g": E['gap']})
     for piv, ph, el in ff: anim('foot', piv, el, ph)
     items(c.front)
     flush()
@@ -605,7 +627,7 @@ json.dump(RIG, open(D + '/rig.json', 'w'), separators=(',', ':'))
 print("rig", len(RIG), sum(len(v['layers']) for v in RIG.values()), "layers", len(json.dumps(RIG, separators=(',', ':'))) // 1024, "KB")
 
 # ===================== De frente: el instante en que voltean (un solo dibujo, sin piezas que se muevan) =====================
-FRONT_DIR = __import__('os').path.join(__import__('os').path.dirname(__file__), 'front')
+FRONT_DIR = FRONT_DIR0
 FB = json.load(open(FRONT_DIR + '/bbox.json'))
 FBODY = {"green": 11, "orange": 5, "purple": 8, "yellow": 2}  # cuál elemento es el cuerpo
 def load_front(k):
