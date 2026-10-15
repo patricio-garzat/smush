@@ -985,7 +985,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.37.3";
+const VERSION = "0.37.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -4833,7 +4833,7 @@ function buildVoid() {
   g.fillStyle = sh; g.fillRect(0, top, W, 34);
   bgLayer = c;
   // --- A los lados: cristales, rocas y plantitas que brillan (el centro queda libre)
-  const side = small ? ["crystal", "boulder", "plant", "crystal"] : ["crystal", "boulder", "plant", "crystal", "plant", "boulder"];
+  const side = small ? ["boulder", "boulder"] : ["boulder", "boulder", "boulder"];
   const placed = [];
   let ci = Math.floor(R() * 3);
   for (const left of [true, false]) side.forEach((kind) => {
@@ -7922,9 +7922,18 @@ const Hero = (() => {
       onFx(fadeFor(sw.oox), () => drawWorld(e, sw.oldLid, sw.old, sw.oox, sw.orot, false));
       onFx(fadeFor(sw.nox), () => drawWorld(e, lvl().id, actors, sw.nox, sw.nrot, true));
     } else if (drag.ox) onFx(fadeFor(drag.ox), () => drawWorld(e, lvl().id, actors, drag.ox, (drag.ox / Math.max(1, w)) * 0.22, true));
-    else drawWorld(e, lvl().id, actors, 0, 0, true);
+    else { drawWorld(e, lvl().id, actors, 0, 0, true); fadeEdges(); }
     if (fallers.length) onFx(1, drawFallers);
     drawDots(e);
+  }
+  // Las orillas del escenario se desvanecen (el brillo bajo la isla nunca se corta en seco sobre los botones)
+  function fadeEdges() {
+    const fb = Math.min(48, hh * 0.14), fs = 18;
+    hg.save(); hg.globalCompositeOperation = "destination-out";
+    const gb = hg.createLinearGradient(0, hh - fb, 0, hh); gb.addColorStop(0, "rgba(0,0,0,0)"); gb.addColorStop(1, "rgba(0,0,0,1)");
+    hg.fillStyle = gb; hg.fillRect(0, hh - fb, w, fb);
+    for (const [x0, x1] of [[0, fs], [w, w - fs]]) { const gs = hg.createLinearGradient(x0, 0, x1, 0); gs.addColorStop(0, "rgba(0,0,0,1)"); gs.addColorStop(1, "rgba(0,0,0,0)"); hg.fillStyle = gs; hg.fillRect(Math.min(x0, x1), 0, fs, hh); }
+    hg.restore();
   }
   // Un mundo completo (la isla con sus cosas y sus marcianitos), movido y ladeado si se está deslizando
   function drawWorld(e, lid, list0, ox, rot, live) {
