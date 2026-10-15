@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.8";
+const VERSION = "0.41.9";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2864,15 +2864,14 @@ function sawSprite(R) {
   for (const a of [0, Math.PI]) { g.beginPath(); g.ellipse(Math.cos(a) * inner * 0.45, Math.sin(a) * inner * 0.45, R * 0.09, R * 0.05, a, 0, TAU); g.fill(); }
   return (sawSpr[key] = { c, size });
 }
-// La sierra va un poco arriba del dedo en pantallas táctiles (para que se vea)
-const sawLift = (p, R) => (p.touch ? R * 0.55 + 16 : 0);
+// La sierra va centrada justo donde pones el dedo (o el mouse)
 function sawTick(p, dt) {
   const R = Math.round(Math.max(16, TOOLS.saw.radius[lvlOf("saw") - 1] * RS)); // en el celular nunca más chica que un marcianito
   let s = p.saw;
-  if (!s || !saws.includes(s)) { s = p.saw = { p, x: p.x, y: p.y - sawLift(p, R), rot: rand(0, TAU), spin: 14, vx: 0, vy: 0, R, held: true, fade: 1, cutT: 0 }; saws.push(s); }
+  if (!s || !saws.includes(s)) { s = p.saw = { p, x: p.x, y: p.y, rot: rand(0, TAU), spin: 14, vx: 0, vy: 0, R, held: true, fade: 1, cutT: 0 }; saws.push(s); }
   s.R = R;
   // Te sigue con un pelín de retraso (se siente con peso)
-  const tx = p.x, ty = p.y - sawLift(p, R), k = Math.min(1, dt * 24), ox = s.x, oy = s.y;
+  const tx = p.x, ty = p.y, k = Math.min(1, dt * 24), ox = s.x, oy = s.y;
   s.x += (tx - s.x) * k; s.y += (ty - s.y) * k;
   if (dt > 0) { s.vx = (s.x - ox) / dt; s.vy = (s.y - oy) / dt; }
   const sp = Math.hypot(s.vx, s.vy);
