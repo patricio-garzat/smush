@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.43.3";
+const VERSION = "0.43.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3891,7 +3891,7 @@ function travel() {
   playTrip(from, n, save.level + 1, () => {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
-    meteors.length = 0; craters.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+    meteors.length = 0; craters.length = 0; timers.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
     cars.length = 0; roadkills.length = 0; skids.length = 0; arrows.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
@@ -3904,7 +3904,7 @@ function travel() {
 // comprar y aplastar como siempre, pero nada cuenta. Al regresar, todo vuelve exactamente como estaba.
 function resetWorld() {
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
-  meteors.length = 0; craters.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+  meteors.length = 0; craters.length = 0; timers.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   cars.length = 0; roadkills.length = 0; skids.length = 0; saws.length = 0; slashes.length = 0; arrows.length = 0;
 }
 // Cambia el mundo por debajo (el campo, la Tienda, la barra y el tema del nivel)
@@ -4010,6 +4010,10 @@ function showArrival(kick, name) {
 }
 const TRIP = { len: 4.8, fly: [0.7, 3.0], dive: [2.9, 4.0], fade: 4.0 };
 function playTrip(from, to, num, onSwitch, kicker) {
+  // Desde que despega hasta que cambia la isla, el juego no corre (si no, se oían las muertes durante el vuelo)
+  flying = true;
+  const swap = onSwitch;
+  onSwitch = () => { flying = false; last = 0; swap(); };
   const ov = $("#travel"), cvs = $("#trip-cv"), g = cvs.getContext("2d"), title = kicker || `${tx("level")} ${num}`;
   const quick = reduceMotion || !ov.animate;
   const dpr = Math.min(window.devicePixelRatio || 1, 2), vw = window.innerWidth, vh = window.innerHeight;
@@ -7683,7 +7687,7 @@ confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]
 $("#btn-reset-yes").addEventListener("click", () => {
   real = null; save = freshSave(); writeSave(); renderVisit();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; goos.length = 0; timers.length = 0;
-  helpers.length = 0; meteors.length = 0; craters.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+  helpers.length = 0; meteors.length = 0; craters.length = 0; timers.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
   applyLevel(); updateDetonate(); goalsDirty = true;
   for (const k in cdEnd) delete cdEnd[k];
@@ -8011,10 +8015,15 @@ function perf(raw, dt) {
 }
 
 let raf = 0, last = 0, uiAt = 0;
+// Viajando en avión: el juego se queda congelado debajo (nada se mueve, nadie muere ni suena) hasta llegar a la isla nueva
+let flying = false;
+const travelOv = document.getElementById("travel");
 function loop(now) {
   raf = requestAnimationFrame(loop);
   const raw = last ? (now - last) / 1000 : 1 / 60;
   last = now;
+  if (flying && travelOv.hidden) flying = false; // seguro: si el vuelo ya no se ve, el juego sigue
+  if (flying) return; // el lienzo se queda con el último cuadro, tapado por el vuelo
   const dt = Math.min(raw, 1 / 30);
   time += dt;
   perf(raw, dt);
