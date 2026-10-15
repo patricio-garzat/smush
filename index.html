@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.2";
+const VERSION = "0.41.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -7465,6 +7465,58 @@ $("#btn-shop").addEventListener("click", () => { Sound.unlock(); openSheet($("#s
 $("#btn-settings").addEventListener("click", () => { Sound.unlock(); Sound.tick(); openSheet($("#sheet-menu")); });
 $("#btn-menu").addEventListener("click", () => { Sound.unlock(); Sound.tick(); showHome(false); });
 document.querySelectorAll(".sheet").forEach((s) => s.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) { Sound.tick(); closeSheet(s); } }));
+// Cerrar las hojas deslizando hacia abajo: desde la parte de arriba (o desde el contenido si ya está hasta arriba).
+// La hoja sigue al dedo; si bajó lo suficiente (o rápido), se cierra; si no, regresa suave a su lugar
+(function sheetSwipe() {
+  let D = null;
+  const start = (sheet, y, x, fromBody) => {
+    const panel = sheet.querySelector(".panel"), body = sheet.querySelector(".panel-body");
+    D = { sheet, panel, body, y0: y, x0: x, dy: 0, on: false, fromBody, t: performance.now(), lastY: y, lastT: performance.now(), v: 0 };
+  };
+  const move = (y, x, e) => {
+    if (!D) return;
+    const dy = y - D.y0, dx = x - D.x0, now = performance.now();
+    if (!D.on) {
+      if (Math.abs(dy) < 8) return;
+      // Hacia arriba, de lado, o desde el contenido cuando todavía se puede hacer scroll: es scroll normal
+      if (dy < 0 || Math.abs(dx) > Math.abs(dy) || (D.fromBody && D.body && D.body.scrollTop > 0)) { D = null; return; }
+      D.on = true; D.y0 = y; D.panel.style.transition = "none";
+    }
+    if (e && e.cancelable) e.preventDefault();
+    D.v = (y - D.lastY) / Math.max(1, now - D.lastT); D.lastY = y; D.lastT = now;
+    D.dy = Math.max(0, y - D.y0);
+    D.panel.style.transform = `translateY(${D.dy}px)`;
+    const scrim = D.sheet.querySelector(".scrim"); if (scrim) { scrim.style.transition = "none"; scrim.style.opacity = String(Math.max(0, 1 - D.dy / (D.panel.offsetHeight * 0.9))); }
+  };
+  const end = () => {
+    if (!D) return;
+    const d = D; D = null;
+    if (!d.on) return;
+    const scrim = d.sheet.querySelector(".scrim");
+    d.panel.style.transition = ""; if (scrim) { scrim.style.transition = ""; scrim.style.opacity = ""; }
+    const close = d.dy > Math.min(140, d.panel.offsetHeight * 0.25) || (d.v > 0.6 && d.dy > 30);
+    if (close) { Sound.tick(); buzz(8); closeSheet(d.sheet); requestAnimationFrame(() => { d.panel.style.transform = ""; }); }
+    else d.panel.style.transform = "";
+  };
+  document.querySelectorAll(".sheet").forEach((sheet) => {
+    const panel = sheet.querySelector(".panel"); if (!panel) return;
+    panel.addEventListener("touchstart", (e) => {
+      if (!sheet.classList.contains("open") || e.touches.length > 1) return;
+      const t = e.touches[0], inBody = !!e.target.closest(".panel-body");
+      if (e.target.closest("input, .seg, .switch, #tools, .tabs")) return;
+      start(sheet, t.clientY, t.clientX, inBody);
+    }, { passive: true });
+    panel.addEventListener("touchmove", (e) => { if (D && e.touches[0]) move(e.touches[0].clientY, e.touches[0].clientX, e); }, { passive: false });
+    panel.addEventListener("touchend", end); panel.addEventListener("touchcancel", end);
+    // Con mouse: arrastrando la parte de arriba
+    panel.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse" || !sheet.classList.contains("open") || !e.target.closest(".grab, .panel-head") || e.target.closest("button")) return;
+      start(sheet, e.clientY, e.clientX, false);
+      const mm = (ev) => move(ev.clientY, ev.clientX, ev), mu = () => { window.removeEventListener("pointermove", mm); window.removeEventListener("pointerup", mu); end(); };
+      window.addEventListener("pointermove", mm); window.addEventListener("pointerup", mu);
+    });
+  });
+})();
 $("#shop-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === shopTab) return; shopTab = b.dataset.tab; renderShop(true); $("#shop-body").scrollTop = 0; Sound.tick(); });
 $("#shop-list").addEventListener("click", (e) => {
   const m = e.target.closest("[data-hmode]");
