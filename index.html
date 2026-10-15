@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.43.2";
+const VERSION = "0.43.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3074,8 +3074,74 @@ function drawBurnAlien(b) {
   ctx.globalAlpha = 1;
 }
 const meteors = [];
+// Cráteres: cada meteorito deja un hoyito en el piso (orilla levantada, grietas, piedritas y un brillo caliente
+// que se enfría). Se abre de golpe, sin rebote, y a los 3 s se desvanece
+const craters = [], CRATER_LIFE = 3;
+function addCrater(x, y, r) {
+  const R = r * 0.6, cracks = [], rocks = [], n = 5 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU + rand(-0.3, 0.3), len = R * rand(0.45, 0.85), pts = [];
+    for (let k = 0; k <= 3; k++) { const d = R * 0.92 + (len * k) / 3, w = k ? rand(-0.16, 0.16) : 0; pts.push([Math.cos(a + w) * d, Math.sin(a + w) * d * 0.46]); }
+    cracks.push(pts);
+  }
+  for (let i = 0; i < 7; i++) { const a = rand(0, TAU), d = R * rand(1.05, 1.5); rocks.push({ x: Math.cos(a) * d, y: Math.sin(a) * d * 0.46, r: rand(1.1, 2.4) * Math.max(0.8, R / 26) }); }
+  craters.push({ x, y, R, t: 0, cracks, rocks });
+}
+// Colores del cráter según el piso del nivel (y el tema)
+function craterPal() {
+  const id = lvl().id, P = {
+    snow: ["#EEF4FB", "#5D6B80", "#8FA3BD", "#7A8BA3"], city: ["#9AA0AA", "#2B2E35", "#5C626C", "#262930"],
+    jungle: ["#A8865D", "#45331F", "#6F5A3E", "#3A2A1A"], beach: ["#EDD49E", "#A0825A", "#C9AC78", "#8F7350"],
+  }[id] || ["#C3B2EE", "#4A3A78", "#7D6BB5", "#3E3066"];
+  return PAL.onDark ? P.map((c) => mix(c, "#000000", 0.3)) : P; // orilla, hoyo, polvo, grietas
+}
+function updateCraters(dt) { for (let i = craters.length - 1; i >= 0; i--) if ((craters[i].t += dt) > CRATER_LIFE) craters.splice(i, 1); }
+function drawCraters() {
+  if (!craters.length) return;
+  const [rim, hole, dust, crack] = craterPal();
+  for (const c of craters) {
+    const k = reduceMotion ? 1 : easeOut(Math.min(1, c.t / 0.12)), a = c.t > CRATER_LIFE - 0.7 ? Math.max(0, (CRATER_LIFE - c.t) / 0.7) : 1;
+    const R = c.R * (0.55 + 0.45 * k), ry = R * 0.46;
+    ctx.save(); ctx.translate(c.x, c.y);
+    // Polvo alrededor y grietas
+    ctx.globalAlpha = a * 0.28; ctx.fillStyle = dust;
+    ctx.beginPath(); ctx.ellipse(0, 0, R * 1.45, ry * 1.45, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = a * 0.55 * k; ctx.strokeStyle = crack; ctx.lineWidth = 1.2; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (const pts of c.cracks) pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)));
+    ctx.stroke();
+    // Orilla levantada (la de adelante un poco en sombra)
+    ctx.globalAlpha = a; ctx.fillStyle = rim;
+    ctx.beginPath(); ctx.ellipse(0, 0, R, ry, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = a * 0.25; ctx.fillStyle = dust;
+    ctx.beginPath(); ctx.ellipse(0, ry * 0.22, R * 0.98, ry * 0.8, 0, 0, Math.PI); ctx.fill();
+    // El hoyo: oscuro, con la pared de atrás iluminada (se ve hundido) y el fondo en sombra
+    ctx.globalAlpha = a; ctx.fillStyle = hole;
+    ctx.beginPath(); ctx.ellipse(0, ry * 0.08, R * 0.78, ry * 0.7, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.clip();
+    ctx.globalAlpha = a * 0.42; ctx.fillStyle = rim;
+    ctx.beginPath(); ctx.ellipse(0, -ry * 0.5, R * 0.86, ry * 0.62, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = a * 0.18;
+    ctx.beginPath(); ctx.ellipse(0, -ry * 0.62, R * 0.7, ry * 0.4, 0, 0, TAU); ctx.fill();
+    // Recién caído: el fondo brilla caliente y se enfría en menos de un segundo
+    const hot = reduceMotion ? 0 : Math.max(0, 1 - c.t / 0.75);
+    if (hot > 0) {
+      ctx.globalAlpha = a * hot * hot * 0.6; ctx.fillStyle = "#FF8A3D";
+      ctx.beginPath(); ctx.ellipse(0, ry * 0.3, R * 0.62, ry * 0.42, 0, 0, TAU); ctx.fill();
+      ctx.globalAlpha = a * hot * hot * 0.45; ctx.fillStyle = "#FFC86B";
+      ctx.beginPath(); ctx.ellipse(0, ry * 0.34, R * 0.32, ry * 0.2, 0, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+    // Piedritas que salieron volando
+    ctx.globalAlpha = a; ctx.fillStyle = hole;
+    for (const r of c.rocks) { ctx.beginPath(); ctx.ellipse(r.x * k, r.y * k, r.r, r.r * 0.7, 0, 0, TAU); ctx.fill(); }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
 // Meteoritos: caen en diagonal y al tocar el piso aplastan todo alrededor
 function updateMeteors(dt) {
+  if (craters.length) updateCraters(dt);
   const M = TOOLS.meteor;
   for (let i = meteors.length - 1; i >= 0; i--) {
     const m = meteors[i];
@@ -3085,7 +3151,7 @@ function updateMeteors(dt) {
       ring(m.x, m.y, 8, m.r * 1.15, 0.5, "#E8894A", 3, 0.5, 0.12);
       for (let k = 0; k < 10; k++) { const a = rand(Math.PI, TAU), s = rand(80, 220); part(m.x, m.y, Math.cos(a) * s, Math.sin(a) * s, rand(1.8, 3.4), rand(0.4, 0.7), k % 2 ? "#FFB067" : "#FFE2B8", "dot", 4, 300); }
       for (let k = 0; k < 6; k++) { const a = rand(0, TAU); part(m.x + Math.cos(a) * 20, m.y + Math.sin(a) * 8, Math.cos(a) * 50, -rand(10, 40), rand(4, 7), 0.8, PAL.mist, "mist", 3, 0, 0.3); }
-      splats.push({ x: m.x, y: m.y, rx: m.r * 0.7, color: "#8A7462", t: 0, dur: 2.2, seed: Math.random() * 10 });
+      addCrater(m.x, m.y, m.r);
       Sound.meteor(); buzz(14);
       balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - m.x, b.y - m.y) < m.r + b.r * 0.5).forEach((b) => hit(b, M.damage, m.x, m.y, true));
     }
@@ -3825,7 +3891,7 @@ function travel() {
   playTrip(from, n, save.level + 1, () => {
     // Por debajo de la cortina: el mundo nuevo
     balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
-    meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+    meteors.length = 0; craters.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
     cars.length = 0; roadkills.length = 0; skids.length = 0; arrows.length = 0;
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
@@ -3838,7 +3904,7 @@ function travel() {
 // comprar y aplastar como siempre, pero nada cuenta. Al regresar, todo vuelve exactamente como estaba.
 function resetWorld() {
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; splats.length = 0; goos.length = 0; bolts.length = 0;
-  meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+  meteors.length = 0; craters.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   cars.length = 0; roadkills.length = 0; skids.length = 0; saws.length = 0; slashes.length = 0; arrows.length = 0;
 }
 // Cambia el mundo por debajo (el campo, la Tienda, la barra y el tema del nivel)
@@ -7617,7 +7683,7 @@ confirmEl.addEventListener("click", (e) => { if (e.target.closest("[data-cancel]
 $("#btn-reset-yes").addEventListener("click", () => {
   real = null; save = freshSave(); writeSave(); renderVisit();
   balls.length = 0; parts.length = 0; rings.length = 0; texts.length = 0; bolts.length = 0; splats.length = 0; goos.length = 0; timers.length = 0;
-  helpers.length = 0; meteors.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
+  helpers.length = 0; meteors.length = 0; craters.length = 0; booms.length = 0; bombs.length = 0; jets.length = 0; falling.length = 0; waves.length = 0; tracks.length = 0;
   multBubble = null; multOn = null; multHud.classList.remove("on"); field.classList.remove("boosted", "x4");
   applyLevel(); updateDetonate(); goalsDirty = true;
   for (const k in cdEnd) delete cdEnd[k];
@@ -7758,6 +7824,8 @@ function render(dt) {
   }
   // Charquitos de los aplastados
   if (goos.length) drawGooGround();
+  // Cráteres de los meteoritos
+  drawCraters();
   // Del evento (conchas, cocos en el piso), el brillo del Rey y el coleccionable
   drawEventGround(); drawRareGround(); drawCollectible();
   // Áreas de los ayudantes
