@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.7";
+const VERSION = "0.41.8";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1260,8 +1260,8 @@ const TOOLS = {
   // Click: 10 niveles. El 1 aplasta uno a la vez; luego un área de 24 a 90 px (máximo 90 en cualquier pantalla)
   finger: { price: 0, max: 10, upgrades: ups(150, 1.8).slice(0, 9), radius: Array.from({ length: 10 }, (_, i) => (i === 0 ? 0 : Math.round(24 * (90 / 24) ** ((i - 1) / 8)))), slop: 10 },
   bolt:   { price: 1200, max: 20, upgrades: ups(2000, 1.42), chains: L20((v) => 2 + Math.floor((v - 1) * 0.55)), range: L20((v) => Math.round(curve(130, 230, v))), hop: 0.05 }, // de 2 a 12 en cadena
-  // Sierra: mantén y arrastra. 10 niveles; su radio crece de 22 a 90 px
-  saw:    { price: 10000, max: 10, upgrades: ups(12000, 1.6).slice(0, 9), radius: Array.from({ length: 10 }, (_, i) => Math.round(22 * (90 / 22) ** (i / 9))) },
+  // Sierra: mantén y arrastra. 5 niveles; cada mejora cuesta el doble que la anterior (20k, 40k, 80k, 160k) y su radio crece de 22 a 90 px
+  saw:    { price: 10000, max: 5, upgrades: [20000, 40000, 80000, 160000], radius: Array.from({ length: 5 }, (_, i) => Math.round(22 * (90 / 22) ** (i / 4))) },
   // The Beach
   bomb:   { price: 4000, world: 1, max: 20, upgrades: ups(1500, 1.38), count: L20((v) => Math.min(10, v)), radius: L20((v) => Math.round(curve(70, 185, v))) }, // hasta 10 bombas; luego, más grandes
   wave:   { price: 15000, world: 1, only: 1, max: 20, upgrades: ups(20000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.5, v) * 10) / 10), dur: L20((v) => curve(1.8, 1.2, v)) }, // tsunami: baja desde el mar y arrastra a todos
@@ -1428,6 +1428,8 @@ function loadSave() {
     // La Sierra ahora tiene 10 niveles: los niveles de más se devuelven en monedas (al precio de antes, en el nivel donde estás)
     const sawOld = clamp(Math.floor(num(s.tools && (s.tools.saw || s.tools.spray))), 0, 20);
     if (sawOld > 10) { const old = ups(12000, 1.4), m = LEVELS[d.level].coinMult || 1; for (let n = 11; n <= sawOld; n++) { const c = nice(old[n - 2] * m); d.coins += c; d.spent = Math.max(0, d.spent - c); } }
+    // Y desde 0.41.8 tiene 5: los niveles 6 a 10 también se devuelven (al precio de los 10 niveles)
+    if (sawOld > 5) { const old = ups(12000, 1.6), m = LEVELS[d.level].coinMult || 1; for (let n = 6; n <= Math.min(10, sawOld); n++) { const c = nice(old[n - 2] * m); d.coins += c; d.spent = Math.max(0, d.spent - c); } }
     // La Bota (herramienta) ya no existe: se devuelve lo que costó
     const boot = clamp(Math.floor(num(s.tools && s.tools.boot)), 0, 3);
     if (boot) { const c = [100, 200, 600].slice(0, boot).reduce((a, b) => a + b, 0); d.coins += c; d.spent = Math.max(0, d.spent - c); }
