@@ -41,6 +41,12 @@ no_zoom = """<style>html, body { touch-action: manipulation; -webkit-text-size-a
 """
 html = html.replace("</head>", no_zoom + "</head>", 1)
 
+# Solo para medir el rendimiento en el iPhone (PERF=1 npm run build): no guarda nada y escribe "PERF …" en la consola
+if os.environ.get("PERF"):
+    probe = open(os.path.join(HERE, "perf-probe.js"), encoding="utf-8").read()
+    html = html.replace("</head>", "<script>" + probe + "</script>\n</head>", 1)
+    print("OJO: build de prueba de rendimiento (PERF=1)")
+
 # Versión de la app (Ajustes → Versión): la del proyecto de Xcode, y la del juego entre paréntesis
 pbx = open(os.path.join(HERE, "ios", "App", "App.xcodeproj", "project.pbxproj"), encoding="utf-8").read()
 version = re.search(r"MARKETING_VERSION = ([0-9.]+);", pbx).group(1)

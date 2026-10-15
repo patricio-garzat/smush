@@ -210,11 +210,12 @@ h1, h2, h3, .coins, .home-title, .play-txt b, .hc-t b, .shop-txt b, .rec-hero b,
 #trip.coins { --fill: rgba(241, 200, 77, 0.3); }
 #trip.coins .trip-ic { color: #C9962A; box-shadow: 0 0 0 2px rgba(241, 200, 77, 0.35); }
 /* ¡Lista! El botón se llena del color del nivel y brilla suave */
-#trip.go { background: var(--lvl); background: linear-gradient(135deg, var(--lvl), color-mix(in srgb, var(--lvl) 70%, #FFFFFF)); color: #FFFFFF; animation: tripGlow 2.4s ease-in-out infinite; }
+#trip.go { background: var(--lvl); background: linear-gradient(135deg, var(--lvl), color-mix(in srgb, var(--lvl) 70%, #FFFFFF)); color: #FFFFFF; box-shadow: var(--shadow); }
+#trip.go::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 6px var(--lvl-soft); opacity: 0; pointer-events: none; animation: ringPulse 2.4s ease-in-out infinite; }
 #trip.go .trip-ic { background: rgba(255, 255, 255, 0.25); color: #FFFFFF; box-shadow: none; }
 #trip.go #trip-cap, #trip.go #trip-count { color: rgba(255, 255, 255, 0.9); }
-@keyframes tripGlow { 0%, 100% { box-shadow: var(--shadow), 0 0 0 0 var(--lvl-soft); } 50% { box-shadow: var(--shadow), 0 0 0 6px var(--lvl-soft); } }
-@media (prefers-reduced-motion: reduce) { #trip.go { animation: none; } }
+@keyframes ringPulse { 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #trip.go::after { animation: none; } }
 /* Pastillas de estadísticas: marcianitos aplastados y monedas por segundo */
 .mini { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px 0 6px; border-radius: 12px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 12.5px; font-weight: 750; white-space: nowrap; }
 .mini img { width: 16px; height: 16px; object-fit: contain; }
@@ -294,8 +295,8 @@ body::before {
 /* Acomodar un ayudante: una pastilla arriba del campo */
 #place-hint { position: absolute; top: calc(var(--hud-h, 0px) + 8px); left: 50%; z-index: 3; padding: 9px 16px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 750; white-space: nowrap; pointer-events: none;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18); opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.22, 0.8, 0.24, 1); }
-#place-hint.on { opacity: 1; transform: translate(-50%, 0); animation: placePulse 1.8s ease-in-out infinite; }
-@keyframes placePulse { 50% { box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18), 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent); } }
+#place-hint.on { opacity: 1; transform: translate(-50%, 0); }
+#place-hint.on::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent); opacity: 0; animation: ringPulse 1.8s ease-in-out infinite; }
 .item .tip { margin: 6px 0 0; font-size: 12px; font-weight: 650; color: var(--muted); }
 .item .seg.mode { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 9px; padding: 3px; border-radius: 12px; background: var(--field); }
 .item .seg.mode button { height: 28px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; font-size: 12.5px; font-weight: 750; color: var(--muted); }
@@ -312,8 +313,7 @@ body::before {
 #detonate b { padding: 2px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.22); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 #detonate:disabled { filter: grayscale(0.55); opacity: 0.8; cursor: default; }
 #detonate:active:not(:disabled) { transform: translateX(-50%) scale(0.96); }
-#detonate.ready { animation: detPulse 1.6s ease-in-out infinite; }
-@keyframes detPulse { 0%, 100% { box-shadow: 0 8px 22px rgba(229, 72, 77, 0.35), 0 0 0 0 rgba(229, 72, 77, 0.35); } 50% { box-shadow: 0 8px 22px rgba(229, 72, 77, 0.35), 0 0 0 9px rgba(229, 72, 77, 0); } }
+#detonate.ready::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 6px rgba(229, 72, 77, 0.22); opacity: 0; pointer-events: none; animation: ringPulse 1.6s ease-in-out infinite; }
 .tool .count { font-size: 11px; font-weight: 800; opacity: 0.75; font-variant-numeric: tabular-nums; }
 /* Multiplicador activo: una pastilla arriba del campo con el tiempo que le queda, y un borde dorado (o violeta en ×4) */
 #mult-hud {
@@ -348,8 +348,8 @@ body::before {
 .toast { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 10px; border-radius: 22px; background: var(--card); color: var(--text);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2), inset 0 0 0 1px var(--line); }
 .toast::before { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, color-mix(in srgb, var(--tc, var(--lvl)) 16%, transparent), transparent 60%); pointer-events: none; }
-.toast::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; transform: skewX(-18deg); background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent); animation: toastSheen 1.4s 0.35s ease-out both; pointer-events: none; }
-@keyframes toastSheen { from { left: -60%; } to { left: 130%; } }
+.toast::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; transform: translateX(-150%) skewX(-18deg); background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent); animation: toastSheen 1.4s 0.35s ease-out both; pointer-events: none; }
+@keyframes toastSheen { from { transform: translateX(-150%) skewX(-18deg); } to { transform: translateX(325%) skewX(-18deg); } }
 .toast .t-ic { position: relative; width: 48px; height: 48px; flex: none; display: grid; place-items: center; }
 .toast .t-ic svg { width: 48px; height: 48px; display: block; }
 .toast .t-ic img { width: 44px; height: 44px; }
@@ -376,10 +376,10 @@ body::before {
 .mis .m-r .coin { font-size: 10px; }
 .mis.done { box-shadow: var(--shadow), inset 0 0 0 2px color-mix(in srgb, var(--c) 55%, transparent); }
 .claim { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 15px; border: 0; border-radius: 20px; color: #FFFFFF; font-size: 13.5px; font-weight: 850;
-  background: linear-gradient(135deg, #FFC94D, #FF8F4A); box-shadow: 0 8px 18px rgba(255, 140, 60, 0.35); animation: claimPulse 1.6s ease-in-out infinite; transition: transform 0.14s; }
+  background: linear-gradient(135deg, #FFC94D, #FF8F4A); box-shadow: 0 8px 18px rgba(255, 140, 60, 0.35); position: relative; transition: transform 0.14s; }
+.claim::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 7px rgba(255, 180, 80, 0.18); opacity: 0; pointer-events: none; animation: ringPulse 1.6s ease-in-out infinite; }
 .claim:active { transform: scale(0.95); }
 .claim .coin { font-size: 12px; }
-@keyframes claimPulse { 50% { box-shadow: 0 8px 18px rgba(255, 140, 60, 0.35), 0 0 0 7px rgba(255, 180, 80, 0.18); } }
 .mis-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
 .mis-stats span { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); font-size: 11px; font-weight: 700; color: var(--muted); }
 .mis-stats b { font-family: var(--font-display); font-size: 18px; font-weight: 850; color: var(--text); }
@@ -410,14 +410,14 @@ body::before {
 .tro:not(.got) svg { opacity: 0.6; }
 .tro:not(.got) b { color: var(--muted); }
 .tro.got { background: linear-gradient(170deg, color-mix(in srgb, var(--tc) 14%, var(--card)), var(--card) 60%); }
-.tro.got::after { content: ""; position: absolute; top: 0; bottom: 0; left: -70%; width: 45%; transform: skewX(-18deg); background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: troSheen 5s ease-in-out infinite; pointer-events: none; }
-@keyframes troSheen { 0%, 70% { left: -70%; } 100% { left: 140%; } }
+.tro.got::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; transform: translateX(-156%) skewX(-18deg); background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent); animation: troSheen 5s ease-in-out infinite; pointer-events: none; }
+@keyframes troSheen { 0%, 70% { transform: translateX(-156%) skewX(-18deg); } 100% { transform: translateX(311%) skewX(-18deg); } }
 .t-bar { display: block; width: 70%; height: 4px; margin-top: 5px; border-radius: 2px; background: var(--field); overflow: hidden; }
 .t-bar i { display: block; height: 100%; border-radius: inherit; background: var(--tc); }
 .hcard { position: relative; }
 .hcard .badge { top: 8px; right: 9px; }
 .hcard.has .badge, #btn-goals.has .badge { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .claim, .tro.got::after, .toast::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .claim::after, .tro.got::after, .toast::after, #detonate.ready::after, #place-hint.on::after { animation: none; } }
 #field { transition: box-shadow 0.4s ease; }
 #field.boosted { box-shadow: var(--frame), inset 0 0 0 2px rgba(241, 200, 77, 0.7), inset 0 0 40px rgba(241, 200, 77, 0.12); }
 #field.boosted.x4 { box-shadow: var(--frame), inset 0 0 0 2px rgba(165, 132, 232, 0.75), inset 0 0 40px rgba(165, 132, 232, 0.14); }
@@ -465,10 +465,10 @@ body::before {
   transition: transform 0.14s ease;
 }
 #btn-shop:active { transform: scale(0.98); }
-#btn-shop::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; pointer-events: none; transform: skewX(-18deg);
+#btn-shop::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; pointer-events: none; transform: translateX(-150%) skewX(-18deg);
   background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.38), transparent); }
 #btn-shop.has::after { animation: shopSheen 4s ease-in-out infinite; }
-@keyframes shopSheen { 0%, 62% { left: -60%; } 100% { left: 130%; } }
+@keyframes shopSheen { 0%, 62% { transform: translateX(-150%) skewX(-18deg); } 100% { transform: translateX(325%) skewX(-18deg); } }
 .shop-ic { width: 34px; height: 34px; flex: none; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
 .shop-ic svg { width: 20px; height: 20px; }
 .shop-txt { display: flex; flex-direction: column; align-items: center; line-height: 1; }
@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.9";
+const VERSION = "0.42.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2016,13 +2016,14 @@ let musicReady = false; // suena hasta que terminan las intros
 const Music = (() => {
   const bufs = {}, loading = {}, failed = {};
   let c = null, out = null, voices = [], cur = null, playing = null; // playing = la canción que suena ahora
+  let lastWant = null, wantAt = 0;
   const target = () => (settings.music ? settings.musicVol : 0) * 0.42; // la barra va hasta arriba; el máximo suena más bajito (antes 0.6 × 0.9)
   function load(src) {
     if (bufs[src] || loading[src] || failed[src]) return;
     loading[src] = true;
     fetch(src).then((r) => { if (!r.ok && r.status !== 0) throw new Error("music"); return r.arrayBuffer(); }) // en la app (capacitor://) llegan con status 0
       .then((a) => new Promise((res, rej) => c.decodeAudioData(a, res, rej)))
-      .then((b) => { bufs[src] = b; loading[src] = false; tick(); })
+      .then((b) => { loading[src] = false; if (src === MUSIC.tracks[lvl().id]) bufs[src] = b; tick(); }) // si ya cambiaste de isla, no se guarda
       .catch(() => { loading[src] = false; failed[src] = true; setTimeout(() => { delete failed[src]; }, 8000); }); // se vuelve a intentar
   }
   // Una vuelta de la canción: entra subiendo y sale bajando (así se cruza con la siguiente)
@@ -2058,6 +2059,12 @@ const Music = (() => {
       if (playing) { playing = null; fadeAll(1.2); out.gain.cancelScheduledValues(now); out.gain.setTargetAtTime(0, now, 0.4); }
       return;
     }
+    // Memoria: cada canción descomprimida ocupa ~80 MB. Solo se guarda la que suena y la que va a sonar;
+    // las demás se sueltan (la que se está desvaneciendo sigue sonando hasta acabar) y se vuelven a cargar si regresas
+    for (const k in bufs) if (k !== want && k !== playing) delete bufs[k];
+    // Si vas pasando islas rápido en el Inicio, no se carga cada canción: solo la de la isla donde te quedas
+    if (want !== lastWant) { lastWant = want; wantAt = performance.now(); }
+    if (playing && performance.now() - wantAt < 500) return;
     load(want);
     const buf = bufs[want];
     if (!buf) return;
@@ -7240,7 +7247,7 @@ function updateUI() {
   document.querySelectorAll(".tool").forEach((el) => { const p = priceOf(el.dataset.id); el.classList.toggle("can", p != null && save.coins >= p); });
   renderLevelChip();
   if (!$("#sheet-levels").hidden) renderLevels(false);
-  document.querySelectorAll(".buy[data-key]").forEach((el) => {
+  if (!$("#sheet-shop").hidden) document.querySelectorAll(".buy[data-key]").forEach((el) => {
     const k = el.dataset.key, p0 = el.dataset.kind === "tool" ? priceOf(k) : upPrice(k);
     if (p0 == null) return;
     // Cuántos niveles y cuánto (en Máx. cambia conforme juntas monedas)
@@ -7412,9 +7419,11 @@ function openSheet(el) {
   if (el.id === "sheet-records") renderRecords();
   if (el.id === "sheet-how") renderHow();
   if (el.id === "sheet-shop") { renderShop(true); $("#shop-body").scrollTop = 0; }
+  const wasHidden = el.hidden;
   if (el.id === "sheet-goals") renderGoals(true);
   if (el.id === "sheet-levels") { renderLevels(true); el.querySelector(".panel-body").scrollTop = 0; }
   el.hidden = false;
+  if (wasHidden && el.id === "sheet-shop") updateUI(); // precios y botones al día al abrir
   void el.offsetWidth;
   el.classList.add("open");
   Sound.tick();
@@ -7896,7 +7905,7 @@ function perf(raw, dt) {
   lowFx = frameEMA > 1 / 45;
 }
 
-let raf = 0, last = 0;
+let raf = 0, last = 0, uiAt = 0;
 function loop(now) {
   raf = requestAnimationFrame(loop);
   const raw = last ? (now - last) / 1000 : 1 / 60;
@@ -7921,7 +7930,7 @@ function loop(now) {
   render(dt);
   updateCooldownUI();
   tweenCoins(dt);
-  if (uiDirty) updateUI();
+  if (uiDirty && now - uiAt >= 120) { uiAt = now; updateUI(); }
 }
 function startLoop() { if (!raf && !document.hidden && inGame) { last = 0; raf = requestAnimationFrame(loop); } }
 // Pausa total cuando la pestaña o la app no se ven; al volver se cuenta lo que hicieron los ayudantes
