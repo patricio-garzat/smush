@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.44.2";
+const VERSION = "0.44.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2875,7 +2875,9 @@ function sparks(x, y, n) {
 // Gira más rápido entre más rápido la mueves, echa chispas al cortar y, al soltar, se frena y se desvanece.
 const saws = [], slashes = [];
 const SAW_CUT_DIE = 1.55; // s: las dos mitades caen al piso, se quedan tantito y se desvanecen
-const BURN_DIE = 1.15;    // s: el rayo lo quema (destello, se tuesta, humea y se deshace en cenizas)
+const BURN_DIE = 2.6;     // s: el rayo lo quema (destello, se tuesta, se deshace en polvo y queda una montañita que humea)
+// Tiempos de la muerte por rayo: se tuesta, se deshace en polvo de arriba hacia abajo, y la montañita se desvanece
+const BURN = { char: [0.03, 0.34], dust: [0.36, 0.95], pile: [0.42, 1.0], fade: [2.0, 2.55] };
 let sawSpr = {};
 // La hoja (dientes, ranuras y centro) se pinta una vez por tamaño; luego solo se gira
 function sawSprite(R) {
@@ -3037,38 +3039,97 @@ function charOf(S) {
 function burnBurst(b) {
   b.burn = true;
   const T = b.T, gy = b.y + T.bottom;
-  splats.push({ x: b.x, y: gy, rx: b.r * 1.05, color: PAL.onDark ? "#000000" : "#2B2320", t: 0, dur: 3.2, seed: Math.random() * 10, a: 0.42 });
+  splats.push({ x: b.x, y: gy, rx: b.r * 1.05, color: PAL.onDark ? "#000000" : "#2B2320", t: 0, dur: 3.2, seed: Math.random() * 10, a: 0.28 });
   sparks(b.x, b.y, 6);
   for (let i = 0; i < 5; i++) { const a = rand(0, TAU), s = rand(80, 180); part(b.x, b.y, Math.cos(a) * s, Math.sin(a) * s - 40, rand(1.2, 2), 0.35, "#FFF6B0", "dot", 5, 0); }
 }
-// Mientras se quema: humo que sube, brasitas, y al deshacerse, cenizas que caen al piso
+// Mientras se quema: brasitas; al deshacerse, granitos de ceniza que caen desde donde se va comiendo; y de la
+// montañita, humo que sube suave y se va apagando
 function burnTick(b, dt) {
-  const r = b.r, t = b.t;
+  const r = b.r, t = b.t, T = b.T, gy = b.y + T.bottom;
   if (lowFx) return;
-  if (t > 0.12 && t < 0.95 && Math.random() < dt * 22) part(b.x + rand(-r * 0.5, r * 0.5), b.y - r * rand(0.1, 0.6), rand(-10, 10), -rand(28, 55), rand(3.5, 6.5), rand(0.8, 1.2), PAL.dark ? "#77706A" : "#8E8780", "mist", 1.2, -12, 0.32);
-  if (t > 0.1 && t < 0.6 && Math.random() < dt * 14) part(b.x + rand(-r * 0.6, r * 0.6), b.y - r * rand(0, 0.5), rand(-20, 20), -rand(40, 90), rand(0.9, 1.5), rand(0.4, 0.7), Math.random() < 0.5 ? "#FFB067" : "#FFD27A", "dot", 2, -40);
-  if (!b.ashed && t > 0.55) {
-    b.ashed = true;
-    for (let i = 0; i < 12; i++) part(b.x + rand(-r * 0.7, r * 0.7), b.y + rand(-r * 0.5, r * 0.5), rand(-45, 45), -rand(10, 60), rand(1.2, 2.4), rand(0.5, 0.8), Math.random() < 0.7 ? "#2E2622" : "#5A504A", "dot", 2.5, 380);
+  if (t > 0.1 && t < 0.5 && Math.random() < dt * 14) part(b.x + rand(-r * 0.6, r * 0.6), b.y - r * rand(0, 0.5), rand(-20, 20), -rand(40, 90), rand(0.9, 1.5), rand(0.4, 0.7), Math.random() < 0.5 ? "#FFB067" : "#FFD27A", "dot", 2, -40);
+  const d = smooth01(BURN.dust[0], BURN.dust[1], t);
+  if (d > 0 && d < 1) {
+    // El frente que se deshace (en px del mundo): de la punta de las antenas a los pies
+    const S = (b.skin && SKIN_SPR[b.skin]) || T.spr, top = gy - (S ? S.ground : r * 2), y = top + (gy - top) * d;
+    for (let i = 0, n = Math.round(dt * 90); i < n; i++) {
+      const x = b.x + rand(-r * 0.75, r * 0.75), fall = Math.max(4, gy - y), life = Math.min(0.75, Math.sqrt((2 * fall) / 300) + 0.05);
+      part(x, y + rand(-2, 2), rand(-12, 12), rand(5, 30), rand(0.55, 1.1), life, ["#2E2622", "#4A403B", "#6E655F"][Math.floor(Math.random() * 3)], "dot", 1.5, 300);
+    }
+    if (Math.random() < dt * 6) part(b.x + rand(-r * 0.5, r * 0.5), y, rand(-10, 10), -rand(12, 24), rand(1.2, 1.9), rand(0.7, 1.0), PAL.dark ? "#6F6862" : "#B5ADA6", "smoke", 1, -8, 0.18);
   }
+  // Humo de la montañita: empieza cuando ya hay polvo y se va apagando
+  const k = t > BURN.pile[0] ? 1 - smooth01(BURN.pile[0] + 0.3, BURN.fade[0], t) : 0;
+  if (k > 0 && Math.random() < dt * 6 * k) part(b.x + rand(-r * 0.3, r * 0.3), gy - r * 0.32 * k, rand(-5, 5), -rand(14, 24), rand(1.5, 2.4), rand(1.0, 1.4), PAL.dark ? "#6F6862" : "#BDB6AF", "smoke", 0.6, -6, 0.2 * (0.4 + 0.6 * k));
 }
-// El rayo: destello eléctrico con chispazos y temblor; se tuesta hasta quedar de carbón, con brasas que parpadean;
-// se encoge tantito y al final se desmorona hacia el piso (las cenizas y el humo los echa burnTick)
+// El rayo: destello eléctrico con chispazos y temblor; se tuesta hasta quedar de carbón; luego se deshace en polvo de
+// arriba hacia abajo (el borde que se va comiendo brilla como brasa) y a sus pies queda una montañita de ceniza que
+// humea y se desvanece. Nada de aplastarse
+const burnCv = document.createElement("canvas"), burnCtx = burnCv.getContext("2d");
 function drawBurnAlien(b) {
   const T = b.T, S = charOf((b.skin && SKIN_SPR[b.skin]) || T.spr), t = b.t, gy = b.y + T.bottom, fx = Math.sign(b.flip || 1), r = b.r;
   const shake = t < 0.2 && !reduceMotion ? Math.sin(t * 95) * 2.2 * (1 - t / 0.2) : 0;
-  const ch = smooth01(0.03, 0.38, t), crumble = smooth01(0.52, 1.05, t), sc = 1 - 0.08 * ch;
-  const lift = t < 0.12 ? Math.sin((t / 0.12) * Math.PI) * 3 : 0;
-  ctx.save();
-  ctx.translate(b.x + shake, gy - lift);
-  ctx.scale(fx * sc * (1 + 0.08 * crumble), sc * (1 - 0.45 * crumble));
-  const base = 1 - crumble;
-  ctx.globalAlpha = base; ctx.drawImage(S.img, -S.cx, -S.ground, S.w, S.h);
-  ctx.globalAlpha = base * 0.92 * ch; ctx.drawImage(S.char, -S.cx, -S.ground, S.w, S.h);
-  const ember = ch * (1 - smooth01(0.3, 0.75, t)) * (0.55 + 0.45 * Math.sin(t * 38 + b.x));
-  if (ember > 0.02) { ctx.globalAlpha = base * ember * 0.45; ctx.drawImage(S.ember, -S.cx, -S.ground, S.w, S.h); }
-  if (t < 0.14) { ctx.globalAlpha = (1 - t / 0.14) * 0.95; ctx.drawImage(S.flash, -S.cx, -S.ground, S.w, S.h); }
-  ctx.restore();
+  const ch = smooth01(BURN.char[0], BURN.char[1], t), d = smooth01(BURN.dust[0], BURN.dust[1], t), sc = 1 - 0.05 * ch;
+  const lift = t < 0.12 ? Math.sin((t / 0.12) * Math.PI) * 3 : 0, seed = (b.p1 || 0) * 7.3 + b.x * 0.013;
+  if (d < 1) {
+    // El cuerpo se arma aparte (así la orilla de brasa queda solo sobre él) y luego se pinta en su lugar
+    const q = S.img.width / S.w, cw = Math.ceil(S.w * q), chh = Math.ceil(S.h * q);
+    if (burnCv.width < cw || burnCv.height < chh) { burnCv.width = Math.max(burnCv.width, cw); burnCv.height = Math.max(burnCv.height, chh); }
+    const bg = burnCtx; bg.setTransform(1, 0, 0, 1, 0, 0); bg.globalCompositeOperation = "source-over"; bg.globalAlpha = 1; bg.clearRect(0, 0, cw, chh);
+    bg.setTransform(q, 0, 0, q, 0, 0);
+    // Lo que queda: debajo de una línea irregular que baja de la cabeza a los pies
+    const yc = S.h * d, edge = (x) => yc + Math.sin(x * 0.55 + seed) * 2.2 + Math.sin(x * 1.3 + seed * 2) * 1.4;
+    bg.save();
+    if (d > 0) { bg.beginPath(); bg.moveTo(-2, edge(-2)); for (let x = -2; x <= S.w + 2; x += 3) bg.lineTo(x, edge(x)); bg.lineTo(S.w + 2, S.h + 2); bg.lineTo(-2, S.h + 2); bg.closePath(); bg.clip(); }
+    bg.globalAlpha = 1 - ch * 0.9; bg.drawImage(S.img, 0, 0, S.w, S.h);
+    bg.globalAlpha = 0.95 * ch; bg.drawImage(S.char, 0, 0, S.w, S.h);
+    const ember = ch * (1 - smooth01(0.3, 0.75, t)) * (0.55 + 0.45 * Math.sin(t * 38 + b.x));
+    if (ember > 0.02) { bg.globalAlpha = ember * 0.45; bg.drawImage(S.ember, 0, 0, S.w, S.h); }
+    if (t < 0.14) { bg.globalAlpha = (1 - t / 0.14) * 0.95; bg.drawImage(S.flash, 0, 0, S.w, S.h); }
+    bg.restore();
+    if (d > 0) {
+      // La orilla que se va deshaciendo brilla como brasa
+      bg.globalCompositeOperation = "source-atop"; bg.lineCap = "round"; bg.lineJoin = "round";
+      bg.globalAlpha = 0.95 * (1 - d * 0.35); bg.strokeStyle = "#FF8A3D"; bg.lineWidth = 3.2;
+      bg.beginPath(); bg.moveTo(-2, edge(-2)); for (let x = -2; x <= S.w + 2; x += 3) bg.lineTo(x, edge(x)); bg.stroke();
+      bg.globalAlpha = 0.7; bg.strokeStyle = "#FFD58A"; bg.lineWidth = 1.2;
+      bg.beginPath(); bg.moveTo(-2, edge(-2) + 0.4); for (let x = -2; x <= S.w + 2; x += 3) bg.lineTo(x, edge(x) + 0.4); bg.stroke();
+      bg.globalCompositeOperation = "source-over";
+    }
+    ctx.save();
+    ctx.translate(b.x + shake, gy - lift);
+    ctx.scale(fx * sc, sc);
+    ctx.globalAlpha = 1; ctx.drawImage(burnCv, 0, 0, cw, chh, -S.cx, -S.ground, S.w, S.h);
+    ctx.restore();
+  }
+  // La montañita de ceniza a sus pies: crece mientras se deshace, humea (burnTick) y al final se desvanece
+  const m = smooth01(BURN.pile[0], BURN.pile[1], t), fade = 1 - smooth01(BURN.fade[0], BURN.fade[1], t);
+  if (m > 0 && fade > 0) {
+    const w = r * (0.5 + 0.42 * m), h = r * 0.56 * m * (1 - 0.15 * (1 - fade)), dk = PAL.onDark;
+    ctx.save(); ctx.translate(b.x, gy); ctx.globalAlpha = fade;
+    ctx.fillStyle = dk ? "rgba(0,0,0,0.35)" : "rgba(30,24,20,0.18)"; ctx.beginPath(); ctx.ellipse(r * 0.08, 1, w * 1.15, w * 0.24, 0, 0, TAU); ctx.fill();
+    const pile = () => { ctx.beginPath(); ctx.moveTo(-w, 0); ctx.bezierCurveTo(-w * 0.62, -h * 0.25, -w * 0.38, -h, 0, -h); ctx.bezierCurveTo(w * 0.38, -h, w * 0.62, -h * 0.25, w, 0); ctx.ellipse(0, 0, w, w * 0.2, 0, 0, Math.PI); ctx.closePath(); };
+    const gr = ctx.createLinearGradient(-w * 0.4, -h, w * 0.5, w * 0.2);
+    gr.addColorStop(0, dk ? "#5E5650" : "#7C726B"); gr.addColorStop(0.55, dk ? "#3A3430" : "#4A413C"); gr.addColorStop(1, dk ? "#221E1B" : "#2C2522");
+    ctx.fillStyle = gr; pile(); ctx.fill();
+    // Granitos y vetas de ceniza más clara, y brasitas que parpadean al principio
+    ctx.save(); pile(); ctx.clip();
+    for (let i = 0; i < 16; i++) {
+      const u = ((i * 0.618 + seed) % 1) * 2 - 1, v = ((i * 0.381 + seed * 0.7) % 1), x = u * w * 0.85, y = -h * (1 - Math.abs(u)) * v * 0.9;
+      ctx.fillStyle = i % 3 ? (dk ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.28)") : "rgba(0,0,0,0.25)"; ctx.fillRect(x, y, 1.3, 1.3);
+    }
+    const hot = 1 - smooth01(BURN.pile[1] - 0.2, BURN.pile[1] + 0.5, t);
+    if (hot > 0) for (let i = 0; i < 4; i++) {
+      const fl = 0.5 + 0.5 * Math.sin(t * (14 + i * 3) + i * 2 + seed);
+      ctx.globalAlpha = fade * hot * fl; ctx.fillStyle = i % 2 ? "#FF8A3D" : "#FFC86B";
+      ctx.beginPath(); ctx.arc((((i * 0.37 + seed) % 1) - 0.5) * w * 1.1, -h * (0.15 + ((i * 0.53) % 1) * 0.5), 1.3, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = fade * 0.6; ctx.strokeStyle = dk ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.35)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-w * 0.5, -h * 0.55); ctx.bezierCurveTo(-w * 0.32, -h * 0.95, -w * 0.1, -h * 1.0, 0, -h * 0.98); ctx.stroke();
+    ctx.restore();
+  }
   // Chispazos eléctricos alrededor del cuerpo al principio
   if (t < 0.3 && !reduceMotion) {
     ctx.lineCap = "round"; ctx.lineJoin = "round";
@@ -3082,7 +3143,7 @@ function drawBurnAlien(b) {
     }
   }
   // Brillo cálido en el piso mientras se quema
-  if (t < 0.7) { const k = (1 - t / 0.7) * ch; const gr = ctx.createRadialGradient(b.x, gy, 0, b.x, gy, r * 1.4); gr.addColorStop(0, `rgba(255,140,60,${0.35 * k})`); gr.addColorStop(1, "rgba(255,140,60,0)"); ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.save(); ctx.translate(b.x, gy); ctx.scale(1, 0.35); ctx.translate(-b.x, -gy); ctx.beginPath(); ctx.arc(b.x, gy, r * 1.4, 0, TAU); ctx.fill(); ctx.restore(); }
+  if (t < 0.8) { const k = (1 - t / 0.8) * ch; const gr = ctx.createRadialGradient(b.x, gy, 0, b.x, gy, r * 1.4); gr.addColorStop(0, `rgba(255,140,60,${0.35 * k})`); gr.addColorStop(1, "rgba(255,140,60,0)"); ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.fillRect(b.x - r * 1.4, gy - r * 0.7, r * 2.8, r * 1.4); }
   ctx.globalAlpha = 1;
 }
 const meteors = [];
@@ -7851,7 +7912,7 @@ function render(dt) {
     let a = 1, w = 1;
     if (b.state === "in") a = Math.min(1, b.t / 0.45);
     else if (b.state === "die" && b.cutAng != null) continue; // las mitades llevan su propia sombra
-    else if (b.state === "die" && b.burn) a = 1 - smooth01(0.5, 1.05, b.t);
+    else if (b.state === "die" && b.burn) a = 1 - smooth01(BURN.dust[0], BURN.dust[1], b.t);
     else if (b.state === "die") { const u = Math.min(1, b.t / DIE); w = 1 + 0.4 * Math.min(1, u * 3); a = 1 - u; }
     ctx.globalAlpha = a;
     ctx.beginPath(); ctx.ellipse(b.x, b.y + T.bottom - 1, T.r * 0.95 * w, T.r * 0.26 * w, 0, 0, TAU); ctx.fill();
