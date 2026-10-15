@@ -985,7 +985,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.38.2";
+const VERSION = "0.38.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1025,6 +1025,8 @@ function turnStep(o, dt) {
 const smooth01 = (a, b, x) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
 // Dibuja solo algunas capas (de "from" a "to"): sus contornos o sus rellenos
 const isAnt = (L) => L.a === "antL" || L.a === "antR";
+// Disfraces que van en la cara (siguen a los ojos al girar); lo de la cabeza (gorros, cascos) se queda en su lugar
+const FACE_FOLLOW = { beachGreen: 0.65, beachYellow: 0.65 };
 function drawRigPart(g, S, walk, t, ph, from, to, rings, noAnt) {
   for (let i = from; i < to; i++) {
     const L = S.layers[i], im = rings ? L.ring : L.c; if (!im || (noAnt && isAnt(L))) continue;
@@ -1055,7 +1057,7 @@ function drawTurning(g, S, Fr, flip, ax, ay, k, walk, t, ph) {
   // Los ojos: su centro va de un lado de la cara al centro y al otro lado; la separación entre ellos cambia con el giro
   const ex = Fr.ex * u + S.ex * fl, ey = Fr.ey * u + S.ey * af, gap = Fr.gap * u + S.gap * af;
   // Lo que va en la cara y la cabeza (lentes, visor, gorros, cascos…) sigue a los ojos, así el disfraz gira con el cuerpo
-  const shS = (ex - S.ex * sxS) * 0.65, shF = (ex - Fr.ex * sxF) * 0.65;
+  const ff = FACE_FOLLOW[S.id] || 0, shS = (ex - S.ex * sxS) * ff, shF = (ex - Fr.ex * sxF) * ff;
   const views = [[S, sa, sxS, shS], [Fr, fa, sxF, shF]];
   const pass = (V, al, sx, sh, from, to, rings) => { if (al < 0.01) return; g.save(); g.globalAlpha = a0 * al; g.scale(ax, ay); if (k) g.scale(k, k); g.translate(sh, 0); g.scale(sx, 1); drawRigPart(g, V, walk, t, ph, from, to, rings, true); g.restore(); };
   // Antenas: cada una se empareja con la misma de la otra vista (de izquierda a derecha en pantalla); su base se desliza,
@@ -2078,14 +2080,14 @@ function cropCanvas(c) {
   o.getContext("2d").drawImage(c, -x0, -y0);
   return { c: o, x0, y0 };
 }
-function rigSprite(id, r) {
+function rigSprite(id, r, olOn) {
   const R = RIG[id], imgs = rigImg[id];
   if (!R) return alienSprite(ALIENS[id], alienImg[id], r, id);
   const A = ALIENS[R.base], [bx, by, bw, bh] = R.body || A.body, s = (2 * r) / ((bw + bh) / 2), [X0, Y0, W0, H0] = R.vb, k = DPR * RES;
   const gy = R.gy != null ? R.gy : A.vb[1] + A.vb[3] - A.pad;
-  const S = { w: W0 * s, h: H0 * s, cx: (bx + bw / 2 - X0) * s, cy: (by + bh / 2 - Y0) * s, ground: (gy - Y0) * s, vhPx: A.vb[3] * (2 * r) / ((A.body[2] + A.body[3]) / 2), layers: [] };
+  const S = { id, w: W0 * s, h: H0 * s, cx: (bx + bw / 2 - X0) * s, cy: (by + bh / 2 - Y0) * s, ground: (gy - Y0) * s, vhPx: A.vb[3] * (2 * r) / ((A.body[2] + A.body[3]) / 2), layers: [] };
   if (!imgs || imgs.length < R.layers.length || imgs.some((im) => !im)) return S;
-  const ol = OUTLINE_COL[R.base] && needOutline() ? clamp(r * 0.085, 1.2, 2) : 0;
+  const ol = OUTLINE_COL[R.base] && (olOn == null ? needOutline() : olOn) ? clamp(r * 0.085, 1.2, 2) : 0;
   S.ol = ol;
   const cw = Math.ceil(S.w * k), ch = Math.ceil(S.h * k), full = document.createElement("canvas"); full.width = cw; full.height = ch;
   const fg = full.getContext("2d");
@@ -2147,17 +2149,57 @@ function drawRig(g, S, walk, t, ph, still) {
     g.drawImage(im, x - L.px, y - L.py, w, h); g.restore();
   }
 }
+// Los dibujos de los marcianitos se preparan UNA vez y se guardan (por tamaño, resolución y si llevan contorno):
+// preparar todos tarda (recortar cada capa), y antes se rehacían al cambiar de nivel, por eso se atoraba el cambio de isla.
+// Los del nivel actual se hacen al momento; los demás, poco a poco en segundo plano
+const SPR_CACHE = new Map();
+const olFor = (lid) => !PAL.dark && ["void", "beach", "snow", "jungle"].includes(lid);
+const skinLevel = (id) => (id === "purpleYeti" ? "snow" : (id.match(/^(beach|snow|city|jungle)/) || [])[1] || "void");
+function cachedSprite(id, r, ol) {
+  if (!RIG[id] && !ALIENS[id]) return null;
+  const key = id + "|" + r.toFixed(2) + "|" + (ol ? 1 : 0) + "|" + DPR;
+  let S = SPR_CACHE.get(key);
+  if (!S) { S = RIG[id] ? rigSprite(id, r, ol) : alienSprite(ALIENS[id], alienImg[id], r, id); if (S && S.img) SPR_CACHE.set(key, S); }
+  return S;
+}
+let warmQ = [], warmT = 0;
+function warmSprites() {
+  clearTimeout(warmT);
+  warmQ = [];
+  for (const id in SKIN_BASE) { const r = BALL_TYPES[SKIN_BASE[id]].r, ol = olFor(skinLevel(id)); warmQ.push([id, r, ol], [id + "_f", r, ol]); }
+  for (const k of TYPE_ORDER) for (const ol of [true, false]) warmQ.push([k, BALL_TYPES[k].r, ol], [k + "_f", BALL_TYPES[k].r, ol]);
+  const step = () => {
+    const t0 = performance.now();
+    while (warmQ.length && performance.now() - t0 < 8) {
+      const [id, r, ol] = warmQ.shift(); if (!RIG[id] && !ALIENS[id]) continue;
+      const S = cachedSprite(id, r, ol);
+      // Si es de otro nivel (para las islas del Inicio), queda listo para cuando se necesite
+      if (SKIN_BASE[id] && ol === olFor(skinLevel(id)) && !SKIN_SPR[id]) SKIN_SPR[id] = S;
+      const b = id.replace(/_f$/, "");
+      if (id.endsWith("_f") && SKIN_BASE[b] && ol === olFor(skinLevel(b)) && !SKIN_SPR_F[b]) SKIN_SPR_F[b] = S;
+    }
+    if (warmQ.length) warmT = setTimeout(step, 16);
+  };
+  warmT = setTimeout(step, 400);
+}
 function buildSprites() {
+  const lid = lvl().id;
   for (const k of TYPE_ORDER) {
     const T = BALL_TYPES[k], S = alienSprite(ALIENS[k], null, T.r, k); // medidas del cuerpo (sin las capas)
     T.top = S.cy * 0.82;                       // de centro del cuerpo a la punta de las antenas
     T.bottom = S.ground - S.cy;                // de centro del cuerpo a los pies
     T.side = Math.max(S.cx, S.w - S.cx) * 0.85; // ancho a cada lado (sirve volteado o no)
-    T.spr = rigSprite(k, T.r);
-    T.sprF = RIG[k + "_f"] ? rigSprite(k + "_f", T.r) : null; // de frente (al voltear)
+    T.spr = cachedSprite(k, T.r, olFor(lid));
+    T.sprF = RIG[k + "_f"] ? cachedSprite(k + "_f", T.r, olFor(lid)) : null; // de frente (al voltear)
   }
-  // Trajes (mismo tamaño de cuerpo que su marcianito)
-  for (const k in SKIN_BASE) { SKIN_SPR[k] = rigSprite(k, BALL_TYPES[SKIN_BASE[k]].r); SKIN_SPR_F[k] = RIG[k + "_f"] ? rigSprite(k + "_f", BALL_TYPES[SKIN_BASE[k]].r) : null; }
+  // Trajes (mismo tamaño de cuerpo que su marcianito): los del nivel actual ya; los demás si ya están guardados
+  for (const id in SKIN_BASE) {
+    const r = BALL_TYPES[SKIN_BASE[id]].r, ol = olFor(skinLevel(id)), now = skinLevel(id) === lid;
+    const key = (x) => x + "|" + r.toFixed(2) + "|" + (ol ? 1 : 0) + "|" + DPR;
+    SKIN_SPR[id] = now ? cachedSprite(id, r, ol) : SPR_CACHE.get(key(id)) || null;
+    SKIN_SPR_F[id] = !RIG[id + "_f"] ? null : now ? cachedSprite(id + "_f", r, ol) : SPR_CACHE.get(key(id + "_f")) || null;
+  }
+  warmSprites();
   // Ayudantes: guante, bota y nube
   for (const k of Object.keys(HELPER_ART)) {
     const A = HELPER_ART[k], img = helperImg[k];
@@ -3447,14 +3489,24 @@ function animateArts(now) {
 
 const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>';
 
+let bgPending = 0;
 function applyLevel() {
   const root = document.documentElement;
   if (lvl().id === "jungle") Sound.preload("audio/huy.m4a");
   if (lvl().id === "void") delete root.dataset.level; else root.dataset.level = lvl().id;
-  readPalette(); if (W) { buildSprites(); buildBackground(); }
+  readPalette();
+  if (W) {
+    buildSprites();
+    // Desde el Inicio el campo no se ve: su fondo se arma después de la animación (o al entrar a jugar), así el cambio
+    // de isla nunca se atora
+    const home = document.getElementById("home");
+    if (home && !home.hidden) { clearTimeout(bgPending); bgPending = setTimeout(() => { bgPending = 0; buildBackground(); }, 1100); }
+    else { clearTimeout(bgPending); bgPending = 0; buildBackground(); }
+  }
   syncThemeColor();
   levelShown = "";
 }
+function ensureBg() { if (bgPending) { clearTimeout(bgPending); bgPending = 0; buildBackground(); } }
 // Chip del nivel (solo el nombre) y el botón del viaje con sus tres estados
 const TRIP_ICONS = {
   isle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18c3 0 3-1.5 6-1.5s3 1.5 6 1.5 3-1.5 6-1.5"/><path d="M12 15V7"/><path d="M12 7c-2-2.5-5-2.5-6.5-.5M12 7c2-2.5 5-2.5 6.5-.5M12 7c-1-2.8-.2-4.5 1.5-5"/></svg>',
@@ -8399,6 +8451,7 @@ function showHome(first) {
 // Jugar: el Inicio se abre hacia el juego
 function enterGame() {
   if (inGame) return;
+  ensureBg();
   Sound.unlock(); Sound.tick(); buzz(10);
   inGame = true;
   last = 0; startLoop();
