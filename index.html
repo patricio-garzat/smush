@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.4";
+const VERSION = "0.41.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -9614,6 +9614,15 @@ function startGame() {
   // En la app el sonido puede empezar sin esperar un toque (la vista lo permite): la intro y la música suenan desde el inicio
   if (isNative()) { Sound.unlock(); Music.tick(); }
   if (!settings.sound) return;
+  if (isNative()) {
+    // En la app no hay que esperar un toque: en cuanto el audio está corriendo, suena la intro (al tiempo que lleve)
+    Sound.whenRunning(() => {
+      if (sounding) return;
+      sounding = true;
+      if (!studio || !studio.isConnected) return;
+      if (t0 === null) pending = true; else Sound.studio((performance.now() - t0) / 1000);
+    });
+  }
   if (Sound.probe()) { if (t0 === null) pending = true; else Sound.studio(0); return; }
   const late = () => {
     if (sounding) return;
