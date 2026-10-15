@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.44.3";
+const VERSION = "0.44.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -7417,6 +7417,8 @@ function updateUI() {
     const b = bulk(el.dataset.kind, k), p = b.cost;
     if (+el.dataset.n !== b.n || el.dataset.cost !== String(p)) {
       el.dataset.n = b.n; el.dataset.cost = p;
+      const nx = el.closest(".item") && el.closest(".item").querySelector(".nx");
+      if (nx) nx.textContent = nxText(el.dataset.kind, k, el.dataset.kind === "tool" ? save.tools[k] : save.up[k], b.n);
       el.querySelector(".what").textContent = qtyWhat(el.dataset.label, b.n);
       el.querySelector(".cost").innerHTML = p ? '<span class="coin"></span>' + fmtShort(p) : "";
     }
@@ -7484,10 +7486,16 @@ function shopCard({ key, cls = "", icon, name, tags = "", lv = "", desc, stat, b
     <div class="cta">${btn}<span class="need"></span></div></div>`;
 }
 const sect = (k) => `<div class="sect">${tx(k)}</div>`;
+// "→ …": a cuánto llega con los niveles que vas a comprar (×1, ×5, ×10 o Máx.), no solo con uno
+function nxText(kind, key, l, n) {
+  const to = Math.min(kind === "tool" ? toolMax(key) : upMax(key), l + Math.max(1, n || 1));
+  if (kind === "tool") return l === 0 && to <= 1 ? "" : `→ ${statShort(key, to)}`;
+  return key === "hire" ? "" : `→ ${upText(key, to, true)}`;
+}
 function toolCard(id) {
   const l = save.tools[id], price = priceOf(id), wl = toolWorld(id), away = wl > save.level, pro = PREMIUM.has(id);
   const mx = toolMax(id);
-  const stat = l === 0 ? statText(id, 1) : l < mx ? `${statText(id, l)} <span class="nx">→ ${statShort(id, l + 1)}</span>` : statText(id, mx);
+  const stat = l >= mx ? statText(id, mx) : away ? statText(id, Math.max(1, l)) : `${statText(id, Math.max(1, l))} <span class="nx">${nxText("tool", id, l, bulk("tool", id).n)}</span>`;
   const btn = away
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
     : buyButton("tool", id, price, l === 0 ? tx("buy") : id === "bomb" && l < 10 ? tx("addBomb") : tx("upgrade"));
@@ -7499,7 +7507,7 @@ function toolCard(id) {
 }
 function upCard(k) {
   const mx = upMax(k), l = Math.min(save.up[k], mx), u = UP[k], price = upPrice(k), ready = upReady(k), wl = u.world || 0;
-  const stat = l >= mx || k === "hire" ? upText(k, l) : `${upText(k, l)} <span class="nx">→ ${upText(k, l + 1, true)}</span>`;
+  const stat = l >= mx || k === "hire" ? upText(k, l) : `${upText(k, l)} <span class="nx">${nxText("up", k, l, bulk("up", k).n)}</span>`;
   const needTx = u.need === "hire" ? "needHire" : "needFingers";
   const btn = wl > save.level
     ? `<button class="buy" type="button" disabled><span class="what">${tx("unlocksAt")}</span><span class="cost">${LEVELS[wl].name}</span></button>`
