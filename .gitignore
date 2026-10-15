@@ -7,3 +7,5 @@ app/ios/DerivedData/
 app/build/
 xcuserdata/
 *.xcuserstate
+app/ios/App/App/capacitor.config.json
+app/ios/App/App/config.xml

@@ -11,7 +11,7 @@ El segundo juego de **BluBer Games**: un clicker tranquilo y satisfactorio para 
 | `brand/` | Ícono, logo y personajes (`marcianitos.svg`) |
 | `store/` | Capturas e imágenes para la App Store |
 
-Más adelante se agregará `app/`, la app de iOS con Capacitor.
+`app/` es la app de iOS (Capacitor). Toma el juego de `index.html`, así que los cambios salen igual en la web y en la app. Para probarla en tu iPhone: `app/run-on-iphone.sh`.
 
 ## Probarlo
 Abre `index.html` en el navegador, o sírvelo con `python3 -m http.server` y entra desde el iPhone en la misma red.
