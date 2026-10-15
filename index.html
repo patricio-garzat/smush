@@ -1090,7 +1090,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.41.1";
+const VERSION = "0.41.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1988,6 +1988,15 @@ const Sound = (() => {
       P(392, { t: 1.95, vol: 0.045, dur: 1.8 });
       P(587.33, { t: 2.07, vol: 0.03, dur: 1.8 });
       B({ t: 2.8, dur: 0.9, vol: 0.012, from: 1800, to: 3200 });
+      // Guiño de SMUSH!: al final, alguien aplasta un marcianito verde detrás del logo (su "pop" de siempre) y cae una monedita
+      const E = 3.38;
+      if (E >= from) {
+        const t = E - from, f = BALL_TYPES.green.pitch;
+        tone(f * 0.72, { t, dur: 0.075, vol: 0.09, slide: 1.85, attack: 0.002 });
+        tone(f * 0.5, { t, dur: 0.06, vol: 0.05, slide: 0.6, attack: 0.002 });
+        noise({ t, dur: 0.04, vol: 0.045, freq: 800, q: 0.6, attack: 0.002, kind: "lowpass" });
+        coinRustle(2, t + 0.08, 0.55);
+      }
     },
   };
 })();
