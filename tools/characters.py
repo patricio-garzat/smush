@@ -598,6 +598,15 @@ def export(c, base, expand):
     eyes = ''
     if base in EYE_KEYS:
         info, keys = EYE_KEYS[base]
+        # El cuerpo trae huecos con la forma de los ojos (subtrazos dentro de su contorno): se rellenan, porque al
+        # girar los ojos se deslizan y esos huecos se verían como otro par de ojos
+        pre = [k2[:9] for k2 in keys if not k2.startswith('cx=')] + (['M476.7,50'] if base == 'f_yellow' else [])
+        def fill_holes(m):
+            d = m.group(1); subs = re.findall(r'[Mm][^Mm]*', d)
+            if len(subs) < 2: return m.group(0)
+            keep = [subs[0]] + [x for x in subs[1:] if not any(x.startswith(p0) for p0 in pre)]
+            return 'd="' + ''.join(keep) + '"'
+        content = re.sub(r'\bd="([^"]+)"', fill_holes, content)
         for k2 in keys:
             while True:
                 content, el = take(content, k2)
