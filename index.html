@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.45.0";
+const VERSION = "0.45.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3069,40 +3069,33 @@ function burnTick(b, dt) {
 // El rayo: destello eléctrico con chispazos y temblor; se tuesta hasta quedar de carbón; luego se deshace en polvo de
 // arriba hacia abajo (el borde que se va comiendo brilla como brasa) y a sus pies queda una montañita de ceniza que
 // humea y se desvanece. Nada de aplastarse
-const burnCv = document.createElement("canvas"), burnCtx = burnCv.getContext("2d");
 function drawBurnAlien(b) {
   const T = b.T, S = charOf((b.skin && SKIN_SPR[b.skin]) || T.spr), t = b.t, gy = b.y + T.bottom, fx = Math.sign(b.flip || 1), r = b.r;
   const shake = t < 0.12 && !reduceMotion ? Math.sin((t / 0.12) * Math.PI * 2) * 1.2 * (1 - t / 0.12) : 0;
   const ch = smooth01(BURN.char[0], BURN.char[1], t), d = smooth01(BURN.dust[0], BURN.dust[1], t), sc = 1 - 0.05 * ch;
   const lift = t < 0.12 ? Math.sin((t / 0.12) * Math.PI) * 3 : 0, seed = (b.p1 || 0) * 7.3 + b.x * 0.013;
   if (d < 1) {
-    // El cuerpo se arma aparte (así la orilla de brasa queda solo sobre él) y luego se pinta en su lugar
-    const q = S.img.width / S.w, cw = Math.ceil(S.w * q), chh = Math.ceil(S.h * q);
-    if (burnCv.width < cw || burnCv.height < chh) { burnCv.width = Math.max(burnCv.width, cw); burnCv.height = Math.max(burnCv.height, chh); }
-    const bg = burnCtx; bg.setTransform(1, 0, 0, 1, 0, 0); bg.globalCompositeOperation = "source-over"; bg.globalAlpha = 1; bg.clearRect(0, 0, cw, chh);
-    bg.setTransform(q, 0, 0, q, 0, 0);
-    // Lo que queda: debajo de una línea irregular que baja de la cabeza a los pies
-    const yc = S.h * d, edge = (x) => yc + Math.sin(x * 0.55 + seed) * 2.2 + Math.sin(x * 1.3 + seed * 2) * 1.4;
-    bg.save();
-    if (d > 0) { bg.beginPath(); bg.moveTo(-2, edge(-2)); for (let x = -2; x <= S.w + 2; x += 3) bg.lineTo(x, edge(x)); bg.lineTo(S.w + 2, S.h + 2); bg.lineTo(-2, S.h + 2); bg.closePath(); bg.clip(); }
-    bg.globalAlpha = 1 - ch * 0.9; bg.drawImage(S.img, 0, 0, S.w, S.h);
-    bg.globalAlpha = 0.95 * ch; bg.drawImage(S.char, 0, 0, S.w, S.h);
-    const ember = Math.sin(Math.min(1, t / 0.5) * Math.PI) * 0.3; // un tono cálido parejo (sin parpadear)
-    if (ember > 0.02) { bg.globalAlpha = ember; bg.drawImage(S.ember, 0, 0, S.w, S.h); }
-    bg.restore();
-    if (d > 0) {
-      // La orilla que se va deshaciendo brilla como brasa
-      bg.globalCompositeOperation = "source-atop"; bg.lineCap = "round"; bg.lineJoin = "round";
-      bg.globalAlpha = 0.95 * (1 - d * 0.35); bg.strokeStyle = "#FF8A3D"; bg.lineWidth = 3.2;
-      bg.beginPath(); bg.moveTo(-2, edge(-2)); for (let x = -2; x <= S.w + 2; x += 3) bg.lineTo(x, edge(x)); bg.stroke();
-      bg.globalAlpha = 0.7; bg.strokeStyle = "#FFD58A"; bg.lineWidth = 1.2;
-      bg.beginPath(); bg.moveTo(-2, edge(-2) + 0.4); for (let x = -2; x <= S.w + 2; x += 3) bg.lineTo(x, edge(x) + 0.4); bg.stroke();
-      bg.globalCompositeOperation = "source-over";
-    }
+    // Directo en el lienzo (sin lienzos aparte: con muchos quemándose a la vez se atoraba). Lo que queda del cuerpo
+    // es lo de abajo de una línea irregular que baja de la cabeza a los pies; esa orilla brilla como brasa
     ctx.save();
     ctx.translate(b.x + shake, gy - lift);
     ctx.scale(fx * sc, sc);
-    ctx.globalAlpha = 1; ctx.drawImage(burnCv, 0, 0, cw, chh, -S.cx, -S.ground, S.w, S.h);
+    const x0 = -S.cx - 2, x1 = -S.cx + S.w + 2, yc = -S.ground + S.h * d, edge = (x) => yc + Math.sin(x * 0.55 + seed) * 2.2 + Math.sin(x * 1.3 + seed * 2) * 1.4;
+    const line = (dy) => { for (let x = x0; x <= x1; x += 4) ctx.lineTo(x, edge(x) + dy); };
+    if (d > 0) { ctx.save(); ctx.beginPath(); ctx.moveTo(x0, edge(x0)); line(0); ctx.lineTo(x1, S.h); ctx.lineTo(x0, S.h); ctx.closePath(); ctx.clip(); }
+    ctx.globalAlpha = 1 - ch * 0.9; ctx.drawImage(S.img, -S.cx, -S.ground, S.w, S.h);
+    ctx.globalAlpha = 0.95 * ch; ctx.drawImage(S.char, -S.cx, -S.ground, S.w, S.h);
+    const ember = Math.sin(Math.min(1, t / 0.5) * Math.PI) * 0.3; // un tono cálido parejo (sin parpadear)
+    if (ember > 0.02) { ctx.globalAlpha = ember; ctx.drawImage(S.ember, -S.cx, -S.ground, S.w, S.h); }
+    if (d > 0) {
+      ctx.restore();
+      // La franjita de brasa: el cuerpo en naranja, recortado a una tira justo debajo de la orilla
+      ctx.save(); ctx.beginPath(); ctx.moveTo(x0, edge(x0)); line(0);
+      for (let x = x1; x >= x0; x -= 4) ctx.lineTo(x, edge(x) + 3.2);
+      ctx.closePath(); ctx.clip();
+      ctx.globalAlpha = 0.95 * (1 - d * 0.35); ctx.drawImage(S.ember, -S.cx, -S.ground, S.w, S.h);
+      ctx.restore();
+    }
     ctx.restore();
   }
   // La montañita de ceniza a sus pies: crece mientras se deshace, humea (burnTick) y al final se desvanece
@@ -3136,27 +3129,23 @@ function drawBurnAlien(b) {
   ctx.globalAlpha = 1;
 }
 // --- Tsunami: los atrapados chapotean medio hundidos y luego se hunden con burbujas ---
-// El marcianito se arma aparte (en su pose, con las patitas moviéndose); arriba del agua se ve normal y abajo azulado,
-// medio transparente y ondulado (como visto a través del agua)
-const swimCv = document.createElement("canvas"), swimCtx = swimCv.getContext("2d"), swimTint = document.createElement("canvas"), swimTintCtx = swimTint.getContext("2d");
+// Arriba del agua se ve normal (animado, directo en el lienzo); abajo, su versión azulada (hecha una sola vez por
+// dibujo), medio transparente y ondulada, como vista a través del agua
 const WATER_TINT = () => (PAL.dark ? "rgba(20,70,95,0.75)" : "rgba(40,150,190,0.62)");
-function poseOf(b, walk) {
-  const T = b.T, S = (b.skin && SKIN_SPR[b.skin]) || T.spr;
-  if (!S || !S.img) return null;
-  const q = S.img.width / S.w, cw = Math.ceil(S.w * q), chh = Math.ceil(S.h * q);
-  for (const c of [swimCv, swimTint]) if (c.width < cw || c.height < chh) { c.width = Math.max(c.width, cw); c.height = Math.max(c.height, chh); }
-  const g = swimCtx; g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; g.clearRect(0, 0, cw, chh);
-  g.setTransform(q, 0, 0, q, S.cx * q, S.ground * q); drawRig(g, S, walk, time, b.p1 || 0);
-  const tg = swimTintCtx; tg.setTransform(1, 0, 0, 1, 0, 0); tg.globalCompositeOperation = "source-over"; tg.globalAlpha = 1; tg.clearRect(0, 0, cw, chh);
-  tg.drawImage(swimCv, 0, 0, cw, chh, 0, 0, cw, chh); tg.globalCompositeOperation = "source-atop"; tg.fillStyle = WATER_TINT(); tg.fillRect(0, 0, cw, chh); tg.globalCompositeOperation = "source-over";
-  return { S, cw, chh };
+function wetOf(S) {
+  const key = PAL.dark ? "wetD" : "wetL";
+  if (!S[key]) { const c = document.createElement("canvas"); c.width = S.img.width; c.height = S.img.height; const g = c.getContext("2d"); g.drawImage(S.img, 0, 0); g.globalCompositeOperation = "source-atop"; g.fillStyle = WATER_TINT(); g.fillRect(0, 0, c.width, c.height); S[key] = c; }
+  return S[key];
 }
-// Pinta el marcianito con el agua en wl (y del mundo): arriba normal, abajo azulado y ondulado
-function drawInWater(b, P, x, gy, wl, tilt, under) {
-  const { S, cw, chh } = P, fx = Math.sign(b.flip || 1);
-  const put = (img, dx) => { ctx.save(); ctx.translate(x + dx, gy); ctx.rotate(tilt); ctx.scale(fx, 1); ctx.drawImage(img, 0, 0, cw, chh, -S.cx, -S.ground, S.w, S.h); ctx.restore(); };
-  ctx.save(); ctx.beginPath(); ctx.rect(x - 200, wl - 400, 400, 400); ctx.clip(); ctx.globalAlpha = 1; put(swimCv, 0); ctx.restore();
-  ctx.save(); ctx.beginPath(); ctx.rect(x - 200, wl, 400, 400); ctx.clip(); ctx.globalAlpha = under; put(swimTint, Math.sin(time * 6 + b.p1) * 1.4); ctx.restore();
+const spriteOf = (b) => { const S = (b.skin && SKIN_SPR[b.skin]) || b.T.spr; return S && S.img ? S : null; };
+function drawInWater(b, S, walk, x, gy, wl, tilt, under) {
+  const fx = Math.sign(b.flip || 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(x - 200, wl - 400, 400, 400); ctx.clip();
+  ctx.globalAlpha = 1; ctx.translate(x, gy); ctx.rotate(tilt); ctx.scale(fx, 1); drawRig(ctx, S, walk, time, b.p1 || 0); ctx.restore();
+  if (under > 0.01) {
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 200, wl, 400, 400); ctx.clip();
+    ctx.globalAlpha = under; ctx.translate(x + Math.sin(time * 6 + (b.p1 || 0)) * 1.4, gy); ctx.rotate(tilt); ctx.scale(fx, 1); ctx.drawImage(wetOf(S), -S.cx, -S.ground, S.w, S.h); ctx.restore();
+  }
 }
 // El aro de espuma donde toca el agua y las ondas que se abren: la mitad de atrás va detrás del cuerpo (front = false)
 // y la de enfrente, delante (front = true)
@@ -3180,25 +3169,26 @@ function waterPatch(b, x, wl, k) {
   ctx.globalAlpha = k; ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, wl, r * 1.9, r * 0.62, 0, 0, TAU); ctx.fill();
 }
 function drawSwimAlien(b) {
-  const P = poseOf(b, b.walk); if (!P) return;
+  const S = spriteOf(b); if (!S) return;
   // Medio hundido: el agua le llega abajo de los ojos; sube y baja chapoteando
   const T = b.T, bob = Math.sin(time * 9 + b.p1) * 2.6, wl = b.y + b.r * 0.32 + bob * 0.4, gy = b.y + T.bottom + bob;
   waterPatch(b, b.x, wl, 0.55);
   waterRing(b, b.x, wl, 1, false);
-  drawInWater(b, P, b.x, gy, wl, b.tumble || 0, 0.6);
+  drawInWater(b, S, b.walk, b.x, gy, wl, b.tumble || 0, 0.6);
   waterRing(b, b.x, wl, 1, true);
   ctx.globalAlpha = 1;
 }
 function drawDrownAlien(b) {
   const T = b.T, t = b.t, u = clamp(t / DROWN_DIE, 0, 1);
   // Al principio todavía patalea; luego se va quedando quieto mientras se hunde
-  const P = poseOf(b, b.walk + t * 18 * (1 - smooth01(0.1, 0.6, u))); if (!P) return;
+  const S = spriteOf(b); if (!S) return;
+  const walk = b.walk + t * 18 * (1 - smooth01(0.1, 0.6, u));
   const wl = b.wl, down = easeIn(Math.min(1, u * 1.15)) * T.r * 3.2, gy = wl - b.r * 0.32 + T.bottom + down;
   const tilt = (b.dTilt || 0) * (1 - u) + Math.sin(t * 4 + b.p1) * 0.12 * (1 - u);
   const k = 1 - smooth01(0.7, 1, u);
   waterPatch(b, b.x, wl, 0.55 * k + 0.2);
   waterRing(b, b.x, wl, k * (1 - u * 0.4), false);
-  drawInWater(b, P, b.x, gy, wl, tilt, 0.6 * Math.pow(1 - u, 1.4));
+  drawInWater(b, S, walk, b.x, gy, wl, tilt, 0.6 * Math.pow(1 - u, 1.4));
   waterRing(b, b.x, wl, k * (1 - u * 0.4), true);
   ctx.globalAlpha = 1;
 }
