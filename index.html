@@ -980,7 +980,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.40.0";
+const VERSION = "0.40.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -8716,6 +8716,8 @@ function playSplash(done) {
     if (!out || t < END + 520) raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);
+  // Pase lo que pase con los cuadros (pestaña en segundo plano, equipo lento), la intro siempre termina
+  setTimeout(finish, END + 400);
 }
 
 function startGame() {
