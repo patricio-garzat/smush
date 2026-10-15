@@ -1101,7 +1101,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.44.1";
+const VERSION = "0.44.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -8132,7 +8132,7 @@ const Hero = (() => {
     placeFx();
   }
   function make(k, fromEdge) {
-    const e = ground(), a = rand(0, TAU), d = fromEdge ? 0.95 : Math.sqrt(Math.random()) * 0.75;
+    const e = ground(), a = rand(0, TAU), d = fromEdge ? 0.62 : Math.sqrt(Math.random()) * 0.62;
     return { k, skin: (SKINS[lvl().id] && SKINS[lvl().id][k] && SKINS[lvl().id][k][0]) || null, ph: rand(0, TAU), ride: k === "orange" ? (Math.random() < 0.5 ? "ski" : "board") : null, x: e.cx + Math.cos(a) * e.rx * d, y: e.cy + Math.sin(a) * e.ry * d, h: a + Math.PI + rand(-0.6, 0.6), sp: BALL_TYPES[k].speed * 0.5, walk: rand(0, TAU), face: 1, flip: 1, born: 0, die: 0 };
   }
   let actorsLid = "";
@@ -8328,9 +8328,11 @@ const Hero = (() => {
       a.h += Math.sin(t * 0.7 + a.walk * 0.3) * 0.8 * dt;
       // Se quedan dentro de la isla: si se acercan a la orilla, giran hacia el centro
       const nx = (a.x - e.cx) / e.rx, ny = (a.y - e.cy) / e.ry;
-      if (nx * nx + ny * ny > 0.7) a.h += angDiff(Math.atan2(e.cy - a.y, e.cx - a.x), a.h) * Math.min(1, dt * 3);
+      if (nx * nx + ny * ny > 0.42) a.h += angDiff(Math.atan2(e.cy - a.y, e.cx - a.x), a.h) * Math.min(1, dt * 4);
       const vx = Math.cos(a.h) * a.sp, vy = Math.sin(a.h) * a.sp * 0.55;
       a.x += vx * dt; a.y += vy * dt;
+      // Nunca se salen: si llegan a la orilla, se quedan en ella (el cuerpo se ve completo sobre la isla)
+      { const qx = (a.x - e.cx) / e.rx, qy = (a.y - e.cy) / e.ry, q = Math.hypot(qx, qy), M = 0.74; if (q > M) { a.x = e.cx + (qx / q) * M * e.rx; a.y = e.cy + (qy / q) * M * e.ry; } }
       if (vx > 3) a.face = 1; else if (vx < -3) a.face = -1;
       turnStep(a, dt);
       a.walk += dt * (5 + a.sp * 0.08);
@@ -8436,6 +8438,8 @@ const Hero = (() => {
   function drawWorld(e, lid, list0, ox, rot, live) {
     g.save();
     if (ox || rot) { const [px, py] = pivot(e); g.translate(px + ox, py); g.rotate(rot); g.translate(-px, -py); }
+    const bobY = lid === "void" ? Math.sin(t * 1.1) * 2.5 : 0; // la isla flotante sube y baja con todo y marcianitos
+    if (bobY) g.translate(0, bobY);
     const dark = PAL.dark, beach = lid === "beach";
     // Un costado con grosor (la isla no es una calcomanía): th = qué tan gruesa se ve
     const th = Math.max(7, e.ry * 0.13);
@@ -8623,32 +8627,71 @@ const Hero = (() => {
       g.strokeStyle = dark ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.95)"; g.lineWidth = 2.2; g.lineCap = "round";
       g.beginPath(); for (let i = 0; i <= 64; i++) { const a = (i / 64) * TAU, wob = 1.5 + Math.sin(a * 7 + t * 2.2) * 1.5; const x = e.cx + Math.cos(a) * (e.rx + wob), y = e.cy + Math.sin(a) * (e.ry + wob * 0.6) + (Math.sin(a) > 0 ? th * 0.75 * Math.sin(a) : 0); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
     } else {
-      // Una isla flotante: debajo, roca en punta con un brillo morado; arriba, roca lisa con cráteres;
-      // piedritas que flotan alrededor y estrellitas que titilan
-      const fy = Math.sin(t * 1.1) * 2.5, by = e.cy + fy;
-      const gl = g.createRadialGradient(e.cx, by + e.ry * 1.1, 4, e.cx, by + e.ry * 1.1, e.rx * 1.1);
-      gl.addColorStop(0, dark ? "rgba(165,132,232,0.45)" : "rgba(165,132,232,0.3)"); gl.addColorStop(1, "rgba(165,132,232,0)");
-      g.fillStyle = gl; g.beginPath(); g.ellipse(e.cx, by + e.ry * 1.1, e.rx * 1.1, e.ry * 0.9, 0, 0, TAU); g.fill();
-      const rock = g.createLinearGradient(e.cx - e.rx, by, e.cx + e.rx * 0.6, by + e.ry * 1.6);
-      rock.addColorStop(0, dark ? "#4A3D86" : "#8C78D8"); rock.addColorStop(1, dark ? "#1C1638" : "#4B3A92");
-      g.fillStyle = rock; g.beginPath(); g.moveTo(e.cx - e.rx, by);
-      for (const [u, v] of [[-0.82, 0.38], [-0.55, 0.62], [-0.32, 1.05], [-0.08, 1.35], [0.12, 1.12], [0.34, 1.2], [0.55, 0.78], [0.8, 0.45]]) g.lineTo(e.cx + u * e.rx, by + v * e.ry);
-      g.lineTo(e.cx + e.rx, by); g.closePath(); g.fill();
-      g.strokeStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.18)"; g.lineWidth = 1.5;
-      g.beginPath(); g.moveTo(e.cx - e.rx * 0.6, by + e.ry * 0.45); g.lineTo(e.cx - e.rx * 0.3, by + e.ry * 0.9); g.moveTo(e.cx + e.rx * 0.25, by + e.ry * 0.6); g.lineTo(e.cx + e.rx * 0.08, by + e.ry * 1.05); g.stroke();
-      // Cristalitos colgando por debajo
-      for (const [u, v, s2] of [[-0.3, 1.0, 1], [0.38, 0.95, 0.8]]) { const x = e.cx + u * e.rx, y = by + v * e.ry, hh2 = 12 * s2; g.fillStyle = dark ? "#C9B6FF" : "#E7DCFF"; g.beginPath(); g.moveTo(x - 4, y); g.lineTo(x + 4, y); g.lineTo(x, y + hh2); g.closePath(); g.fill(); }
-      const top = g.createRadialGradient(e.cx - e.rx * 0.3, by - e.ry * 0.4, 4, e.cx, by, e.rx);
-      top.addColorStop(0, dark ? "#3A3360" : "#F4F1FD"); top.addColorStop(1, dark ? "#252040" : "#DDD6F5");
-      g.fillStyle = top; g.beginPath(); g.ellipse(e.cx, by, e.rx, e.ry, 0, 0, TAU); g.fill();
-      // Cráteres con su sombra y su borde con luz
-      for (const [u, v, r] of [[0.3, 0.25, 0.16], [-0.42, 0.38, 0.11], [0.05, -0.5, 0.09], [0.62, -0.12, 0.07]]) {
-        const x = e.cx + u * e.rx, y = by + v * e.ry, rx = r * e.rx, ry = rx * 0.45;
-        g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(124,92,224,0.12)"; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
-        g.strokeStyle = dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.9)"; g.lineWidth = 1.4; g.beginPath(); g.ellipse(x, y + 0.8, rx, ry, 0, Math.PI * 0.1, Math.PI * 0.9); g.stroke();
+      // Una isla flotante (un peñasco): arriba, polvo lunar con cráteres; su orilla de roca con grosor; debajo, la roca
+      // grande con caras con luz y en sombra, vetas y cristales colgando; un brillo chiquito bajo la punta. Toda la isla
+      // (con sus marcianitos) sube y baja despacio (ver bobY)
+      const by = e.cy, th = Math.max(6, e.ry * 0.17), D = clamp(hh - (e.cy + e.ry + th) - 2, e.ry * 0.45, e.ry * 1.05), base = by + th;
+      const tipX = e.cx - e.rx * 0.06, tipY = base + e.ry * 0.55 + D;
+      const gl = g.createRadialGradient(tipX, tipY - D * 0.15, 2, tipX, tipY - D * 0.15, e.rx * 0.42);
+      gl.addColorStop(0, dark ? "rgba(170,140,255,0.42)" : "rgba(150,120,235,0.28)"); gl.addColorStop(1, "rgba(150,120,235,0)");
+      g.fillStyle = gl; g.beginPath(); g.ellipse(tipX, tipY - D * 0.15, e.rx * 0.42, e.rx * 0.24, 0, 0, TAU); g.fill();
+      // La roca de abajo: una silueta con picos, y dos caras (la izquierda con luz, la derecha en sombra)
+      const under = [[-1, 0], [-0.93, 0.22], [-0.8, 0.42], [-0.64, 0.58], [-0.46, 0.76], [-0.28, 0.9], [-0.06, 1], [0.12, 0.86], [0.3, 0.8], [0.5, 0.6], [0.68, 0.48], [0.85, 0.28], [0.96, 0.12], [1, 0]];
+      const ux = (u) => e.cx + u * e.rx, uy = (u, v) => base + Math.sqrt(Math.max(0, 1 - u * u)) * e.ry + v * D;
+      const rock = g.createLinearGradient(e.cx - e.rx, base, e.cx + e.rx * 0.7, base + e.ry + D);
+      rock.addColorStop(0, dark ? "#4D3F8C" : "#9C88E2"); rock.addColorStop(0.55, dark ? "#2F2660" : "#6A55BE"); rock.addColorStop(1, dark ? "#1A1538" : "#45348C");
+      g.fillStyle = rock; g.beginPath(); g.moveTo(ux(-1), uy(-1, 0));
+      for (const [u, v] of under) g.lineTo(ux(u), uy(u, v));
+      for (let i = 0; i <= 24; i++) { const a = (i / 24) * Math.PI; g.lineTo(e.cx + Math.cos(a) * e.rx, base + Math.sin(a) * e.ry); }
+      g.closePath(); g.fill();
+      // La cara en sombra (de la punta hacia la derecha)
+      g.fillStyle = dark ? "rgba(0,0,0,0.28)" : "rgba(40,20,90,0.22)"; g.beginPath(); g.moveTo(ux(-0.06), uy(-0.06, 1));
+      for (const [u, v] of under.filter(([u]) => u > -0.06)) g.lineTo(ux(u), uy(u, v));
+      g.lineTo(ux(0.55), uy(0.55, 0.05)); g.lineTo(ux(0.2), uy(0.2, 0.35)); g.closePath(); g.fill();
+      // Vetas de la roca (capas) y aristas con luz
+      g.lineCap = "round"; g.lineWidth = 1.2;
+      for (const [v, a0, a1] of [[0.2, -0.85, 0.8], [0.42, -0.65, 0.55], [0.63, -0.42, 0.3]]) {
+        g.strokeStyle = dark ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.2)"; g.beginPath();
+        for (let i = 0; i <= 12; i++) { const u = a0 + ((a1 - a0) * i) / 12; const y = uy(u, v) + Math.sin(u * 9) * 1.5; i ? g.lineTo(ux(u), y) : g.moveTo(ux(u), y); }
+        g.stroke();
       }
-      g.strokeStyle = dark ? "rgba(180,165,255,0.35)" : "rgba(124,92,224,0.22)"; g.lineWidth = 2;
-      g.beginPath(); g.ellipse(e.cx, by, e.rx, e.ry, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+      g.strokeStyle = dark ? "rgba(200,185,255,0.18)" : "rgba(255,255,255,0.45)"; g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(ux(-0.64), uy(-0.64, 0.58)); g.lineTo(ux(-0.42), uy(-0.42, 0.25)); g.moveTo(ux(-0.28), uy(-0.28, 0.9)); g.lineTo(ux(-0.12), uy(-0.12, 0.45)); g.stroke();
+      // Cristales colgando de la roca
+      for (const [u, v, s2] of [[-0.36, 0.84, 1], [0.22, 0.8, 0.8], [0.6, 0.56, 0.6]]) {
+        const x = ux(u), y = uy(u, v) - 2, L = Math.min(16, D * 0.35) * s2, W = 4.2 * s2;
+        g.fillStyle = dark ? "#C9B6FF" : "#E7DCFF"; g.beginPath(); g.moveTo(x - W, y); g.lineTo(x + W, y); g.lineTo(x, y + L); g.closePath(); g.fill();
+        g.fillStyle = dark ? "#8C6FE0" : "#A584E8"; g.beginPath(); g.moveTo(x, y); g.lineTo(x + W, y); g.lineTo(x, y + L); g.closePath(); g.fill();
+      }
+      // La orilla con grosor (el canto de la isla)
+      const side = g.createLinearGradient(0, by, 0, base + e.ry);
+      side.addColorStop(0, dark ? "#5C4E9C" : "#C2B4F0"); side.addColorStop(1, dark ? "#3A2F70" : "#9584D8");
+      g.fillStyle = side; g.beginPath(); g.ellipse(e.cx, base, e.rx, e.ry, 0, 0, Math.PI); g.lineTo(e.cx - e.rx, by); g.ellipse(e.cx, by, e.rx, e.ry, 0, Math.PI, 0, true); g.closePath(); g.fill();
+      g.strokeStyle = dark ? "rgba(0,0,0,0.2)" : "rgba(80,60,160,0.18)"; g.lineWidth = 1;
+      g.beginPath(); g.ellipse(e.cx, by + th * 0.55, e.rx * 0.998, e.ry, 0, Math.PI * 0.08, Math.PI * 0.92); g.stroke();
+      // Arriba: polvo lunar, con la orilla de atrás un poco en sombra
+      const top = g.createRadialGradient(e.cx - e.rx * 0.3, by - e.ry * 0.4, 4, e.cx, by, e.rx);
+      top.addColorStop(0, dark ? "#3E3766" : "#F6F3FE"); top.addColorStop(1, dark ? "#2A2448" : "#E2DBF7");
+      g.fillStyle = top; g.beginPath(); g.ellipse(e.cx, by, e.rx, e.ry, 0, 0, TAU); g.fill();
+      g.save(); g.beginPath(); g.ellipse(e.cx, by, e.rx, e.ry, 0, 0, TAU); g.clip();
+      g.strokeStyle = dark ? "rgba(0,0,0,0.18)" : "rgba(124,92,224,0.1)"; g.lineWidth = 9;
+      g.beginPath(); g.ellipse(e.cx, by + 4, e.rx, e.ry, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+      // Polvito y piedritas
+      for (let i = 0; i < 46; i++) {
+        const a = i * 2.399, d = Math.sqrt((i * 0.618) % 1) * 0.93, x = e.cx + Math.cos(a) * e.rx * d, y = by + Math.sin(a) * e.ry * d;
+        g.fillStyle = i % 3 ? (dark ? "rgba(255,255,255,0.06)" : "rgba(124,92,224,0.14)") : dark ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.95)";
+        g.fillRect(x, y, i % 5 ? 1.2 : 2, i % 5 ? 1.2 : 1.6);
+      }
+      g.restore();
+      // Cráteres chicos con su sombra adentro y su borde con luz
+      for (const [u, v, r] of [[0.3, 0.3, 0.12], [-0.46, 0.34, 0.085], [0.05, -0.52, 0.07], [0.64, -0.14, 0.055], [-0.18, 0.62, 0.05]]) {
+        const x = e.cx + u * e.rx, y = by + v * e.ry, rx = r * e.rx, ry = rx * 0.45;
+        g.fillStyle = dark ? "rgba(0,0,0,0.28)" : "rgba(110,80,210,0.14)"; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill();
+        g.fillStyle = dark ? "rgba(0,0,0,0.2)" : "rgba(110,80,210,0.12)"; g.beginPath(); g.ellipse(x, y - ry * 0.25, rx * 0.8, ry * 0.6, 0, Math.PI, TAU); g.fill();
+        g.strokeStyle = dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.95)"; g.lineWidth = 1.3; g.beginPath(); g.ellipse(x, y + 0.6, rx, ry, 0, Math.PI * 0.1, Math.PI * 0.9); g.stroke();
+      }
+      g.strokeStyle = dark ? "rgba(190,175,255,0.35)" : "rgba(255,255,255,0.95)"; g.lineWidth = 1.6;
+      g.beginPath(); g.ellipse(e.cx, by, e.rx, e.ry, 0, Math.PI * 1.04, Math.PI * 1.96); g.stroke();
       // Piedritas que flotan alrededor (suben y bajan despacio)
       for (const [u, v, r, ph] of [[-1.22, -0.2, 7, 0], [1.25, 0.1, 5, 1.7], [-1.0, 0.9, 4, 3.1], [1.05, -0.75, 4.5, 4.4]]) {
         const x = e.cx + u * e.rx, y = e.cy + v * e.ry + Math.sin(t * 1.3 + ph) * 3;
