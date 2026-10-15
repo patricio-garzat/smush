@@ -985,7 +985,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.38.3";
+const VERSION = "0.38.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -7142,7 +7142,7 @@ function renderToolbar() {
   for (const k in toolEls) delete toolEls[k];
   bar.querySelectorAll(".tool").forEach((el) => { toolEls[el.dataset.id] = el; });
   const sel = toolEls[save.tool];
-  if (sel && bar.classList.contains("strip")) sel.scrollIntoView({ inline: "nearest", block: "nearest" });
+  if (sel && bar.scrollWidth > bar.clientWidth + 2) bar.scrollTo({ left: Math.max(0, sel.offsetLeft - (bar.clientWidth - sel.offsetWidth) / 2), behavior: "smooth" });
   updateCursor(); updateDetonate();
 }
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
@@ -7446,7 +7446,7 @@ cv.addEventListener("lostpointercapture", release);
 cv.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") hover = null; });
 cv.addEventListener("contextmenu", (e) => e.preventDefault());
 // Nada de zoom, selección ni scroll de la página (sí se puede desplazar dentro de las hojas)
-document.addEventListener("touchmove", (e) => { if (!e.target.closest(".panel-body, #tools.strip")) e.preventDefault(); }, { passive: false });
+document.addEventListener("touchmove", (e) => { if (!e.target.closest(".panel-body, #tools")) e.preventDefault(); }, { passive: false }); // la barra de herramientas sí se desliza
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("dblclick", (e) => e.preventDefault());
 document.addEventListener("touchend", (e) => { if (e.target === cv) e.preventDefault(); }, { passive: false });
