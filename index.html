@@ -1105,7 +1105,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.47.0";
+const VERSION = "0.47.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3222,11 +3222,12 @@ function drawBuriedAlien(b) {
   const M = snowMound(b, 1 - 0.55 * smooth01(0.35, 1, u)), r = b.r, fade = 1 - smooth01(0.55, 1, u);
   // Las antenitas (y lo que traiga en la cabeza): el marcianito hundido, recortado arriba del montículo
   const shake = dying ? 0 : Math.sin(time * 30 + (b.p1 || 0)) * 0.8, down = dying ? easeIn(u) * r * 1.6 : 0, fx = Math.sign(b.flip || 1);
+  // Recorte RECTO (del piso para arriba; el montículo tapa el resto): un recorte con curvas por cada enterrado
+  // atoraba al iPhone (con muchos a la vez bajaba a ~36 fps)
   ctx.save();
-  ctx.beginPath(); ctx.moveTo(b.x - M.w, M.gy); ctx.bezierCurveTo(b.x - M.w * 0.75, M.top + (M.gy - M.top) * 0.1, b.x - M.w * 0.4, M.top, b.x, M.top);
-  ctx.bezierCurveTo(b.x + M.w * 0.4, M.top, b.x + M.w * 0.75, M.top + (M.gy - M.top) * 0.1, b.x + M.w, M.gy); ctx.lineTo(b.x + M.w, M.gy - 600); ctx.lineTo(b.x - M.w, M.gy - 600); ctx.closePath(); ctx.clip();
+  ctx.beginPath(); ctx.rect(b.x - M.w, M.gy - 600, M.w * 2, 600); ctx.clip();
   // Hundido: solo asoman las puntas de las antenas (o la bolita del gorro)
-  ctx.globalAlpha = 1; ctx.translate(b.x + shake, M.gy + r * 0.55 + down); ctx.scale(fx, 1); drawRig(ctx, S, b.walk, time, b.p1 || 0);
+  ctx.globalAlpha = fade * (1 - smooth01(0.2, 0.6, u)); ctx.translate(b.x + shake, M.gy + r * 0.55 + down); ctx.scale(fx, 1); drawRig(ctx, S, b.walk, time, b.p1 || 0);
   ctx.restore();
   // El montículo: sombra al pie, nieve con luz arriba a la izquierda y un poco azulada abajo, y destellitos
   ctx.globalAlpha = fade * (M.dk ? 0.4 : 0.18); ctx.fillStyle = M.dk ? "#000000" : "#4A6FA5";
@@ -3243,7 +3244,7 @@ function drawBuriedAlien(b) {
 // Al desaparecer: una bocanada de nieve que sale del montículo
 function snowBurst(b) {
   const w = waves.find((q) => q.kind === "aval"), r = b.r, top = b.y - r;
-  if (w) for (let j = 0; j < 3; j++) w.puffs.push(puff(b.x + rand(-r * 0.6, r * 0.6), top + rand(-4, 8), 0.55));
+  if (w) for (let j = 0; j < 3; j++) addPuff(w, puff(b.x + rand(-r * 0.6, r * 0.6), top + rand(-4, 8), 0.55));
   if (!lowFx) for (let j = 0; j < 8; j++) part(b.x + rand(-r * 0.5, r * 0.5), top, rand(-50, 50), -rand(40, 110), rand(1.2, 2.4), rand(0.35, 0.55), PAL.dark ? "#DCE5F2" : "#FFFFFF", "dot", 3, 300, 0.95);
   Sound.snowPoof();
 }
@@ -7056,6 +7057,8 @@ function launchAval(dur) {
   Sound.avalanche(); buzz([14, 50, 20, 50, 26]);
 }
 const puff = (x, y, s) => ({ x, y, r: rand(14, 30) * s, t: 0, life: rand(0.8, 1.3), vx: rand(-14, 14), vy: rand(10, 45) });
+const PUFF_MAX = 22; // bocanadas de polvo a la vez (más, y el celular ya no alcanza a pintarlas)
+const addPuff = (w, p) => { if (w.puffs.length < PUFF_MAX) w.puffs.push(p); return p; };
 function updatePuffs(w, dt) {
   for (let i = w.puffs.length - 1; i >= 0; i--) { const p = w.puffs[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.t >= p.life) w.puffs.splice(i, 1); }
 }
@@ -7128,7 +7131,7 @@ function drawAval(w) {
   // Nube de polvo de nieve (también en los picos, antes de que baje): bocanadas suaves, sin orillas
   const S = puffSprite(dark);
   for (const p of w.puffs) {
-    const u = p.t / p.life, r = p.r * (0.7 + u * 1.1);
+    const u = p.t / p.life, r = p.r * (0.7 + u * 0.75);
     ctx.globalAlpha = (1 - u) * Math.min(1, u * 4) * (dark ? 0.55 : 0.95);
     ctx.drawImage(S, p.x - r, p.y - r, r * 2, r * 2);
   }
@@ -7371,7 +7374,7 @@ function updateWaves(dt) {
     if (tr < 0) {
       // 1) Tsunami: el mar se retira (se ve la arena mojada) mientras la ola toma fuerza. Avalancha: la nieve se desprende
       if (aval) {
-        if (Math.random() < dt * 30) w.puffs.push(puff(rand(0, W), seaH - rand(0, 18), 0.6));
+        if (Math.random() < dt * 12) addPuff(w, puff(rand(0, W), seaH - rand(0, 18), 0.6));
         if (!lowFx && Math.random() < dt * 26) part(rand(0, W), seaH + rand(-4, 8), rand(-20, 20), rand(20, 60), rand(1.6, 3.4), rand(0.4, 0.7), PAL.dark ? "#C9D4E6" : "#FFFFFF", "dot", 2, 260, 0.95);
       }
       else shift = Math.min(shift, -40 * easeOut(w.t / prep));
@@ -7383,7 +7386,7 @@ function updateWaves(dt) {
       if (!w.crashed && w.front > seaH) { w.crashed = true; if (aval) buzz([20, 40, 24, 40, 28]); else { Sound.waveCrash(); buzz([24, 50, 30]); } }
       const spray = aval ? (PAL.dark ? "#DCE5F1" : "#F2F7FD") : "#FFFFFF";
       if (!lowFx) for (let j = 0; j < (aval ? 3 : 6); j++) { const x = rand(0, W); part(x, crestAt(w, x) + (aval ? 0 : rand(-6, 10)), rand(-50, 50), rand(40, aval ? 170 : 230), rand(1.5, aval ? 3.2 : 3.8), rand(0.4, 0.75), spray, "dot", 3, 120, 0.9); }
-      if (aval && Math.random() < dt * (lowFx ? 12 : 40)) { const x = rand(-20, W + 20), p = puff(x, crestAt(w, x) + rand(-30, 14), rand(1, 1.6)); p.vy = rand(30, 90); w.puffs.push(p); }
+      if (aval && Math.random() < dt * (lowFx ? 8 : 16)) { const x = rand(-20, W + 20), p = addPuff(w, puff(x, crestAt(w, x) + rand(-30, 14), rand(1, 1.35))); p.vy = rand(30, 90); }
       // Atrapa a los que alcanza la cresta
       for (const b of balls) {
         if (b.state === "die" || b.pull) continue;
@@ -7394,7 +7397,7 @@ function updateWaves(dt) {
           w.caught.push(b);
           // Tsunami: queda chapoteando medio hundido, lo arrastra tantito la corriente y luego se hunde
           if (!aval) { b.swim = 0; b.sinkAt = rand(0.5, 0.95); b.drift = rand(60, 110); b.tumble = 0; Sound.splash(); }
-          else { b.bury = 0; b.sinkAt = rand(0.9, 1.5); b.tumble = 0; b.y = Math.min(b.y + rand(4, 14), H - b.T.bottom - 4); Sound.bury(); for (let j = 0; j < 3; j++) w.puffs.push(puff(b.x + rand(-b.r, b.r), b.y - rand(0, b.r), 0.7)); }
+          else { b.bury = 0; b.sinkAt = rand(0.9, 1.5); b.tumble = 0; b.y = Math.min(b.y + rand(4, 14), H - b.T.bottom - 4); Sound.bury(); for (let j = 0; j < 3; j++) addPuff(w, puff(b.x + rand(-b.r, b.r), b.y - rand(0, b.r), 0.7)); }
           for (let j = 0; j < (aval ? 4 : 8); j++) part(b.x, b.y, rand(-60, 60), rand(-110, -30), rand(1.6, 3), 0.5, spray, "dot", 3, 260, 0.9);
         }
       }
@@ -7413,7 +7416,7 @@ function updateWaves(dt) {
       if (!w.broke) {
         w.broke = true;
         for (let j = 0; j < (aval ? 22 : 44); j++) { const x = rand(0, W); part(x, H - rand(0, 12), rand(-70, 70), -rand(80, aval ? 240 : 300), rand(1.8, 3.8), rand(0.5, 0.9), aval ? (PAL.dark ? "#DCE5F1" : "#E9F1FB") : "#FFFFFF", "dot", 2.5, 380, 0.9); }
-        if (aval) { Sound.avalancheEnd(); for (let j = 0; j < 10; j++) w.puffs.push(puff(rand(0, W), H - rand(0, 30), 1.3)); }
+        if (aval) { Sound.avalancheEnd(); for (let j = 0; j < 10; j++) addPuff(w, puff(rand(0, W), H - rand(0, 30), 1.3)); }
       }
     }
     // Tsunami: los atrapados chapotean (la corriente los lleva tantito) y luego se hunden

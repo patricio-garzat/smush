@@ -60,6 +60,12 @@
       await play(L + " tools", async () => { for (let i = 0; i < 12; i++) { save.tool = tools[i % tools.length]; await taps(2, 500); } });
       save.tool = "finger";
     }
+    // La avalancha y el tsunami completos (de que se sueltan a que se van)
+    save.level = 2; resetWorld(); applyLevel(); ensureBg(); await wait(3500);
+    await Promise.all([measure("avalanche", 7000), (async () => { save.tool = "aval"; cdEnd.aval = 0; useTool(W / 2, H / 2); })()]);
+    save.level = 1; resetWorld(); applyLevel(); ensureBg(); await wait(3500);
+    await Promise.all([measure("tsunami", 7000), (async () => { save.tool = "wave"; cdEnd.wave = 0; useTool(W / 2, H / 2); })()]);
+    save.tool = "finger";
     // Hojas abiertas mientras el juego corre debajo
     openSheet(document.getElementById("sheet-shop")); await wait(800);
     const body = document.getElementById("shop-body");

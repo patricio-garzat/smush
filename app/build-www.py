@@ -43,7 +43,7 @@ html = html.replace("</head>", no_zoom + "</head>", 1)
 
 # Solo para medir el rendimiento en el iPhone (PERF=1 npm run build): no guarda nada y escribe "PERF …" en la consola
 if os.environ.get("PERF"):
-    probe = open(os.path.join(HERE, "perf-probe.js"), encoding="utf-8").read()
+    probe = open(os.path.join(HERE, os.environ.get("PERF_FILE", "perf-probe.js")), encoding="utf-8").read()
     html = html.replace("</head>", "<script>" + probe + "</script>\n</head>", 1)
     print("OJO: build de prueba de rendimiento (PERF=1)")
 
