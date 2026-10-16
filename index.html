@@ -163,9 +163,9 @@ h1, h2, h3, .coins, .home-title, .play-txt b, .hc-t b, .shop-txt b, .rec-hero b,
 #app { position: absolute; inset: 0; height: 100dvh; display: flex; flex-direction: column; }
 /* El encabezado flota sobre la franja de arriba del campo (el cielo, el mar, los picos, el dosel), que los marcianitos
    nunca pisan. Todo es de vidrio esmerilado teñido apenas con el color del nivel, para que combine con cada mundo */
-:root { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 90%, var(--lvl)) 76%, transparent); --glass-line: rgba(255, 255, 255, 0.5); --glass-shadow: 0 4px 16px rgba(20, 20, 40, 0.12); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 88%, var(--lvl)) 72%, transparent); --glass-line: rgba(255, 255, 255, 0.09); --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); } }
-:root[data-theme="dark"] { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 88%, var(--lvl)) 72%, transparent); --glass-line: rgba(255, 255, 255, 0.09); --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); }
+:root { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 90%, var(--lvl)) 93%, transparent); --glass-line: rgba(255, 255, 255, 0.5); --glass-shadow: 0 4px 16px rgba(20, 20, 40, 0.12); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 88%, var(--lvl)) 92%, transparent); --glass-line: rgba(255, 255, 255, 0.09); --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); } }
+:root[data-theme="dark"] { --glass: color-mix(in srgb, color-mix(in srgb, var(--card) 88%, var(--lvl)) 92%, transparent); --glass-line: rgba(255, 255, 255, 0.09); --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); }
 #top {
   position: absolute; top: 0; left: 0; right: 0; z-index: 4; pointer-events: none;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; row-gap: 8px;
@@ -173,8 +173,8 @@ h1, h2, h3, .coins, .home-title, .play-txt b, .hc-t b, .shop-txt b, .rec-hero b,
 }
 #top > * { pointer-events: auto; }
 .wallet { min-width: 0; justify-self: start; display: inline-flex; align-items: center; height: 40px; padding: 0 14px 0 10px; border-radius: 20px;
-  background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); }
-#top .icon-btn, #top #lvl-chip { background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); }
+  background: var(--glass); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); }
+#top .icon-btn, #top #lvl-chip { background: var(--glass); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); }
 #top .icon-btn { width: 40px; height: 40px; }
 #top #lvl-chip { height: 40px; border-radius: 20px; }
 .coins { display: flex; align-items: center; gap: 7px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -206,7 +206,6 @@ h1, h2, h3, .coins, .home-title, .play-txt b, .hc-t b, .shop-txt b, .rec-hero b,
   --p: 0; --fill: var(--lvl-soft);
   position: relative; display: flex; flex: 1; min-width: 0; align-items: center; gap: 9px; height: 40px; padding: 0 12px 0 8px; border: 0; border-radius: 20px;
   background: linear-gradient(90deg, var(--fill) calc(var(--p) * 100%), var(--glass) 0); box-shadow: var(--glass-shadow), inset 0 0 0 1px var(--glass-line); color: var(--text); text-align: left;
-  -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5);
   transition: transform 0.14s ease;
 }
 #trip[hidden] { display: none; }
@@ -631,8 +630,7 @@ body::before {
 .lvl-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: filter 0.3s ease; }
 .lvl-art .num, .lvl-art .mult {
   position: absolute; top: 12px; z-index: 1; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 13px;
-  background: rgba(16, 14, 34, 0.36); color: #FFFFFF; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-  -webkit-backdrop-filter: blur(10px) saturate(1.4); backdrop-filter: blur(10px) saturate(1.4); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+  background: rgba(16, 14, 34, 0.55); color: #FFFFFF; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
 }
 .lvl-art .num { left: 12px; }
 .lvl-art .mult { right: 12px; font-size: 12.5px; letter-spacing: 0.02em; text-transform: none; }
@@ -640,8 +638,7 @@ body::before {
 .lvl-card.locked .lvl-art canvas { filter: saturate(0.35) brightness(0.78); }
 .lvl-card.locked .lvl-art::after {
   content: ""; position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
-  background: rgba(16, 14, 34, 0.42) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='3' fill='white' fill-opacity='.25'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / 24px no-repeat;
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26), 0 8px 20px rgba(0, 0, 0, 0.25);
+  background: rgba(16, 14, 34, 0.42) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='3' fill='white' fill-opacity='.25'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / 24px no-repeat; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26), 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 .lvl-body { padding: 14px 16px 16px; }
 .lvl-body h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 850; letter-spacing: -0.01em; }
@@ -1127,7 +1124,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.2";
+const VERSION = "0.49.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 

@@ -18,8 +18,6 @@
     const n = gaps.length, sum = gaps.reduce((a, b) => a + b, 0);
     log({ label, fps: +(1000 * n / sum).toFixed(1), p50: +gaps[n >> 1].toFixed(1), p95: +gaps[Math.floor(n * 0.95)].toFixed(1), max: +gaps[n - 1].toFixed(1), long: gaps.filter((g) => g > 25).length, frames: n, js: window.__jsN ? +(window.__js / window.__jsN).toFixed(2) : null, jsMax: +window.__jsMax.toFixed(1), balls: typeof balls !== "undefined" ? balls.length : null });
   }
-  const noBlur = document.createElement("style");
-  noBlur.textContent = "*, *::before, *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }";
   window.addEventListener("load", async () => {
     // El tiempo del código del juego por cuadro
     const realLoop = window.loop;
