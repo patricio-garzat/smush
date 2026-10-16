@@ -1127,7 +1127,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.1";
+const VERSION = "0.49.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1327,16 +1327,23 @@ const toolHere = (id) => toolWorld(id) <= save.level && !toolGone(id);
 
 // Ayudantes y mejoras. cost = arreglo (precio de cada nivel) o función del nivel actual. max = nivel máximo.
 const upCost = (base, g) => (l) => nice(base * g ** l); // precio del nivel l+1
+// Los ayudantes cuestan en proporción a las herramientas de cada nivel. TB = lo que cuesta comprar una vez todas las
+// herramientas que hay aquí (sin el multiplicador del nivel, que se aplica después). Así siempre conviene comprar primero
+// las herramientas, aplastar más rápido a mano y, ya con más monedas, contratar ayudantes:
+//   desbloquearlos = 2 × TB · cada dedo cazador = 2.5, 4, 6, 9 y 13 × TB · sus mejoras empiezan en 0.15–0.25 × TB y
+//   cada nivel cuesta ~40 % más que el anterior
+const toolBundle = () => TOOL_ORDER.reduce((a, id) => a + (TOOLS[id].price > 0 && toolHere(id) ? TOOLS[id].price : 0), 0);
+const helperCost = (f, g = 1) => (l) => nice(toolBundle() * f * g ** l);
 const UP = {
   // Ayudantes (desde 0.43): primero se desbloquean y llegan las nubes (3 en el celular, 5 en la compu), ya trabajando
   // en lugares fijos (las puedes mover). Luego, los dedos cazadores: más caros, cada uno persigue marcianitos solo
-  hire:    { tab: "helpers", max: 1, cost: [1500] },                              // desbloquea a los ayudantes: llegan las nubes
+  hire:    { tab: "helpers", max: 1, cost: helperCost(2) },                       // desbloquea a los ayudantes: llegan las nubes
   // Mejoras de las nubes
-  carea:   { tab: "helpers", max: 20, cost: upCost(800, 1.42), need: "hire" },    // qué tan lejos alcanzan
-  cchain:  { tab: "helpers", max: 20, cost: upCost(600, 1.42), need: "hire" },    // marcianitos por descarga (2 → 10) y distancia del salto
+  carea:   { tab: "helpers", max: 20, cost: helperCost(0.25, 1.38), need: "hire" }, // qué tan lejos alcanzan
+  cchain:  { tab: "helpers", max: 20, cost: helperCost(0.2, 1.38), need: "hire" },  // marcianitos por descarga (2 → 10) y distancia del salto
   // Dedos cazadores (hasta 3 en el celular, 5 en la compu) y su única mejora: la velocidad
-  fingers: { tab: "helpers", max: 5, cost: [5000, 12000, 30000, 70000, 160000], need: "hire" },
-  fspeed:  { tab: "helpers", max: 16, cost: upCost(400, 1.45), need: "fingers" }, // toques por segundo de cada dedo (2 → 10)
+  fingers: { tab: "helpers", max: 5, cost: (l) => nice(toolBundle() * [2.5, 4, 6, 9, 13][l]), need: "hire" },
+  fspeed:  { tab: "helpers", max: 16, cost: helperCost(0.15, 1.4), need: "fingers" }, // toques por segundo de cada dedo (2 → 10)
   // Ayudante de The Beach: el primer nivel lo contrata (pasa cada 5 s); los siguientes lo hacen pasar más seguido
   // Mejoras
   value:  { tab: "boosts", max: 20, cost: upCost(80, 1.5) },     // más monedas
