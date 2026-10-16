@@ -1113,7 +1113,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.47.9";
+const VERSION = "0.48.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1725,7 +1725,7 @@ function upText(k, l, short) {
 
 /* ---------- 4. Sonido (Web Audio, sin archivos): cálido, suave, tipo ASMR ---------- */
 const Sound = (() => {
-  let lastSaw = 0, lastSplash = 0, lastGulp = 0, lastBury = 0, lastPoof = 0; // el "shing" de la sierra (y los chapuzones) no se amontonan
+  let lastSaw = 0, lastSplash = 0, lastGulp = 0, lastBury = 0, lastPoof = 0, lastThunk = 0; // el "shing" de la sierra (y los chapuzones) no se amontonan
   let ctx = null, master = null, noiseBuf = null, unlocked = false;
   // Cadena de salida cálida: filtro que quita lo agudo, compresor suave y una reverberación corta
   function build(c) {
@@ -2014,6 +2014,7 @@ const Sound = (() => {
     wave() { breath({ dur: 0.6, vol: 0.05, from: 900, to: 300 }); tone(55, { dur: 1.2, vol: 0.09, attack: 0.35, slide: 1.3 }); },
     // …y la ola rompe: un rugido de agua que se va apagando
     splash() { const c = ensure(); if (!c || c.currentTime - lastSplash < 0.09) return; lastSplash = c.currentTime; noise({ dur: 0.22, vol: 0.05, freq: vary(1400, 0.15), q: 0.7, attack: 0.004, kind: "bandpass", sweep: 0.5 }); thump({ vol: 0.05 }); },
+    thunk() { const c = ensure(); if (!c || c.currentTime - lastThunk < 0.05) return; lastThunk = c.currentTime; thump({ vol: 0.09 }); noise({ dur: 0.07, vol: 0.05, freq: vary(950, 0.12), q: 1.4, attack: 0.002, kind: "bandpass", sweep: 0.6 }); tone(vary(170, 0.06), { dur: 0.09, vol: 0.04, slide: 0.7, attack: 0.002 }); },
     bury() { const c = ensure(); if (!c || c.currentTime - lastBury < 0.08) return; lastBury = c.currentTime; noise({ dur: 0.18, vol: 0.06, freq: vary(520, 0.15), q: 0.5, attack: 0.004, kind: "lowpass", sweep: 0.6 }); thump({ vol: 0.06 }); },
     snowPoof() { const c = ensure(); if (!c || c.currentTime - lastPoof < 0.1) return; lastPoof = c.currentTime; noise({ dur: 0.22, vol: 0.035, freq: vary(1500, 0.2), q: 0.6, attack: 0.01, kind: "bandpass", sweep: 0.5 }); },
     gulp() { const c = ensure(); if (!c || c.currentTime - lastGulp < 0.12) return; lastGulp = c.currentTime; tone(vary(260, 0.08), { dur: 0.16, vol: 0.05, slide: 0.55, attack: 0.006 }); tone(vary(420, 0.08), { t: 0.09, dur: 0.1, vol: 0.03, slide: 1.4, attack: 0.004 }); },
@@ -2558,7 +2559,7 @@ function updateBalls(dt) {
       if (b.burn && b.bs > 1) b.t += dt * (b.bs - 1);
       if (b.burn) burnTick(b, dt);
       if (b.drown) drownTick(b, dt);
-      if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : b.burn ? BURN_DIE : b.drown ? DROWN_DIE : b.snow ? SNOW_DIE : b.flat ? 0.1 : DIE)) balls.splice(i, 1);
+      if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : b.burn ? BURN_DIE : b.drown ? DROWN_DIE : b.snow ? SNOW_DIE : b.pierced ? ARROW_DIE : b.flat ? 0.1 : DIE)) balls.splice(i, 1);
       continue;
     }
     b.squash = Math.max(0, b.squash - dt / 0.24);
@@ -2630,6 +2631,7 @@ function burst(b) {
   if (b.flat) { roadkill(b); return; } // lo atropelló el carro: queda embarrado en el pavimento
   if (b.drown) { drownBurst(b); return; } // se lo llevó el tsunami: se hunde
   if (b.snow) { snowBurst(b); return; } // la avalancha lo enterró: desaparece bajo la nieve
+  if (b.pierced) return; // la flecha se le clavó: se cae con la flecha (drawPiercedAlien), sin charco
   if (b.zapped != null && time - b.zapped < 0.05 && b.cutAng == null) { burnBurst(b); return; } // lo mató el rayo: se quema
   const T = b.T;
   gooBurst(b);
@@ -2797,7 +2799,7 @@ function smush(b, auto) {
   save.smushed++; save.byType[b.type]++;
   burst(b);
   goalsOnSmush(b, auto);
-  if (!b.flat && !b.drown && !b.snow) Sound.pop(b.type, auto); // el ahogado suena a "blup" (drownBurst)
+  if (!b.flat && !b.drown && !b.snow && !b.pierced) Sound.pop(b.type, auto); // el ahogado suena a "blup" (drownBurst)
   if (!auto && !b.flat) buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
   if (!save.hinted && !auto) { save.hinted = true; $("#hint").classList.remove("on"); }
 }
@@ -6562,16 +6564,69 @@ function updateArrows(dt) {
     a.x += a.dir * a.v * dt;
     // La punta va adelante: cualquiera cuyo cuerpo cruce entre donde estaba y donde está, cae
     const tip0 = px + a.dir * a.L * 0.5, tip1 = a.x + a.dir * a.L * 0.5, lo = Math.min(tip0, tip1), hi = Math.max(tip0, tip1);
+    // Atraviesa a todos los que encuentra en su camino, y a cada uno le queda una flecha clavada
     for (const b of balls) {
-      if (b.state === "die" || b.pull) continue;
+      if (b.pull || (b.state === "die" && !(b.pierced && b.t < 0.3))) continue;
+      if (a.hit && a.hit.has(b)) continue;
       if (b.x + b.r * 0.6 < lo || b.x - b.r * 0.6 > hi) continue;
       if (Math.abs(b.y + b.T.bottom - a.y) > b.r * 0.95 + 4) continue; // a la altura de sus pies (la flecha vuela a su altura)
+      (a.hit = a.hit || new Set()).add(b);
+      // Le queda clavada (con la punta adentro), en el ángulo y a la altura a la que llegó
+      const u = clamp((a.dir > 0 ? a.x : W - a.x) / (W + a.L), 0, 1), fy = a.y - (a.alt + Math.sin(u * Math.PI) * a.arc), gy = b.y + b.T.bottom;
+      (b.arrowsIn = b.arrowsIn || []).push({ dir: a.dir, hy: clamp(fy - gy, -(b.T.bottom + b.r * 1.1), -b.r * 0.35), col: a.col, L: a.L, ang: rand(-0.12, 0.12), t0: b.state === "die" ? b.t : 0 });
+      for (let k = 0; k < 5; k++) part(b.x - a.dir * b.r * 0.5, fy, -a.dir * rand(30, 110), rand(-90, 10), rand(1, 1.8), 0.32, k % 2 ? "#E8D2A8" : "#FFFFFF", "dot", 5, 220);
+      if (a.hits < 2) Sound.thunk();
       a.hits++;
-      for (let k = 0; k < 4; k++) part(b.x, b.y, a.dir * rand(60, 180), rand(-90, 30), rand(1.2, 2), 0.3, k % 2 ? "#FFFFFF" : "#E8D2A8", "dot", 5, 160);
-      hit(b, 999, b.x - a.dir * 20, b.y, a.hits > 1, false);
+      if (b.state !== "die") { b.pierced = true; b.pDir = a.dir; hit(b, 999, b.x - a.dir * 20, b.y, a.hits > 1, false); }
     }
     if ((a.dir > 0 && a.x - a.L > W + 20) || (a.dir < 0 && a.x + a.L < -20)) arrows.splice(i, 1);
   }
+}
+// --- Flechado: la flecha se le queda clavada (la punta adentro, el palo y las plumas afuera, vibrando), lo empuja tantito,
+// se encoge del golpe, se tambalea y se cae de lado hacia donde iba la flecha; se queda tendido y se desvanece ---
+const ARROW_DIE = 1.7;
+// Una flecha clavada, dibujada en coordenadas del marcianito (origen en el piso, bajo su cuerpo)
+function drawStuckArrow(a, b, t) {
+  const r = b.r, L = a.L, d = a.dir, vib = Math.sin(t * 55) * 0.14 * Math.exp(-t * 7), enter = -d * r * 0.18;
+  ctx.save(); ctx.translate(enter, a.hy); ctx.scale(d, 1); ctx.rotate(a.ang + vib);
+  // La herida: un puntito oscuro donde entró
+  ctx.fillStyle = "rgba(40,20,30,0.35)"; ctx.beginPath(); ctx.ellipse(0, 0, 2.6, 3.4, 0, 0, TAU); ctx.fill();
+  // Astil (desde afuera hasta donde se hunde) con su brillito
+  ctx.lineCap = "round"; ctx.strokeStyle = PAL.dark ? "#8C6A4C" : "#9A6B42"; ctx.lineWidth = 3.2;
+  ctx.beginPath(); ctx.moveTo(-L * 0.78, 0); ctx.lineTo(0, 0); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-L * 0.74, -0.7); ctx.lineTo(-2, -0.7); ctx.stroke();
+  // Plumas
+  for (const sd of [-1, 1]) {
+    ctx.fillStyle = sd < 0 ? a.col : mix(a.col, "#FFFFFF", 0.35);
+    ctx.beginPath(); ctx.moveTo(-L * 0.78, 0); ctx.quadraticCurveTo(-L * 0.7, sd * 8, -L * 0.52, sd * 1.4); ctx.lineTo(-L * 0.58, 0); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawPiercedAlien(b) {
+  const T = b.T, S = spriteOf(b); if (!S) return;
+  const t = b.t, d = b.pDir || 1, r = b.r, gy0 = b.y + T.bottom, fx = Math.sign(b.flip || 1);
+  const kb = d * r * 0.4 * easeOut(Math.min(1, t / 0.2)); // el empujón
+  const sq = t < 0.16 ? Math.sin((t / 0.16) * Math.PI) : 0; // se encoge del golpe
+  // Se cae de lado (hacia donde iba la flecha): primero un tambaleo y luego cae con peso; un asentón chiquito al llegar
+  const fall = smooth01(0.16, 0.5, t), fallE = fall * fall, wob = t < 0.3 ? Math.sin(t * 22) * 0.06 * (1 - t / 0.3) : 0;
+  const settle = t > 0.5 && t < 0.62 ? Math.sin(((t - 0.5) / 0.12) * Math.PI) * 0.05 : 0;
+  const ang = d * (fallE * 1.45 - settle) + wob, fade = 1 - smooth01(1.25, ARROW_DIE, t);
+  const px = b.x + kb + d * r * 0.55, py = gy0; // gira sobre la orilla de su pie
+  // Sombra: se estira cuando queda acostado
+  ctx.globalAlpha = 0.25 * fade; ctx.fillStyle = PAL.shadow;
+  ctx.beginPath(); ctx.ellipse(b.x + kb + d * r * 0.6 * fallE, gy0 - 1, T.r * (0.95 + 0.7 * fallE), T.r * 0.26, 0, 0, TAU); ctx.fill();
+  ctx.save(); ctx.globalAlpha = fade;
+  ctx.translate(px, py); ctx.rotate(ang); ctx.translate(-d * r * 0.55, 0);
+  ctx.save(); ctx.scale(fx * (1 + 0.12 * sq), 1 - 0.12 * sq); drawRig(ctx, S, b.walk || 0, time, b.p1 || 0, true); ctx.restore();
+  for (const a of b.arrowsIn || []) drawStuckArrow(a, b, t - a.t0);
+  ctx.restore();
+  // Unas estrellitas de mareo cuando ya cayó
+  if (t > 0.55 && t < 1.25 && !reduceMotion) {
+    const k = smooth01(0.55, 0.7, t) * (1 - smooth01(1.05, 1.25, t)), hx = b.x + kb + d * (T.bottom + r) * 0.95, hy = gy0 - r * 0.9;
+    ctx.fillStyle = "#FFD65A";
+    for (let i = 0; i < 3; i++) { const a = time * 5 + (i * TAU) / 3; ctx.globalAlpha = k * fade; ctx.save(); ctx.translate(hx + Math.cos(a) * r * 0.5, hy + Math.sin(a) * r * 0.16); ctx.rotate(a); ctx.fillRect(-2.6, -0.7, 5.2, 1.4); ctx.fillRect(-0.7, -2.6, 1.4, 5.2); ctx.restore(); }
+  }
+  ctx.globalAlpha = 1;
 }
 // Una flecha: sombra en el piso, astil de madera, punta de piedra y plumas de colores; con rayitas de velocidad
 function drawArrows() {
@@ -8075,6 +8130,7 @@ function drawAlien(b) {
   if (b.carried && b.pull && b.pull.kind !== "aval") { drawSwimAlien(b); return; } // chapoteando en el tsunami
   if (b.carried && b.pull && b.pull.kind === "aval") { drawBuriedAlien(b); return; } // enterrado en la nieve
   if (b.state === "die" && b.snow) { drawBuriedAlien(b); return; } // desapareciendo bajo la nieve
+  if (b.state === "die" && b.pierced) { drawPiercedAlien(b); return; } // con la flecha clavada, se cae de lado
   let sx = 1, sy = 1, alpha = 1, lift = 0, tilt = 0;
   if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.45)); sx = sy = 0.35 + 0.65 * k; alpha = k; }
   else if (b.state === "die" && b.flat) { const k = easeOut(Math.min(1, b.t / 0.1)); sx = 1 + 0.42 * k; sy = 1 - 0.7 * k; alpha = 1 - k; }
@@ -8164,7 +8220,7 @@ function render(dt) {
     if (b.state === "in") a = Math.min(1, b.t / 0.45);
     else if (b.state === "die" && b.cutAng != null) continue; // las mitades llevan su propia sombra
     else if (b.state === "die" && b.burn) a = 1 - smooth01(BURN.dust[0], BURN.dust[1], b.t);
-    else if (b.state === "die" && (b.drown || b.snow)) continue; // en el agua o bajo la nieve no hay sombra
+    else if (b.state === "die" && (b.drown || b.snow || b.pierced)) continue; // en el agua o bajo la nieve no hay sombra; el flechado trae la suya
     else if (b.state === "die") { const u = Math.min(1, b.t / DIE); w = 1 + 0.4 * Math.min(1, u * 3); a = 1 - u; }
     ctx.globalAlpha = a;
     ctx.beginPath(); ctx.ellipse(b.x, b.y + T.bottom - 1, T.r * 0.95 * w, T.r * 0.26 * w, 0, 0, TAU); ctx.fill();
