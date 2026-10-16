@@ -1113,7 +1113,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.48.0";
+const VERSION = "0.48.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2170,6 +2170,19 @@ function buzz(ms) {
   // El navegador solo deja vibrar después del primer toque
   if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) { try { navigator.vibrate(ms); } catch (e) {} }
 }
+// App de iOS: mientras juegas, la pantalla no se oscurece ni se bloquea sola (si dejaste de tocar 3 min, sí, como siempre)
+const KEEP_AWAKE_MS = 3 * 60 * 1000;
+let lastTouchAt = Date.now(), awakeOn = null;
+function keepAwake() {
+  const h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.keepAwake;
+  if (!h) return;
+  const on = !document.hidden && Date.now() - lastTouchAt < KEEP_AWAKE_MS;
+  if (on !== awakeOn) { awakeOn = on; try { h.postMessage(on); } catch (e) {} }
+}
+document.addEventListener("pointerdown", () => { lastTouchAt = Date.now(); keepAwake(); }, { capture: true, passive: true });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) lastTouchAt = Date.now(); keepAwake(); });
+setInterval(keepAwake, 5000);
+keepAwake();
 // App de iOS: toque háptico ligero en todos los botones
 if (isNative()) {
   document.addEventListener("pointerdown", (e) => {

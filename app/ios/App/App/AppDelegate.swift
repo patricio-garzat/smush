@@ -18,6 +18,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
+        // Fuera del juego, iOS vuelve a apagar la pantalla como siempre
+        UIApplication.shared.isIdleTimerDisabled = false
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
     }
@@ -70,6 +72,16 @@ class GameViewController: CAPBridgeViewController {
         let config = super.webViewConfiguration(for: instanceConfiguration)
         config.mediaTypesRequiringUserActionForPlayback = []
         config.allowsInlineMediaPlayback = true
+        // Pantalla encendida mientras juegas: el juego avisa con window.webkit.messageHandlers.keepAwake.postMessage(true/false)
+        config.userContentController.add(KeepAwake(), name: "keepAwake")
         return config
+    }
+}
+
+/// Mientras juegas, la pantalla no se oscurece ni se bloquea sola (el juego lo pide si tocaste en los últimos minutos)
+class KeepAwake: NSObject, WKScriptMessageHandler {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        let on = (message.body as? Bool) ?? false
+        DispatchQueue.main.async { UIApplication.shared.isIdleTimerDisabled = on }
     }
 }
