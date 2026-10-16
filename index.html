@@ -635,7 +635,7 @@ body::before {
 .lvl-art .num { left: 12px; }
 .lvl-art .mult { right: 12px; font-size: 12.5px; letter-spacing: 0.02em; text-transform: none; }
 .lvl-art .mult .coin { font-size: 14px; }
-.lvl-card.locked .lvl-art canvas { filter: saturate(0.35) brightness(0.78); }
+.lvl-card.locked .lvl-art canvas { filter: brightness(0.36); }
 .lvl-card.locked .lvl-art::after {
   content: ""; position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
   background: rgba(16, 14, 34, 0.42) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='3' fill='white' fill-opacity='.25'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / 24px no-repeat; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26), 0 8px 20px rgba(0, 0, 0, 0.25);
@@ -1124,7 +1124,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.3";
+const VERSION = "0.49.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3989,7 +3989,7 @@ const ART = {
     for (const [col, d] of [["#F26B5B", 0], ["#FFFFFF", 4], ["#FFC94A", 5.5], ["#FFFFFF", 9], ["#3FB7C9", 10.5], ["#FFF8EC", 14]]) { g.fillStyle = col; g.beginPath(); g.ellipse(cx, cy, w * 0.44 - d * k, h * 0.21 - d * k * 0.5, 0, 0, TAU); g.fill(); }
     const ry0 = h * 0.79, kk = k * 0.55;
     paintRail(g, makeRail([[-20, ry0], [w + 20, ry0]]), k * 0.62, false);
-    const kinds = ["caboose", "coach", "blocks", "loco"], front = ((t * 38) % (w + 320)) - 10;
+    const kinds = ["caboose", "coach", "blocks", "loco"], front = ((t * 38 + w * 0.62) % (w + 320)) - 10;
     let x = front - kinds.reduce((a, kd) => a + trainLen(kd) * kk + 4 * kk, 0);
     kinds.forEach((kd, i) => { const L = trainLen(kd) * kk; x += L / 2; drawCar3(g, kd, x, ry0, 0, kk, false, i); x += L / 2 + 4 * kk; });
     // El tipi, el baúl y juguetes al frente
@@ -4040,6 +4040,7 @@ function mountArts(root, ctx) {
   root.querySelectorAll("canvas[data-art]").forEach((c) => {
     const key = ctx + ":" + c.dataset.art, old = ART_CACHE[key];
     if (old && old !== c) c.replaceWith(old); else ART_CACHE[key] = c;
+    if (ctx === "lv") ART_CACHE[key].dataset.still = "1"; // en Niveles, las fotos van quietas
   });
   startArts();
 }
@@ -4049,7 +4050,12 @@ function animateArts(now) {
   const list = Object.values(ART_CACHE).filter((c) => c.isConnected && c.offsetParent !== null);
   if (!list.length) { artRaf = 0; return; }
   // A 30 cuadros por segundo es suficiente para algo tan tranquilo (y con "reducir movimiento", se pinta una vez quieto)
-  if (artFrame++ % 2 === 0) list.forEach((c) => paintArt(c, reduceMotion ? 2 : now / 1000));
+  // Las quietas (Niveles) se pintan una vez (y otra si cambia su tamaño o el tema)
+  const odd = artFrame++ % 2 === 0;
+  list.forEach((c) => {
+    if (c.dataset.still) { const k = c.clientWidth + "x" + c.clientHeight + (PAL.dark ? "d" : "l"); if (c._still !== k) { paintArt(c, 2); if (c.width) c._still = k; } }
+    else if (odd) paintArt(c, reduceMotion ? 2 : now / 1000);
+  });
   artRaf = requestAnimationFrame(animateArts);
 }
 
@@ -4172,7 +4178,7 @@ function renderLevels(animate) {
     });
   }
   mountArts(list, "lv");
-  list.classList.toggle("enter", !!animate);
+  list.classList.remove("enter"); // sin entrada escalonada
   $("#levels-coins").textContent = fmtFull(save.coins);
 }
 $("#lvl-chip").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-levels")); });
@@ -8926,10 +8932,16 @@ function openSheet(el) {
   if (el.id === "sheet-shop") { renderShop(true); $("#shop-body").scrollTop = 0; }
   const wasHidden = el.hidden;
   if (el.id === "sheet-goals") renderGoals(true);
-  if (el.id === "sheet-levels") { renderLevels(true); el.querySelector(".panel-body").scrollTop = 0; }
+  if (el.id === "sheet-levels") renderLevels(true);
   el.hidden = false;
   if (wasHidden && el.id === "sheet-shop") updateUI(); // precios y botones al día al abrir
   void el.offsetWidth;
+  if (el.id === "sheet-levels") {
+    // Abre en tu nivel (el de verdad, aunque estés de visita), no hasta arriba
+    const body = el.querySelector(".panel-body"), card = $("#levels-list").children[real ? real.level : save.level];
+    body.scrollTop = 0;
+    if (card) body.scrollTop = Math.max(0, card.getBoundingClientRect().top - body.getBoundingClientRect().top - 14);
+  }
   el.classList.add("open");
   Sound.tick();
 }
