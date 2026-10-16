@@ -625,6 +625,8 @@ body::before {
 
 /* Niveles: tarjetas con una ilustración animada de cada mundo */
 .lvl-card { margin-bottom: 12px; border-radius: 22px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
+.lvl-card[data-i] { cursor: pointer; transition: transform 0.14s ease; }
+.lvl-card[data-i]:not(.locked):active { transform: scale(0.985); }
 /* Ilustración de cada nivel: una escena pintada en canvas, con etiquetas de vidrio encima */
 .lvl-art { position: relative; height: 150px; overflow: hidden; background: #1C1B2E; }
 .lvl-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: filter 0.3s ease; }
@@ -1124,7 +1126,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.4";
+const VERSION = "0.49.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -4164,7 +4166,7 @@ function renderLevels(animate) {
       <p class="fresh">${tx("freshStart").replace("{c}", fmtFull(startCoins(i)))}</p>
       <button class="travel-btn${okS && okC ? " go" : ""}" type="button" data-travel ${okS && okC ? "" : "disabled"}>${!okS ? tx("needSmush") : !okC ? tx("needCoins") : `${tx("travelTo")} ${L.name}`}</button>`;
     }
-    cards.push(`<div class="lvl-card${i > cur ? " locked" : ""}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`);
+    cards.push(`<div class="lvl-card${i > cur ? " locked" : ""}" data-i="${i}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`);
   });
   cards.push(`<div class="lvl-card"><div class="lvl-art soon"><canvas data-art="soon" aria-hidden="true"></canvas></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`);
   // Solo se cambia la tarjeta que cambió (normalmente la del siguiente nivel): los botones de las demás siguen siendo los mismos
@@ -4216,11 +4218,26 @@ const closeReady = () => { readyEl.classList.remove("open"); setTimeout(() => { 
 $("#btn-stay").addEventListener("click", () => { Sound.tick(); buzz(8); closeReady(); });
 $("#btn-go").addEventListener("click", () => { closeReady(); setTimeout(travel, 260); });
 $("#levels-list").addEventListener("click", (e) => {
-  if (e.target.closest("[data-travel]")) travel();
+  if (e.target.closest("[data-travel]")) { travel(); return; }
   const v = e.target.closest("[data-visit]");
-  if (v) { Sound.tick(); visitLevel(+v.dataset.visit); }
-  if (e.target.closest("[data-return]")) { Sound.tick(); endVisit(); }
+  if (v) { Sound.tick(); visitLevel(+v.dataset.visit); return; }
+  if (e.target.closest("[data-return]")) { Sound.tick(); endVisit(); return; }
+  // Tocar la tarjeta también te lleva a ese nivel
+  const card = e.target.closest(".lvl-card[data-i]");
+  if (card) goToLevel(+card.dataset.i, card);
 });
+// A un nivel completado (de visita), de regreso al tuyo, al siguiente si ya está listo el viaje, o al que ya estás
+// (cierra la ventana y entra a jugar). Si está bloqueado, un "no" suave y la tarjeta se mueve apenitas
+function goToLevel(i, card) {
+  const mine = real || save, n = nextLvl();
+  if (i === save.level) { Sound.tick(); closeSheet($("#sheet-levels")); if (!inGame) enterGame(); return; }
+  if (real && i === real.level) { Sound.tick(); endVisit(); return; }
+  if (i < mine.level) { Sound.tick(); visitLevel(i); return; }
+  if (!real && i === mine.level + 1 && n && save.smushed >= n.smush && save.coins >= n.cost) { travel(); return; }
+  Sound.nope(); buzz(8);
+  const art = card.querySelector(".lvl-art");
+  if (art && art.animate && !reduceMotion) art.animate([{ transform: "none" }, { transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "translateX(-2px)" }, { transform: "none" }], { duration: 300, easing: "ease-out" });
+}
 
 // Pagar y viajar: una cinemática de "viaje a otra isla" y, cuando la cámara cae sobre la arena, el juego ya está ahí
 function travel() {
