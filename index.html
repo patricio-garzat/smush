@@ -1863,7 +1863,8 @@ const Sound = (() => {
     set(v) { settings.sound = v; saveSettings(); if (v) this.unlock(); },
     unlock() {
       unlocked = true;
-      const type = isNativeApp() ? "ambient" : "playback";
+      // Reproducción, en la web y en la app: suena aunque el iPhone esté en modo silencio (lo pidió el usuario)
+      const type = "playback";
       try { if (navigator.audioSession && navigator.audioSession.type !== type) navigator.audioSession.type = type; } catch (e) {}
       if (settings.sound && ctx && !healthy()) rebuild();
       if (settings.sound && !isNativeApp()) primeMedia();
@@ -1889,7 +1890,7 @@ const Sound = (() => {
     // ¿El navegador deja sonar sin que la persona toque primero?
     probe() {
       if (!settings.sound) return false;
-      if (isNativeApp()) { try { if (navigator.audioSession) navigator.audioSession.type = "ambient"; } catch (e) {} }
+      if (isNativeApp()) { try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {} }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return false;
       try {
