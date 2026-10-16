@@ -1113,7 +1113,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.47.8";
+const VERSION = "0.47.9";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -8108,9 +8108,11 @@ function drawAlien(b) {
   if (b.carried) { ctx.translate(0, -T.bottom); ctx.rotate(b.tumble); ctx.translate(0, T.bottom); }
   else if (b.pull) { ctx.translate(0, -T.bottom); ctx.rotate(b.walk * 0.4); ctx.scale(b.suck, b.suck); ctx.translate(0, T.bottom); }
   ctx.rotate(tilt);
+  const rk = b.rare ? RARE_K : 1;
+  if (b.rare && b.state !== "die") drawCape(b, T);
   // Se voltea a la izquierda o a la derecha: a la mitad del giro, un instante de frente (como si girara en 3D)
   const Fr = b.state === "die" ? null : frontSpr(b.skin, T);
-  const D = drawTurning(ctx, S, Fr, b.flip, sx * hpScale, sy * hpScale, 0, b.walk || 0, time, b.p1 || 0);
+  const D = drawTurning(ctx, S, Fr, b.flip, sx * hpScale * rk, sy * hpScale * rk, 0, b.walk || 0, time, b.p1 || 0);
   const fl = b.state === "die" ? Math.max(0, 1 - b.t / 0.09) : b.flash;
   if (fl > 0) { const fd = D === S ? Math.sign(b.flip || 1) * Math.max(0.55, Math.abs(b.flip)) : 0.92; ctx.scale(fd * sx * hpScale, sy * hpScale); ctx.globalAlpha = alpha * fl * (b.state === "die" ? 0.8 : 0.55); ctx.drawImage(D.flash, -D.cx, -D.ground, D.w, D.h); }
   ctx.restore();
@@ -9823,7 +9825,7 @@ function spawnRare() {
     const n0 = balls.length; spawnBall(false);
     if (balls.length === n0) continue;
     const b = balls[balls.length - 1], T = BALL_TYPES.purple;
-    b.type = "purple"; b.T = T; b.r = T.r; b.hp = 4; b.ride = null; b.skin = skinFor("purple"); b.rare = true;
+    b.type = "purple"; b.T = T; b.r = T.r * RARE_K; b.hp = 4; b.ride = null; b.skin = skinFor("purple"); b.rare = true;
     b.speed = 78; b.vx = Math.cos(b.heading) * b.speed; b.vy = Math.sin(b.heading) * b.speed;
     Sound.rare(); buzz([8, 40, 8]);
     toast({ kind: "rare", color: "#E0A622", icon: `<i class="t-mis" style="--c:#E3A21A"><svg viewBox="0 0 24 24">${GLYPH.crown}</svg></i>`, cap: LX(["A king appeared!", "¡Apareció un rey!"]), title: LX(RARE_NAME[lvl().id]), desc: LX(["Smush it before it leaves", "Aplástalo antes de que se vaya"]), hold: 2200 });
@@ -9831,12 +9833,39 @@ function spawnRare() {
   }
 }
 const rareReward = () => nice(avgReward() * 60);
+const RARE_K = 1.25; // el Rey es 25 % más grande que un morado (y más fácil de tocar)
+// La capa del Rey: roja con orilla dorada, cuelga de los hombros por detrás y ondea al caminar (se dibuja detrás del cuerpo)
+function drawCape(b, T) {
+  const r = T.r * RARE_K, fx = Math.sign(b.flip || 1), top = -T.bottom - r * 0.55, bot = -r * 0.02, back = -fx * r * 0.5;
+  const wav = (k) => Math.sin(time * 6 + (b.walk || 0) * 0.8 + k) * r * 0.08 * (reduceMotion ? 0.3 : 1);
+  const L = back - r * 0.7, R = back + r * 0.7;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.12)"; ctx.beginPath(); ctx.moveTo(L + 2, top + 2); ctx.lineTo(R + 2, top + 2); ctx.lineTo(R + r * 0.18 + 2 + wav(0), bot + 3); ctx.quadraticCurveTo(back + 2, bot + r * 0.12 + 3 + wav(1), L - r * 0.18 + 2 + wav(2), bot + 3); ctx.closePath(); ctx.fill();
+  const g = ctx.createLinearGradient(L, top, R, bot);
+  g.addColorStop(0, "#E2505A"); g.addColorStop(1, "#A8283A");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(L, top); ctx.lineTo(R, top); ctx.lineTo(R + r * 0.18 + wav(0), bot); ctx.quadraticCurveTo(back, bot + r * 0.12 + wav(1), L - r * 0.18 + wav(2), bot); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#F1C84D"; ctx.lineWidth = Math.max(1.6, r * 0.08); ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.moveTo(R + r * 0.18 + wav(0), bot); ctx.quadraticCurveTo(back, bot + r * 0.12 + wav(1), L - r * 0.18 + wav(2), bot); ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(back - r * 0.2, top + r * 0.1); ctx.lineTo(back - r * 0.28 + wav(1) * 0.5, bot - r * 0.08); ctx.stroke();
+  ctx.restore();
+}
 function drawRareGround() {
   for (const b of balls) {
     if (!b.rare || b.state === "die") continue;
-    const gy = b.y + b.T.bottom, r = b.r * 2.2, k = 0.75 + 0.25 * Math.sin(time * 4);
+    const gy = b.y + b.T.bottom, r = b.r * 2.2, k = 0.75 + 0.25 * Math.sin(time * 4); // sus pies (crece hacia arriba)
+    // Un haz de luz dorada que lo sigue desde arriba (se encuentra rápido aunque haya muchos)
+    const top = Math.max(seaTop(), gy - b.r * 7), bw = b.r * 1.5;
+    const beam = ctx.createLinearGradient(0, top, 0, gy);
+    beam.addColorStop(0, "rgba(255,226,120,0)"); beam.addColorStop(1, `rgba(255,214,90,${PAL.onDark ? 0.26 : 0.22})`);
+    ctx.globalAlpha = 1; ctx.fillStyle = beam; ctx.beginPath(); ctx.moveTo(b.x - bw * 0.45, top); ctx.lineTo(b.x + bw * 0.45, top); ctx.lineTo(b.x + bw, gy); ctx.lineTo(b.x - bw, gy); ctx.closePath(); ctx.fill();
     const gr = ctx.createRadialGradient(b.x, gy, 0, b.x, gy, r); gr.addColorStop(0, `rgba(255,214,90,${0.5 * k})`); gr.addColorStop(1, "rgba(255,214,90,0)");
     ctx.save(); ctx.translate(b.x, gy); ctx.scale(1, 0.4); ctx.translate(-b.x, -gy); ctx.globalAlpha = 1; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(b.x, gy, r, 0, TAU); ctx.fill(); ctx.restore();
+    // Aro dorado en el piso que pulsa suave
+    const pr = b.r * (1.25 + 0.12 * Math.sin(time * 3));
+    ctx.strokeStyle = "#F1C84D"; ctx.lineWidth = 2.4; ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.ellipse(b.x, gy, pr, pr * 0.34, 0, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = "#FFF3C4"; ctx.lineWidth = 1; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.ellipse(b.x, gy - 1, pr * 0.94, pr * 0.3, 0, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
     // Rayitos de luz que giran detrás
     ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(time * 0.6); ctx.globalAlpha = 0.18 * k; ctx.fillStyle = "#FFD65A";
     for (let i = 0; i < 8; i++) { ctx.rotate(TAU / 8); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(b.r * 2.4, -b.r * 0.28); ctx.lineTo(b.r * 2.4, b.r * 0.28); ctx.closePath(); ctx.fill(); }
@@ -9846,7 +9875,7 @@ function drawRareGround() {
 function drawRareTop() {
   for (const b of balls) {
     if (!b.rare || b.state === "die") continue;
-    const lift = Math.abs(Math.sin(b.walk || 0)) * 2.4, s = b.r / 26, x = b.x + Math.sin(time * 3) * 1.2 * s, y = b.y - b.r * 1.02 - lift + Math.sin(time * 2.6) * 1.5;
+    const lift = Math.abs(Math.sin(b.walk || 0)) * 2.4, s = b.r / 26, x = b.x + Math.sin(time * 3) * 1.2 * s, y = b.y + b.T.bottom * (1 - RARE_K) - b.r * 1.02 - lift + Math.sin(time * 2.6) * 1.5;
     ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(time * 2.2) * 0.08); ctx.scale(s, s);
     const gr = ctx.createLinearGradient(0, -16, 0, 4); gr.addColorStop(0, "#FFF0A8"); gr.addColorStop(1, "#E0A622");
     ctx.fillStyle = gr; ctx.strokeStyle = "#B8800F"; ctx.lineWidth = 1.6; ctx.lineJoin = "round";
@@ -9856,7 +9885,7 @@ function drawRareTop() {
     for (const [px, py] of [[-17, -12], [0, -17], [17, -12]]) { ctx.fillStyle = "#FFF6D6"; ctx.beginPath(); ctx.arc(px, py, 2.2, 0, TAU); ctx.fill(); }
     ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(-12, 0, 24, 2);
     ctx.restore();
-    if (!lowFx && Math.random() < 0.12) part(b.x + rand(-b.r, b.r), b.y + rand(-b.r, b.r * 0.5), rand(-15, 15), -rand(20, 50), rand(1.2, 2.2), 0.7, "#FFE38A", "star", 2, -20);
+    if (!lowFx && Math.random() < 0.3) part(b.x + rand(-b.r, b.r), b.y + rand(-b.r, b.r * 0.5), rand(-15, 15) - b.vx * 0.15, -rand(20, 50), rand(1.2, 2.4), 0.8, Math.random() < 0.5 ? "#FFE38A" : "#FFFFFF", "star", 2, -20);
   }
 }
 
