@@ -1106,7 +1106,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.47.5";
+const VERSION = "0.47.6";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -4119,6 +4119,7 @@ function travel() {
     applyLevel(); renderToolbar(); renderShop(); updateDetonate(); uiDirty = true;
     // Si viajaste desde el Inicio, llegas directo a jugar en la isla nueva
     if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
+    ensureBg(); // desde el Inicio el fondo se dejaba para después y se veía el de la isla anterior un momento
     populate();
   });
 }
@@ -4147,6 +4148,7 @@ function goWorld(to, kicker, swap, after) {
   playTrip(lvl(), LEVELS[to], to + 1, () => {
     applyWorld(swap);
     if (!inGame) { homeEl.hidden = true; Hero.stop(); inGame = true; homeAt = 0; playing = true; startLoop(); }
+    ensureBg(); // el fondo de la isla a la que llegas, ya (no 1 s después)
     if (after) after();
   }, kicker);
 }
