@@ -934,9 +934,9 @@ F(c, '<g clip-path="url(#ftg-clip)">', path(jtop + f' L{c.p(11,11.5)} L{c.p(-1,1
   path(jtop, stroke="#F1C84D", w=S * 0.3), path(belt, stroke="#F7F3EA", w=S * 0.42), circ(c, 5.0, 8.75, 0.22, "#F1C84D", 'stroke="#A8770C" stroke-width="2"'), '</g>')
 bx_, by_ = c.P(5.0, 9.52)
 F(c, f'<rect x="{bx_-S*0.5:.1f}" y="{by_-S*0.42:.1f}" width="{S*1.0:.1f}" height="{S*0.84:.1f}" rx="{S*0.12:.1f}" fill="{c.lin([(0,"#FFF0A8"),(1,"#D49A16")])}" stroke="#A8770C" stroke-width="{S*0.08:.1f}"/>')
-for eu, rot in ((0.75, 22), (9.25, -22)):
-    fr = ''.join(path(f'M{c.p(eu - 0.8 + i * 0.4, 7.15)} L{c.p(eu - 0.85 + i * 0.42, 8.0)}', stroke="#E2AE2A", w=S * 0.16) for i in range(5))
-    F(c, fr, ell(c, eu, 6.95, 1.15, 0.5, c.lin([(0, "#FFF0A8"), (1, "#D49A16")]), rot, f'stroke="#A8770C" stroke-width="{S*0.08:.1f}"'))
+for eu, rot in ((1.25, 18), (8.75, -18)):
+    fr = ''.join(path(f'M{c.p(eu - 0.6 + i * 0.3, 7.85)} L{c.p(eu - 0.62 + i * 0.31, 8.5)}', stroke="#E2AE2A", w=S * 0.14) for i in range(5))
+    F(c, fr, ell(c, eu, 7.7, 0.9, 0.38, c.lin([(0, "#FFF0A8"), (1, "#D49A16")]), rot, f'stroke="#A8770C" stroke-width="{S*0.08:.1f}"'))
 hat = f'M{c.p(2.4,2.0)} L{c.p(2.0,-3.4)} Q{c.p(5.0,-4.1)} {c.p(8.0,-3.4)} L{c.p(7.6,2.0)} Q{c.p(5.0,2.6)} {c.p(2.4,2.0)} Z'
 c.shadow(hat, 0, 0.5, 0.45)
 F(c, path(hat, fill=c.lin([(0, "#F06A5E"), (0.5, "#D8393A"), (1, "#A82331")], 0, 0, 1, 0)))
