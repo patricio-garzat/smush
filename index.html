@@ -967,7 +967,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
         <div class="row"><span class="lbl"><span class="si" style="--c:#4A86D8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg></span><span class="lbl2"><span data-i18n="music">Music</span><small data-i18n="musicSub">Plays in The Beach and The Slopes</small></span></span><button class="switch" id="sw-music" role="switch" type="button" aria-checked="true" aria-label="Music"></button></div>
         <div class="row vol-row" id="music-vol-row"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M5 9.5h3L12 6v12l-4-3.5H5z"/></svg><input type="range" id="music-vol" min="0" max="100" step="1" value="100" aria-label="Music volume" data-i18n-aria="musicVol"><svg class="vi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M4 9.5h3.2L11.5 6v12l-4.3-3.5H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6M17.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#8E7CE8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect fill="currentColor" fill-opacity=".35" x="8" y="4" width="8" height="16" rx="2"/><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/></svg></span><span data-i18n="vibration">Vibration</span></span><button class="switch" id="sw-vibe" role="switch" type="button" aria-checked="true" aria-label="Vibration"></button></div>
-        <div class="row"><span class="lbl"><span class="si" style="--c:#22B07D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="16" height="10" rx="2.5"/><path d="M21 10.5v3"/><path fill="currentColor" stroke="none" d="M11.6 8.6 7.8 12.4h2.9l-1.1 3 3.9-3.9h-2.9z"/></svg></span><span class="lbl2"><span data-i18n="saver">Battery saver</span><small data-i18n="saverSub">30 fps: the phone stays cooler</small></span></span><button class="switch" id="sw-saver" role="switch" type="button" aria-checked="false" aria-label="Battery saver" data-i18n-aria="saver"></button></div>
+        <div class="row"><span class="lbl"><span class="si" style="--c:#22B07D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="16" height="10" rx="2.5"/><path d="M21 10.5v3"/><path fill="currentColor" stroke="none" d="M11.6 8.6 7.8 12.4h2.9l-1.1 3 3.9-3.9h-2.9z"/></svg></span><span class="lbl2"><span data-i18n="saver">Battery saver</span><small data-i18n="saverSub">Your battery lasts longer (30 fps)</small></span></span><button class="switch" id="sw-saver" role="switch" type="button" aria-checked="false" aria-label="Battery saver" data-i18n-aria="saver"></button></div>
         <div class="row"><span class="lbl"><span class="si" style="--c:#4B5BD6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><path fill="currentColor" d="M12 4.5a7.5 7.5 0 0 1 0 15z"/></svg></span><span data-i18n="theme">Theme</span></span>
           <div class="seg" id="seg-theme"><button type="button" data-v="auto" data-i18n="auto">Auto</button><button type="button" data-v="light" data-i18n="light">Light</button><button type="button" data-v="dark" data-i18n="dark">Dark</button></div>
         </div>
@@ -1106,7 +1106,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.47.3";
+const VERSION = "0.47.4";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1564,7 +1564,7 @@ const STR = {
   settings: ["Settings", "Ajustes"],
   sound: ["Sound", "Sonido"],
   music: ["Music", "Música"], musicSub: ["Plays in The Beach and The Slopes", "Suena en The Beach y The Slopes"], musicVol: ["Music volume", "Volumen de la música"],
-  vibration: ["Vibration", "Vibración"], saver: ["Battery saver", "Ahorro de batería"], saverSub: ["30 fps: the phone stays cooler", "30 cuadros por segundo: el celular se calienta menos"],
+  vibration: ["Vibration", "Vibración"], saver: ["Battery saver", "Ahorro de batería"], saverSub: ["Your battery lasts longer (30 fps)", "La batería te dura más (30 cuadros por segundo)"],
   theme: ["Theme", "Tema"],
   auto: ["Auto", "Auto"], light: ["Light", "Claro"], dark: ["Dark", "Oscuro"],
   language: ["Language", "Idioma"],
