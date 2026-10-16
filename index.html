@@ -1105,7 +1105,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.46.1";
+const VERSION = "0.46.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2513,6 +2513,8 @@ function spawnBall(inside) {
 function aliveCount() { let n = 0; for (const b of balls) if (b.state !== "die") n++; return n; }
 
 function spawnStep(dt) {
+  // Mientras el tsunami cubre el campo no llegan nuevos (llegarían a ahogarse y el agua no se iría)
+  if (waves.some((w) => w.kind !== "aval" && (w.backT || 0) < WAVE_BACK * 0.5)) return;
   // Si el equipo no alcanza (perfCap baja), también se recortan los extra de la mejora "más marcianitos"
   const perfK = clamp((perfCap - SPAWN.min) / (SPAWN.max - SPAWN.min), 0, 1);
   const target = Math.min(baseTarget, perfCap + Math.round(FX.crowdExtra(save.up.crowd) * (0.35 + 0.65 * perfK))) + evCrowd();
@@ -7337,8 +7339,17 @@ function updateWaves(dt) {
         }
       }
     } else {
-      // 3) Revienta abajo (el agua regresa al mar; la nieve se asienta)
+      // 3) Revienta abajo (el agua regresa al mar; la nieve se asienta). Tsunami: el agua se queda cubriendo todo hasta
+      // que el último atrapado termina de hundirse (si no, parecía que se hundían en la arena); máx. 3 s de espera
       w.front = H + 80;
+      if (!aval) {
+        const busy = w.caught.some((b) => (b.carried && b.state !== "die") || (b.drown && b.state === "die" && b.t < DROWN_DIE && balls.includes(b)));
+        if (busy && (w.hold || 0) < 3) {
+          w.hold = (w.hold || 0) + dt;
+          // El que entre al campo mientras tanto también cae al agua
+          for (const b of balls) if (b.state !== "die" && !b.pull && b.entered) { b.pull = w; b.carried = true; b.tumble = 0; b.swim = 0; b.sinkAt = rand(0.5, 0.9); b.drift = rand(20, 40); if (b.claimed) { b.claimed.target = null; b.claimed = null; } w.caught.push(b); Sound.splash(); }
+        } else w.backT = (w.backT || 0) + dt;
+      }
       if (!w.broke) {
         w.broke = true;
         for (let j = 0; j < (aval ? 22 : 44); j++) { const x = rand(0, W); part(x, H - rand(0, 12), rand(-70, 70), -rand(80, aval ? 240 : 300), rand(1.8, 3.8), rand(0.5, 0.9), aval ? (PAL.dark ? "#DCE5F1" : "#E9F1FB") : "#FFFFFF", "dot", 2.5, 380, 0.9); }
@@ -7364,7 +7375,7 @@ function updateWaves(dt) {
       b.tumble += b.spin * dt;
       if (b.y > H - b.T.bottom * 0.5 || w.broke) smushCarried(b);
     }
-    if (tr > w.dur + (aval ? AVAL_BACK : WAVE_BACK)) { for (const b of w.caught) if (b.carried && b.state !== "die") (aval ? smushCarried : drownNow)(b); waves.splice(i, 1); }
+    if (aval ? tr > w.dur + AVAL_BACK : (w.backT || 0) > WAVE_BACK) { for (const b of w.caught) if (b.carried && b.state !== "die") (aval ? smushCarried : drownNow)(b); waves.splice(i, 1); }
   }
   seaShift += (shift - seaShift) * Math.min(1, dt * 8);
 }
@@ -7373,7 +7384,7 @@ function drawWave(w) {
   const tr = w.t - TSU_PREP;
   if (tr < 0) return;
   let front = w.front, alpha = 1, back = 0;
-  if (tr >= w.dur) { back = Math.min(1, (tr - w.dur) / WAVE_BACK); front = H + 20 - (H + 20 - seaH) * easeOut(back); alpha = 1 - back; }
+  if (tr >= w.dur) { back = Math.min(1, (w.backT || 0) / WAVE_BACK); front = H + 20 - (H + 20 - seaH) * easeOut(back); alpha = 1 - back; }
   const t = w.t, crest = (x) => front + Math.sin(x * 0.045 + t * 7) * 6 + Math.sin(x * 0.014 - t * 3.2) * 9;
   // Arena mojada que deja el agua al regresar (se va secando)
   if (back > 0) { ctx.globalAlpha = 0.18 * (1 - back * 0.7); ctx.fillStyle = PAL.onDark ? "#000000" : "#8C7650"; ctx.fillRect(0, front, W, H - front); }
