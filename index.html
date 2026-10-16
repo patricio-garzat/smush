@@ -379,6 +379,12 @@ body::before {
 /* La vitrina */
 .goals-count { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px 0 9px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 850; color: #C9962A; }
 .goals-count svg { width: 17px; height: 17px; }
+/* La cuenta exacta de aplastados (arriba de las pestañas de la vitrina) */
+.goals-smushed { display: flex; align-items: center; gap: 12px; margin: 0 20px 12px; padding: 10px 16px 10px 12px; border-radius: 18px; background: linear-gradient(135deg, color-mix(in srgb, #6BCB9B 18%, var(--card)), var(--card) 70%); box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, #6BCB9B 22%, transparent); flex: none; }
+.goals-smushed .gs-ic { width: 38px; height: 38px; flex: none; background: center / contain no-repeat; }
+.goals-smushed .gs-tx { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.goals-smushed small { font-size: 10.5px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.goals-smushed b { font-family: var(--font-display); font-size: 26px; font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 #sheet-goals .actions { display: flex; align-items: center; gap: 8px; }
 .mis { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
 .mis .m-ic { width: 44px; height: 44px; flex: none; border-radius: 15px; display: grid; place-items: center; color: #FFFFFF; background: linear-gradient(150deg, color-mix(in srgb, var(--c) 68%, #FFFFFF), var(--c)); box-shadow: 0 6px 14px color-mix(in srgb, var(--c) 30%, transparent); }
@@ -903,6 +909,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   <section class="panel" role="dialog" aria-modal="true" aria-labelledby="goals-title">
     <div class="grab"></div>
     <div class="panel-head"><h2 id="goals-title" data-i18n="trophyCase">Trophy case</h2><div class="actions"><span class="goals-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0z" fill="currentColor" fill-opacity=".25"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11M12 14v3M8.5 20h7"/></svg><b id="goals-count"></b></span><button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></button></div></div>
+    <div class="goals-smushed" aria-live="polite"><span class="gs-ic"></span><span class="gs-tx"><small data-i18n="smushedTotal">Aliens smushed</small><b id="goals-smushed">0</b></span></div>
     <div class="tabs" id="goals-tabs" role="tablist">
       <button type="button" data-tab="mis" role="tab" data-i18n="missions">Missions</button><button type="button" data-tab="col" role="tab" data-i18n="collection">Collection</button><button type="button" data-tab="ach" role="tab" data-i18n="trophies">Trophies</button>
     </div>
@@ -1106,7 +1113,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.47.7";
+const VERSION = "0.47.8";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1552,6 +1559,7 @@ const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.strin
 
 /* ---------- 3. Idioma: inglés por defecto, español en Ajustes ---------- */
 const STR = {
+  smushedTotal: ["Aliens smushed", "Marcianitos aplastados"],
   smushed: ["smushed", "aplastados"],
   shop: ["Shop", "Tienda"],
   shopSub: ["Tools, helpers & boosts", "Herramientas, ayudantes y mejoras"],
@@ -3598,7 +3606,8 @@ function spawnBubble() {
   let r = Math.random() * tot, x = MULT.options[0].x;
   for (const o of MULT.options) { r -= o.weight; if (r <= 0) { x = o.x; break; } }
   const m = MULT.radius + 18;
-  multBubble = { x: rand(m, W - m), y: rand(m + 30, H - m), mult: x, t: 0, leaving: 0 };
+  // Nunca en la franja de arriba (ahí está el encabezado: no se podría tocar)
+  multBubble = { x: rand(m, W - m), y: rand(Math.min((seaTop() || 0) + m + 6, H - m), H - m), mult: x, t: 0, leaving: 0 };
   Sound.bubble(); buzz(8);
 }
 function updateMult(dt) {
@@ -7635,6 +7644,7 @@ function updateUI() {
   document.querySelectorAll(".tool").forEach((el) => { const p = priceOf(el.dataset.id); el.classList.toggle("can", p != null && save.coins >= p); });
   renderLevelChip();
   if (!$("#sheet-levels").hidden) renderLevels(false);
+  if (!$("#sheet-goals").hidden) renderGoalsSmushed();
   if (!$("#sheet-shop").hidden) document.querySelectorAll(".buy[data-key]").forEach((el) => {
     const k = el.dataset.key, p0 = el.dataset.kind === "tool" ? priceOf(k) : upPrice(k);
     if (p0 == null) return;
@@ -9111,6 +9121,7 @@ setInterval(() => {
   renderHome();
   if (!$("#sheet-records").hidden) renderRecords();
   if (!$("#sheet-levels").hidden) renderLevels(false);
+  if (!$("#sheet-goals").hidden) renderGoalsSmushed();
 }, 250);
 function renderHome() {
   renderGoalsBadge();
@@ -9943,7 +9954,7 @@ function updateEvent(dt) {
   const lid = ev.lid, ramp = evRamp();
   if (lid === "void" && ev.t < ev.dur - 1) {
     ev.clock -= dt;
-    if (ev.clock <= 0) { ev.clock = rand(0.45, 0.85); const sp = rand(170, 240), a = rand(2.2, 2.5); ev.items.push({ kind: "star", x: rand(W * 0.25, W * 1.15), y: seaTop() - 6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, got: 0, rot: rand(0, TAU) }); }
+    if (ev.clock <= 0) { ev.clock = rand(0.45, 0.85); const sp = rand(170, 240), a = rand(2.2, 2.5); ev.items.push({ kind: "star", x: rand(W * 0.25, W * 1.15), y: seaTop() + 14, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, got: 0, rot: rand(0, TAU) }); }
   }
   if (lid === "beach") goalTide += (-26 * ramp - goalTide) * Math.min(1, dt * 2);
   if (lid === "jungle" && ev.t < ev.dur - 1) {
@@ -10128,8 +10139,15 @@ function renderGoalsBadge() {
   const hm = $("#hc-mis"); if (hm && save.g) { const n = real ? 0 : (save.g.mis[lvl().id] || []).filter((m) => m.done).length; hm.textContent = real ? LX(["Not while visiting", "No cuentan de visita"]) : n ? LX([`${n} ready to claim`, `${n} lista${n > 1 ? "s" : ""} para cobrar`]) : LX(["3 active", "3 activas"]); }
   document.querySelectorAll('.hcard[data-go="mis"]').forEach((c) => c.classList.toggle("has", can));
 }
+// La cuenta exacta de aplastados en la vitrina (tu progreso de verdad, aunque estés de visita)
+function renderGoalsSmushed() {
+  const el = $("#goals-smushed"); if (!el) return;
+  const t = fmtFull((real || save).smushed); if (el.textContent !== t) el.textContent = t;
+  const ic = document.querySelector(".goals-smushed .gs-ic"); if (ic && !ic.style.backgroundImage) ic.style.backgroundImage = `url("${alienUrl("green")}")`;
+}
 function renderGoals(animate) {
   const body = $("#goals-body"); if (!body) return;
+  renderGoalsSmushed();
   if (!animate && tapHold.on) { tapHold.pend.add(renderGoals); return; }
   document.querySelectorAll("#goals-tabs button").forEach((b) => { const on = b.dataset.tab === goalsTab; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
   $("#goals-count").textContent = `${achCount()}/${ACH.length}`;
