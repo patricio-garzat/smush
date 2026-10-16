@@ -356,21 +356,25 @@ body::before {
 #ev-banner .ev-n { font-family: var(--font-display); font-size: clamp(26px, 7.5vw, 38px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; white-space: nowrap; }
 #ev-banner .ev-s { font-size: 13.5px; font-weight: 700; color: var(--muted); }
 /* Avisos de logros, misiones y coleccionables (arriba de todo, uno a la vez) */
-#toasts { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 10px); z-index: 260; transform: translateX(-50%); width: min(92vw, 380px); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-.toast { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 10px; border-radius: 22px; background: var(--card); color: var(--text);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2), inset 0 0 0 1px var(--line); }
+#toasts { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 58px); z-index: 260; transform: translateX(-50%); width: min(86vw, 320px); align-items: center; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+/* En el juego, debajo del chip de la isla (a la izquierda), sin tapar los botones de arriba */
+#toasts.in-game { transform: none; width: auto; max-width: min(68vw, 300px); align-items: flex-start; }
+.toast { position: relative; overflow: hidden; display: flex; align-items: center; gap: 9px; max-width: 100%; padding: 4px 13px 4px 4px; border-radius: 15px; background: color-mix(in srgb, var(--card) 94%, transparent); color: var(--text);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14), inset 0 0 0 1px var(--line); }
 .toast::before { content: ""; position: absolute; inset: 0; background: linear-gradient(120deg, color-mix(in srgb, var(--tc, var(--lvl)) 16%, transparent), transparent 60%); pointer-events: none; }
 .toast::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; transform: translateX(-150%) skewX(-18deg); background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent); animation: toastSheen 1.4s 0.35s ease-out both; pointer-events: none; }
 @keyframes toastSheen { from { transform: translateX(-150%) skewX(-18deg); } to { transform: translateX(325%) skewX(-18deg); } }
-.toast .t-ic { position: relative; width: 48px; height: 48px; flex: none; display: grid; place-items: center; }
-.toast .t-ic svg { width: 48px; height: 48px; display: block; }
-.toast .t-ic img { width: 44px; height: 44px; }
+.toast .t-ic { position: relative; width: 32px; height: 32px; flex: none; display: grid; place-items: center; }
+.toast .t-ic svg { width: 32px; height: 32px; display: block; }
+.toast .t-ic img { width: 30px; height: 30px; }
+.toast .t-mis { width: 28px; height: 28px; border-radius: 9px; box-shadow: 0 3px 8px color-mix(in srgb, var(--c) 30%, transparent); }
+.toast .t-mis svg { width: 16px !important; height: 16px !important; }
 .t-mis { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(150deg, color-mix(in srgb, var(--c) 68%, #FFFFFF), var(--c)); box-shadow: 0 6px 14px color-mix(in srgb, var(--c) 35%, transparent); }
 .t-mis svg { width: 22px !important; height: 22px !important; fill: #FFFFFF; }
 .toast .t-tx { position: relative; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
-.toast small { font-size: 10.5px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tc, var(--muted)); }
-.toast b { font-family: var(--font-display); font-size: 16px; font-weight: 850; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.toast .d { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast small { font-size: 9px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tc, var(--muted)); }
+.toast b { font-family: var(--font-display); font-size: 13px; font-weight: 850; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast .d { display: none; } /* discreto: el detalle está en la vitrina */
 .fly-coin { position: fixed; z-index: 270; font-size: 16px; pointer-events: none; }
 /* La vitrina */
 .goals-count { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px 0 9px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 850; color: #C9962A; }
@@ -1101,7 +1105,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.45.2";
+const VERSION = "0.46.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2806,6 +2810,7 @@ function zapChain(x, y, first, chains, range, dmg, auto) {
     chain.push(best); cur = best;
   }
   Sound.zap(auto);
+  if (!auto && tracking()) { if (chain.length > save.g.best.chain) { save.g.best.chain = chain.length; markSave(); } misProgress("chain", null, 0, chain.length); }
   let px = x, py = y;
   chain.forEach((c, i) => {
     later(i * TOOLS.bolt.hop, () => {
@@ -3568,6 +3573,7 @@ function tapBubble(x, y) {
   const m = multBubble;
   if (!m || m.leaving || Math.hypot(x - m.x, y - (m.y + bubbleBob())) > MULT.radius + 14) return false;
   multBubble = null;
+  if (tracking()) { save.g.bubbles++; misProgress("bubble", null, 1); markSave(); }
   multOn = { x: m.mult, end: time + MULT.duration };
   $("#mult-x").textContent = "×" + m.mult;
   multHud.classList.toggle("x4", m.mult >= 4); multHud.classList.add("on");
@@ -3626,7 +3632,16 @@ function artRng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) 
 const ART_STARS = (() => { const r = artRng(7); return Array.from({ length: 70 }, () => ({ x: r(), y: r(), s: 0.4 + r() * 1.2, p: r() * TAU, sp: 0.8 + r() * 2 })); })();
 const ART_FLAKES = (() => { const r = artRng(11); return Array.from({ length: 46 }, () => ({ x: r(), y: r(), s: 0.7 + r() * 1.6, v: 0.06 + r() * 0.1, p: r() * TAU })); })();
 // Un marcianito parado en (x, y) con su sombra; h = alto
+let artLid = ""; // la isla cuya foto se está pintando (para ponerles su disfraz)
 function artAlien(g, k, x, y, h, t, ph) {
+  const id = SKINS[artLid] && SKINS[artLid][k] && SKINS[artLid][k][0], S = id && SKIN_SPR[id];
+  if (S && S.img) {
+    // Con su disfraz: el mismo dibujo del juego, del alto que pide la foto
+    const kk = h / S.vhPx, bob = Math.abs(Math.sin(t * 3 + ph)) * h * 0.04, fl = ph > 1 ? -1 : 1;
+    g.globalAlpha = 0.25; g.fillStyle = "#000000"; g.beginPath(); g.ellipse(x, y + 1, S.w * kk * 0.3, h * 0.07, 0, 0, TAU); g.fill();
+    g.globalAlpha = 1; g.save(); g.translate(x, y - bob); g.scale(fl * kk, kk); g.drawImage(S.img, -S.cx, -S.ground, S.w, S.h); g.restore();
+    return;
+  }
   const im = alienImg[k]; if (!im) return;
   const w = h * (im.width / im.height), bob = Math.abs(Math.sin(t * 3 + ph)) * h * 0.04;
   g.globalAlpha = 0.25; g.fillStyle = "#000000"; g.beginPath(); g.ellipse(x, y + 1, w * 0.36, h * 0.07, 0, 0, TAU); g.fill();
@@ -3843,6 +3858,7 @@ const ART = {
 function paintArt(cv, t) {
   const id = cv.dataset.art, w = cv.clientWidth, h = cv.clientHeight;
   if (!w || !h || !ART[id]) return;
+  artLid = id; ensureSkinSprites(id);
   const d = Math.min(window.devicePixelRatio || 1, 2);
   if (cv.width !== Math.round(w * d) || cv.height !== Math.round(h * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
   const g = cv.getContext("2d");
@@ -7459,6 +7475,7 @@ function buyTool(id, n = 1) {
   if (save.coins < total) { Sound.nope(); return; }
   const was = save.tools[id];
   save.coins -= total; save.spent += total; save.tools[id] = was + k;
+  if (tracking()) { save.g.ups += k; misProgress("upgrade", null, k); }
   if (was === 0) save.tool = id; // la herramienta nueva queda seleccionada
   afterBuy(was, id);
 }
@@ -7470,6 +7487,7 @@ function buyUp(k, n = 1) {
   if (!c) return;
   if (save.coins < total || !upReady(k)) { Sound.nope(); return; }
   save.coins -= total; save.spent += total; save.up[k] = l0 + c;
+  if (tracking()) { save.g.ups += c; misProgress("upgrade", null, c); }
   // Al desbloquear llegan las nubes (ya trabajando, en su lugar); cada dedo nuevo sale a cazar
   if (k === "hire" || k === "fingers") { syncHelpers(); for (const h of helpers) if (h.born === 0) ring(h.x, h.y, 6, 30, 0.5, "#F1C84D", 2, 0.45); }
   if (k === "crowd") updateTarget();
@@ -9273,14 +9291,16 @@ function playSplash(done) {
 /* ---------- 16. Eventos de cada nivel, el Rey (monito raro), combos, coleccionables, misiones y logros (vitrina) ----------
    Todo vive en save.g. De visita (real != null) se puede ver y jugar todo, pero nada cuenta. */
 const LX = (a) => a[LANG === "es" ? 1 : 0];
-function freshGoals() { return { v: 1, ach: {}, best: { combo: 0, speed: 0 }, rares: 0, misDone: 0, col: {}, mis: {}, ev: {} }; }
+function freshGoals() { return { v: 1, ach: {}, best: { combo: 0, speed: 0, chain: 0 }, rares: 0, misDone: 0, col: {}, mis: {}, ev: {}, ups: 0, bubbles: 0, auto: 0, play: 0, n2: 1 }; }
 function cleanGoals(s) {
   const d = freshGoals();
   if (!s || typeof s !== "object") { d.v = 0; return d; } // partida de antes: los logros que ya cumplías se dan sin aviso
   const num = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
   d.v = s.v === 1 ? 1 : 0;
   if (s.ach && typeof s.ach === "object") for (const k in s.ach) if (Number.isFinite(s.ach[k])) d.ach[k] = s.ach[k];
-  if (s.best) { d.best.combo = Math.floor(num(s.best.combo)); d.best.speed = Math.floor(num(s.best.speed)); }
+  if (s.best) { d.best.combo = Math.floor(num(s.best.combo)); d.best.speed = Math.floor(num(s.best.speed)); d.best.chain = Math.floor(num(s.best.chain)); }
+  d.n2 = s.n2 === 1 ? 1 : 0; // trofeos nuevos de 0.46: los que ya cumplías se dan juntos, con un solo aviso
+  d.ups = Math.floor(num(s.ups)); d.bubbles = Math.floor(num(s.bubbles)); d.auto = Math.floor(num(s.auto)); d.play = num(s.play);
   d.rares = Math.floor(num(s.rares)); d.misDone = Math.floor(num(s.misDone));
   for (const L of LEVELS) {
     const c = s.col && s.col[L.id]; if (Array.isArray(c)) d.col[L.id] = [...new Set(c.filter((i) => Number.isInteger(i) && i >= 0 && i < 10))];
@@ -9365,6 +9385,11 @@ const GLYPH = {
   check: '<path d="M4.5 12.5 9.5 17.5 19.5 6.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>',
   bolt: '<path d="M13.5 2 4 14h7l-1.5 8L20 10h-7z"/>',
   cloud: '<path d="M7 18a5 5 0 0 1-.6-10 6 6 0 0 1 11.3 1.8A4.1 4.1 0 0 1 17 18z"/>',
+  up: '<path d="M12 3.5 20 12h-5v8.5H9V12H4z"/>',
+  bubble: '<circle cx="12" cy="12" r="8.2" fill="none" stroke="#fff" stroke-width="2.4"/><circle cx="9" cy="9" r="2.1"/><path d="M14.5 15.5h-5M12 13v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
+  star: '<path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2 6.3 20.3l1.2-6.4L2.8 9.5l6.4-.8z"/>',
+  moon: '<path d="M15.5 3.2A8.8 8.8 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2z"/>',
+  hourglass: '<path d="M6 3h12v2.5c0 2.8-2.4 4.6-4.2 6.5 1.8 1.9 4.2 3.7 4.2 6.5V21H6v-2.5c0-2.8 2.4-4.6 4.2-6.5C8.4 10.1 6 8.3 6 5.5z"/>',
 };
 let trUid = 0;
 function trophySVG(tier, glyph, locked) {
@@ -9395,8 +9420,23 @@ for (const L of LEVELS) addAch("ev_" + L.id, "events", "bolt", 1, EVENTS[L.id].n
 for (const L of LEVELS) addAch("col_" + L.id, "collect", "gem", 2, COL[L.id].name, [`Collect all 10 in ${L.name}`, `Junta las 10 de ${L.name}`], () => [(save.g.col[L.id] || []).length, 10]);
 [[5, 0], [25, 1], [100, 2]].forEach(([n, t]) =>
   addAch("mis" + n, "missions", "check", t, [`${n} missions`, `${n} misiones`], [`Complete ${n} missions`, `Completa ${n} misiones`], () => [save.g.misDone, n]));
+[[50, 0], [250, 1], [1000, 2], [3000, 3]].forEach(([n, t]) =>
+  addAch("gold" + n, "gold", "star", t, [`Golden touch ${fmtK(n)}`, `Toque dorado ${fmtK(n)}`], [`Smush ${fmt(n)} golden aliens`, `Aplasta ${fmt(n)} marcianitos dorados`], () => [save.byType.yellow, n]));
+[[25, 0], [100, 1], [300, 2]].forEach(([n, t]) =>
+  addAch("ups" + n, "upgrades", "up", t, [`${n} upgrades`, `${n} mejoras`], [`Buy ${n} upgrade levels`, `Compra ${n} niveles de mejoras`], () => [save.g.ups, n]));
+addAch("maxtool", "upgrades", "up", 2, ["Maxed out", "Al máximo"], ["Take any tool to its last level", "Lleva cualquier herramienta a su último nivel"], () => [TOOL_ORDER.some((k) => k !== "finger" && save.tools[k] >= toolMax(k)) ? 1 : 0, 1]);
+[[10, 0], [50, 1], [150, 2]].forEach(([n, t]) =>
+  addAch("bub" + n, "bubbles", "bubble", t, [`${n} bubbles`, `${n} burbujas`], [`Pop ${n} ×2 or ×4 bubbles`, `Revienta ${n} burbujas ×2 o ×4`], () => [save.g.bubbles, n]));
+[[1000, 0], [10000, 1], [100000, 2]].forEach(([n, t]) =>
+  addAch("auto" + n, "helpers", "cloud", t, [`Team work ${fmtK(n)}`, `Trabajo en equipo ${fmtK(n)}`], [`Your helpers smush ${fmt(n)} aliens`, `Tus ayudantes aplastan ${fmt(n)} marcianitos`], () => [save.g.auto, n]));
+[[1800, 0, "30 min"], [7200, 1, "2 h"], [36000, 2, "10 h"], [86400, 3, "24 h"]].forEach(([n, t, lb]) =>
+  addAch("play" + n, "play", "hourglass", t, [`${lb} of smushing`, `${lb} aplastando`], [`Play for ${lb} in total`, `Juega ${lb} en total`], () => [Math.floor(save.g.play), n]));
+[[6, 1], [10, 2], [13, 3]].forEach(([n, t]) =>
+  addAch("chain" + n, "chain", "bolt", t, [`Chain of ${n}`, `Cadena de ${n}`], [`Hit ${n} aliens with one chain lightning`, `Pégale a ${n} marcianitos con un solo rayo en cadena`], () => [save.g.best.chain, n]));
+[[10000, 0], [1000000, 2]].forEach(([n, t]) =>
+  addAch("away" + n, "away", "moon", t, [`Night shift ${fmtK(n)}`, `Turno de noche ${fmtK(n)}`], [`Earn ${fmt(n)} coins while you're away`, `Gana ${fmt(n)} monedas mientras no estás`], () => [Math.floor(save.awayEarned), n]));
 addAch("helpers", "helpers", "cloud", 1, ["Full team", "Equipo completo"], ["Hire every hunting finger you can", "Contrata a todos los dedos cazadores que puedas"], () => [save.up.fingers, helperCap()]);
-const ACH_GROUPS = [["smush", ["Smushed", "Aplastados"]], ["speed", ["Speed", "Velocidad"]], ["combo", ["Combos", "Combos"]], ["rare", ["Kings", "Reyes"]], ["events", ["Events", "Eventos"]], ["collect", ["Collections", "Colecciones"]], ["missions", ["Missions", "Misiones"]], ["spent", ["Spending", "Gastos"]], ["levels", ["Travel", "Viajes"]], ["helpers", ["Helpers", "Ayudantes"]]];
+const ACH_GROUPS = [["smush", ["Smushed", "Aplastados"]], ["speed", ["Speed", "Velocidad"]], ["combo", ["Combos", "Combos"]], ["rare", ["Kings", "Reyes"]], ["events", ["Events", "Eventos"]], ["collect", ["Collections", "Colecciones"]], ["missions", ["Missions", "Misiones"]], ["spent", ["Spending", "Gastos"]], ["levels", ["Travel", "Viajes"]], ["helpers", ["Helpers", "Ayudantes"]], ["gold", ["Golden", "Dorados"]], ["chain", ["Chain lightning", "Rayo en cadena"]], ["bubbles", ["Bubbles", "Burbujas"]], ["upgrades", ["Upgrades", "Mejoras"]], ["play", ["Play time", "Tiempo jugado"]], ["away", ["While away", "Mientras no estás"]]];
 const achCount = () => ACH.filter((a) => save.g.ach[a.id]).length;
 
 /* --- Avisos (arriba de todo, uno a la vez) --- */
@@ -9408,6 +9448,11 @@ function pumpToast() {
   if (document.getElementById("studio") || document.getElementById("splash")) { setTimeout(pumpToast, 600); return; }
   toastBusy = true;
   const o = toastQ.shift(), box = $("#toasts"), el = document.createElement("div");
+  // En el juego va debajo del chip de la isla; en el Inicio, arriba al centro
+  if (inGame) {
+    const lc = $("#lvl-chip").getBoundingClientRect();
+    box.classList.add("in-game"); box.style.left = Math.max(8, lc.left) + "px"; box.style.top = lc.bottom + 8 + "px";
+  } else { box.classList.remove("in-game"); box.style.left = ""; box.style.top = ""; }
   el.className = "toast" + (o.kind ? " " + o.kind : ""); if (o.color) el.style.setProperty("--tc", o.color);
   el.innerHTML = `<span class="t-ic">${o.icon || ""}</span><span class="t-tx"><small>${o.cap}</small><b>${o.title}</b>${o.desc ? `<span class="d">${o.desc}</span>` : ""}</span>`;
   box.appendChild(el);
@@ -9415,11 +9460,12 @@ function pumpToast() {
   if (o.buzz) buzz(o.buzz);
   const E = "cubic-bezier(.2,.8,.2,1)", hold = o.hold || 2400;
   if (reduceMotion || !el.animate) { setTimeout(() => { el.remove(); toastBusy = false; pumpToast(); }, hold); return; }
-  el.animate([{ opacity: 0, transform: "translateY(-26px) scale(.92)" }, { opacity: 1, transform: "translateY(3px) scale(1.01)", offset: 0.7 }, { opacity: 1, transform: "none" }], { duration: 520, easing: E, fill: "both" });
+  // Entra deslizándose suave (sin rebote) y el ícono aparece un pelín después
+  el.animate([{ opacity: 0, transform: "translateY(-8px)" }, { opacity: 1, transform: "none" }], { duration: 380, easing: E, fill: "both" });
   const ic = el.querySelector(".t-ic");
-  if (ic) ic.animate([{ transform: "scale(.2) rotate(-25deg)", opacity: 0 }, { transform: "scale(1.18) rotate(8deg)", opacity: 1, offset: 0.6 }, { transform: "none", opacity: 1 }], { delay: 140, duration: 620, easing: E, fill: "both" });
+  if (ic) ic.animate([{ transform: "scale(.6)", opacity: 0 }, { transform: "none", opacity: 1 }], { delay: 90, duration: 420, easing: E, fill: "both" });
   setTimeout(() => {
-    el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-18px) scale(.96)" }], { duration: 360, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" }).onfinish = () => { el.remove(); toastBusy = false; pumpToast(); };
+    el.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-6px)" }], { duration: 320, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" }).onfinish = () => { el.remove(); toastBusy = false; pumpToast(); };
   }, hold);
 }
 function award(a, silent) {
@@ -9437,6 +9483,12 @@ function checkAch() {
     if (n) toast({ kind: "ach", color: TIERS[2][1], icon: trophySVG(2, "crown"), cap: LX(["New: Trophy case", "Nuevo: Vitrina"]), title: LX([`${n} trophies unlocked`, `${n} trofeos desbloqueados`]), desc: LX(["See them in the menu", "Míralos en el menú"]), sound: () => Sound.trophy(), hold: 3200 });
     return;
   }
+  if (!save.g.n2) {
+    let n = 0; for (const a of ACH) if (!save.g.ach[a.id]) { const [c, t] = a.prog(); if (c >= t) { award(a, true); n++; } }
+    save.g.n2 = 1; markSave();
+    if (n) toast({ kind: "ach", color: TIERS[2][1], icon: trophySVG(2, "star"), cap: LX(["New trophies", "Trofeos nuevos"]), title: LX([`${n} unlocked`, `${n} desbloqueados`]), sound: () => Sound.trophy(), buzz: [16, 70, 16], hold: 2800 });
+    return;
+  }
   for (const a of ACH) if (!save.g.ach[a.id]) { const [c, t] = a.prog(); if (c >= t) award(a); }
 }
 
@@ -9452,9 +9504,17 @@ function misText(m) {
     case "rare": return LX([`Catch the ${LX(RARE_NAME[lid])}`, `Atrapa al ${LX(RARE_NAME[lid])}`]);
     case "event": return LX([`Smush ${m.n} during the ${LX(EVENTS[lid].name)}`, `Aplasta ${m.n} en la ${LX(EVENTS[lid].name)}`]);
     case "collect": return LX(COL[lid].find);
+    case "speed": return LX([`Smush ${m.n} aliens in 30 seconds`, `Aplasta ${m.n} marcianitos en 30 segundos`]);
+    case "bubble": return LX([`Pop ${m.n} ×2 or ×4 bubbles`, `Revienta ${m.n} burbujas ×2 o ×4`]);
+    case "helpers": return LX([`Let your helpers smush ${fmt(m.n)}`, `Que tus ayudantes aplasten ${fmt(m.n)}`]);
+    case "upgrade": return LX([`Buy ${m.n} upgrade levels`, `Compra ${m.n} niveles de mejoras`]);
+    case "play": return LX([`Play ${m.n / 60} minutes in ${lvl().name}`, `Juega ${m.n / 60} minutos en ${lvl().name}`]);
+    case "chain": return LX([`Hit ${m.n} aliens with one chain lightning`, `Pégale a ${m.n} con un solo rayo en cadena`]);
   }
   return "";
 }
+// Cómo se ve el avance (los minutos jugados, como reloj)
+const misNum = (m, v) => (m.k === "play" ? `${Math.floor(v / 60)}:${String(Math.floor(v % 60)).padStart(2, "0")}` : fmt(v));
 function misReward(m) {
   const avg = avgReward();
   switch (m.k) {
@@ -9465,14 +9525,24 @@ function misReward(m) {
     case "rare": return nice(avg * 50);
     case "event": return nice(avg * m.n * 2.5);
     case "collect": return nice(avg * 40);
+    case "speed": return nice(avg * m.n * 3);
+    case "bubble": return nice(avg * 40 * m.n);
+    case "helpers": return nice(avg * m.n * 0.6);
+    case "upgrade": return nice(avg * 30 * m.n);
+    case "play": return nice(avg * m.n * 0.6);
+    case "chain": return nice(avg * m.n * 6);
   }
   return 0;
 }
-const MIS_ICON = { type: "alien", total: "alien", tool: "bolt", combo: "flame", rare: "crown", event: "bolt", collect: "gem" };
-const MIS_COL = { type: "#6BCB9B", total: "#2FA3C4", tool: "#7C5CE0", combo: "#FF7A45", rare: "#E3A21A", event: "#E2604F", collect: "#2E9E62" };
+const MIS_ICON = { type: "alien", total: "alien", tool: "bolt", combo: "flame", rare: "crown", event: "bolt", collect: "gem", speed: "clock", bubble: "bubble", helpers: "cloud", upgrade: "up", play: "hourglass", chain: "bolt" };
+const MIS_COL = { type: "#6BCB9B", total: "#2FA3C4", tool: "#7C5CE0", combo: "#FF7A45", rare: "#E3A21A", event: "#E2604F", collect: "#2E9E62", speed: "#4A86D8", bubble: "#D9A21E", helpers: "#6C7FA8", upgrade: "#22B07D", play: "#8E7BD8", chain: "#F0A12E" };
+// El rayo en cadena más largo que puedes hacer ahora (para no pedir uno imposible)
+const maxChain = () => (save.tools.bolt > 0 && toolHere("bolt") ? TOOLS.bolt.chains[save.tools.bolt - 1] + 1 : 0);
 function newMission(have) {
-  const lid = lvl().id, ks = ["type", "total", "tool", "combo", "rare", "event"];
+  const lid = lvl().id, ks = ["type", "total", "tool", "combo", "rare", "event", "speed", "bubble", "upgrade", "play"];
   if ((save.g.col[lid] || []).length < 10) ks.push("collect");
+  if (save.up.hire) ks.push("helpers");
+  if (maxChain() >= 4) ks.push("chain");
   const owned = TOOL_ORDER.filter((id) => id !== "finger" && save.tools[id] > 0 && toolHere(id));
   const pool = ks.filter((k) => !have.some((m) => m.k === k) && (k !== "tool" || owned.length));
   const k = pool[Math.floor(Math.random() * pool.length)] || "total";
@@ -9482,6 +9552,12 @@ function newMission(have) {
   if (k === "tool") { m.a = owned[Math.floor(Math.random() * owned.length)]; m.n = [40, 60, 90][Math.floor(Math.random() * 3)]; }
   if (k === "combo") m.n = [8, 12, 15, 20][Math.floor(Math.random() * 4)];
   if (k === "event") m.n = [15, 20, 30][Math.floor(Math.random() * 3)];
+  if (k === "speed") m.n = [30, 45, 60][Math.floor(Math.random() * 3)];
+  if (k === "bubble") m.n = 2 + Math.floor(Math.random() * 3);
+  if (k === "helpers") m.n = [150, 250, 400][Math.floor(Math.random() * 3)];
+  if (k === "upgrade") m.n = [3, 5, 8][Math.floor(Math.random() * 3)];
+  if (k === "play") m.n = [180, 300][Math.floor(Math.random() * 2)];
+  if (k === "chain") m.n = clamp(4 + Math.floor(Math.random() * 4), 4, maxChain());
   return m;
 }
 function missions() {
@@ -9542,6 +9618,7 @@ function onPlayerKill() {
     misProgress("combo", null, 0, combo);
     speedLog.push(time); while (speedLog.length && time - speedLog[0] > 30) speedLog.shift();
     if (speedLog.length > save.g.best.speed) { save.g.best.speed = speedLog.length; markSave(); }
+    misProgress("speed", null, 0, speedLog.length);
   }
 }
 // El combo: una pastillita de vidrio arriba a la derecha (debajo del encabezado). A la izquierda, un aro que se vacía
@@ -9893,11 +9970,15 @@ function goalsOnSmush(b, auto) {
   misProgress("type", b.type, 1);
   if (ev && ev.t < ev.dur) misProgress("event", null, 1);
   if (!auto) { misProgress("tool", save.tool, 1); onPlayerKill(); }
+  else { save.g.auto++; misProgress("helpers", null, 1); }
 }
 
 /* --- Bucle (lo llama loop) --- */
+let playClock = 0;
 function updateGoals(dt) {
   updateEvent(dt);
+  // Tiempo jugado (en el campo, sin hojas abiertas): para la misión de minutos y los trofeos
+  if (playing && tracking() && !document.hidden) { save.g.play += dt; playClock += dt; if (playClock >= 1) { misProgress("play", null, playClock); playClock = 0; } }
   // El Rey: de vez en cuando, si no hay otro
   if (playing && !document.querySelector(".sheet.open, .dialog.open")) {
     rareClock -= dt;
@@ -9933,7 +10014,7 @@ function renderGoals(animate) {
       for (const m of missions()) {
         const c = MIS_COL[m.k], icon = m.k === "tool" && ICONS[m.a] ? ICONS[m.a] : `<svg viewBox="0 0 24 24" fill="#fff">${GLYPH[MIS_ICON[m.k]]}</svg>`, pct = Math.min(1, m.p / m.n);
         h += `<div class="mis${m.done ? " done" : ""}" data-id="${m.id}" style="--c:${c}"><span class="m-ic">${icon}</span><span class="m-t"><b>${misText(m)}</b>
-          <span class="m-bar"><i style="width:${pct * 100}%"></i></span><span class="m-n"><span>${fmt(m.p)} / ${fmt(m.n)}</span><span class="m-r"><span class="coin"></span>${fmtShort(misReward(m))}</span></span></span>
+          <span class="m-bar"><i style="width:${pct * 100}%"></i></span><span class="m-n"><span>${misNum(m, m.p)} / ${misNum(m, m.n)}</span><span class="m-r"><span class="coin"></span>${fmtShort(misReward(m))}</span></span></span>
           ${m.done ? `<button class="claim" type="button" data-claim="${m.id}"><span class="coin"></span>${LX(["Claim", "Cobrar"])}</button>` : ""}</div>`;
       }
     }
