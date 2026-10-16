@@ -1106,7 +1106,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.47.4";
+const VERSION = "0.47.5";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -9644,10 +9644,16 @@ function misReward(m) {
 }
 const MIS_ICON = { type: "alien", total: "alien", tool: "bolt", combo: "flame", rare: "crown", event: "bolt", collect: "gem", speed: "clock", bubble: "bubble", helpers: "cloud", upgrade: "up", play: "hourglass", chain: "bolt" };
 const MIS_COL = { type: "#6BCB9B", total: "#2FA3C4", tool: "#7C5CE0", combo: "#FF7A45", rare: "#E3A21A", event: "#E2604F", collect: "#2E9E62", speed: "#4A86D8", bubble: "#D9A21E", helpers: "#6C7FA8", upgrade: "#22B07D", play: "#8E7BD8", chain: "#F0A12E" };
+// Cuántos niveles te quedan por comprar en esta isla (herramientas, ayudantes y mejoras): la misión de comprar mejoras
+// no pide más de los que quedan
+const upgradesLeft = () =>
+  TOOL_ORDER.filter((id) => toolHere(id)).reduce((n, id) => n + Math.max(0, toolMax(id) - save.tools[id]), 0) +
+  UP_ORDER.filter((k) => (UP[k].world || 0) <= save.level).reduce((n, k) => n + Math.max(0, upMax(k) - save.up[k]), 0);
 // El rayo en cadena más largo que puedes hacer ahora (para no pedir uno imposible)
 const maxChain = () => (save.tools.bolt > 0 && toolHere("bolt") ? TOOLS.bolt.chains[save.tools.bolt - 1] + 1 : 0);
 function newMission(have) {
-  const lid = lvl().id, ks = ["type", "total", "tool", "combo", "rare", "event", "speed", "bubble", "upgrade", "play"];
+  const lid = lvl().id, ks = ["type", "total", "tool", "combo", "rare", "event", "speed", "bubble", "play"];
+  if (upgradesLeft() >= 3) ks.push("upgrade");
   if ((save.g.col[lid] || []).length < 10) ks.push("collect");
   if (save.up.hire) ks.push("helpers");
   if (maxChain() >= 4) ks.push("chain");
@@ -9663,15 +9669,18 @@ function newMission(have) {
   if (k === "speed") m.n = [30, 45, 60][Math.floor(Math.random() * 3)];
   if (k === "bubble") m.n = 2 + Math.floor(Math.random() * 3);
   if (k === "helpers") m.n = [150, 250, 400][Math.floor(Math.random() * 3)];
-  if (k === "upgrade") m.n = [3, 5, 8][Math.floor(Math.random() * 3)];
+  if (k === "upgrade") m.n = Math.min([3, 5, 8][Math.floor(Math.random() * 3)], upgradesLeft());
   if (k === "play") m.n = [180, 300][Math.floor(Math.random() * 2)];
   if (k === "chain") m.n = clamp(4 + Math.floor(Math.random() * 4), 4, maxChain());
   return m;
 }
+// Una misión que ya no se puede cumplir (p. ej. comprar mejoras cuando ya las compraste todas) se cambia por otra
+const misImpossible = (m) => !m.done && ((m.k === "upgrade" && upgradesLeft() < m.n - m.p) || (m.k === "chain" && maxChain() < m.n) || (m.k === "helpers" && !save.up.hire));
 function missions() {
   const lid = lvl().id;
   let list = save.g.mis[lid];
   if (!list) list = save.g.mis[lid] = [];
+  for (let i = 0; i < list.length; i++) if (misImpossible(list[i])) { list.splice(i, 1, newMission(list.filter((_, j) => j !== i))); goalsDirty = true; }
   while (list.length < 3) list.push(newMission(list));
   return list;
 }
