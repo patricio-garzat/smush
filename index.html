@@ -1105,7 +1105,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.46.2";
+const VERSION = "0.46.3";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2513,8 +2513,9 @@ function spawnBall(inside) {
 function aliveCount() { let n = 0; for (const b of balls) if (b.state !== "die") n++; return n; }
 
 function spawnStep(dt) {
-  // Mientras el tsunami cubre el campo no llegan nuevos (llegarían a ahogarse y el agua no se iría)
-  if (waves.some((w) => w.kind !== "aval" && (w.backT || 0) < WAVE_BACK * 0.5)) return;
+  // Solo mientras el agua del tsunami espera a que se hunda el último (un momentito) no llegan nuevos: si no, llegarían
+  // a ahogarse y el agua no se iría. Durante la ola sí llegan (la ola se los lleva), así el campo nunca se queda vacío
+  if (waves.some((w) => w.kind !== "aval" && w.t - TSU_PREP >= w.dur && !(w.backT > 0) && (w.hold || 0) < 3)) return;
   // Si el equipo no alcanza (perfCap baja), también se recortan los extra de la mejora "más marcianitos"
   const perfK = clamp((perfCap - SPAWN.min) / (SPAWN.max - SPAWN.min), 0, 1);
   const target = Math.min(baseTarget, perfCap + Math.round(FX.crowdExtra(save.up.crowd) * (0.35 + 0.65 * perfK))) + evCrowd();
