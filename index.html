@@ -1650,7 +1650,7 @@ const STR = {
   voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
   beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs and the Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas y el Tsunami."],
   snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
-  toysD: ["A playroom full of toys: wooden blocks, a train set, a teddy and a play rug with little roads. Every alien is worth ×32; at night a little lamp keeps it cozy.", "Un cuarto de juegos lleno de juguetes: bloques de madera, un tren, un osito y una alfombra con calles. Cada marcianito vale ×32; de noche lo alumbra una lamparita."],
+  toysD: ["A playroom full of toys: a tipi, a toy chest, a rocking horse and a wooden train set on a colorful rug. Every alien is worth ×32; at night fairy lights and a little moon lamp keep it cozy.", "Un cuarto de juegos lleno de juguetes: un tipi, un baúl, un caballito mecedor y un tren de madera sobre una alfombra de colores. Cada marcianito vale ×32; de noche lo alumbran foquitos y una lamparita de luna."],
   jungleD: ["Giant trees, ferns and a quiet pond under a green canopy. Every alien is worth ×16; butterflies drift by in the day and fireflies glow at night.", "Árboles gigantes, helechos y un estanque tranquilo bajo un techo de hojas. Cada marcianito vale ×16; de día pasan mariposas y de noche brillan las luciérnagas."],
   cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
   visitLvl: ["Visit", "Visitar"], visitKicker: ["Just visiting", "De visita"], visitingNow: ["Visiting", "De visita"], backTo: ["Back to", "Regresar a"],
@@ -3967,39 +3967,38 @@ const ART = {
     for (let i = 0; i < 3; i++) { const x = w * (0.3 + i * 0.22) + Math.sin(t + i * 2) * 12, y = h * (0.35 + (i % 2) * 0.12) + Math.cos(t * 1.3 + i) * 6, f = Math.abs(Math.sin(t * 8 + i)) * 0.8 + 0.2; g.fillStyle = ["#FF8A65", "#F1C84D", "#2FA3C4"][i]; for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(x + sd * 3.4 * f, y, 3.6 * f, 2.8, sd * 0.4, 0, TAU); g.fill(); } }
   },
   toys(g, w, h, t) {
-    // El cuarto de juegos: la pared con su repisa de juguetes, el piso de madera, la alfombra con el circuito y el
-    // trenecito dando vueltas, una torre de bloques, el osito, una pelota y un rayo de sol con polvito
+    // El cuarto de juegos: la pared azul con banderines y la repisa, el piso de roble, la alfombra de colores con el
+    // circuito y el trenecito dando vueltas, el tipi, el baúl de juguetes y la luz de la ventana con polvito
     const fy = h * 0.46, k = h / 150;
-    paintToyWall(g, w, fy, false, 12, k * 1.05);
-    const wood = ["#E6C597", "#E9CB9F", "#E2BF90", "#ECD0A7"], R = artRng(8);
-    for (let y = fy, row = 0; y < h; y += 14 * k, row++) { let x = -R() * 80; while (x < w) { const l = (90 + R() * 90) * k; g.fillStyle = wood[Math.floor(R() * 4)]; g.fillRect(x, y, l, 14 * k); g.fillStyle = "rgba(120,80,45,0.3)"; g.fillRect(x + l - 1, y, 1, 14 * k); x += l; } g.fillStyle = "rgba(120,80,45,0.28)"; g.fillRect(0, y + 14 * k - 1, w, 1); }
-    const sh = g.createLinearGradient(0, fy, 0, fy + 20 * k); sh.addColorStop(0, "rgba(110,70,40,0.2)"); sh.addColorStop(1, "rgba(110,70,40,0)"); g.fillStyle = sh; g.fillRect(0, fy, w, 20 * k);
-    // La alfombra y el circuito
-    const cx = w * 0.5, cy = h * 0.79;
-    g.fillStyle = "rgba(110,70,40,0.18)"; g.beginPath(); g.ellipse(cx + 2, cy + 4, w * 0.42, h * 0.2, 0, 0, TAU); g.fill();
-    g.fillStyle = "#F2F4F0"; g.beginPath(); g.ellipse(cx, cy, w * 0.42, h * 0.2, 0, 0, TAU); g.fill();
-    g.fillStyle = "#D6E5EE"; g.beginPath(); g.ellipse(cx, cy, w * 0.4, h * 0.18, 0, 0, TAU); g.fill();
-    const tr = { cx, cy, rx: w * 0.3, ry: h * 0.115, tw: 8 * k };
+    paintToyWall(g, w, fy, false, 12, k * 1.05, fy - 40 * k);
+    const wood = ["#E3A866", "#E8B172", "#DDA05C", "#EAB87C"], R = artRng(8);
+    for (let y = fy; y < h; y += 14 * k) { let x = -R() * 80; while (x < w) { const l = (90 + R() * 90) * k; g.fillStyle = wood[Math.floor(R() * 4)]; g.fillRect(x, y, l, 14 * k); g.fillStyle = "rgba(130,70,30,0.4)"; g.fillRect(x + l - 1, y, 1, 14 * k); x += l; } g.fillStyle = "rgba(130,70,30,0.38)"; g.fillRect(0, y + 14 * k - 1, w, 1); }
+    const sh = g.createLinearGradient(0, fy, 0, fy + 20 * k); sh.addColorStop(0, "rgba(110,55,20,0.22)"); sh.addColorStop(1, "rgba(110,55,20,0)"); g.fillStyle = sh; g.fillRect(0, fy, w, 20 * k);
+    // La alfombra (orilla de rayas) y el circuito
+    const cx = w * 0.5, cy = h * 0.8;
+    g.fillStyle = "rgba(110,55,20,0.2)"; g.beginPath(); g.ellipse(cx + 2, cy + 4, w * 0.44, h * 0.21, 0, 0, TAU); g.fill();
+    for (const [col, d] of [["#F26B5B", 0], ["#FFFFFF", 4], ["#FFC94A", 5.5], ["#FFFFFF", 9], ["#3FB7C9", 10.5], ["#FFF8EC", 14]]) { g.fillStyle = col; g.beginPath(); g.ellipse(cx, cy, w * 0.44 - d * k, h * 0.21 - d * k * 0.5, 0, 0, TAU); g.fill(); }
+    const tr = { cx, cy, rx: w * 0.28, ry: h * 0.11, tw: 8 * k };
     paintTrack(g, tr, false, true);
-    const sp = (a) => Math.hypot(Math.sin(a) * tr.rx, Math.cos(a) * tr.ry) || 1, kk = k * 0.62;
+    const sp = (a) => Math.hypot(Math.sin(a) * tr.rx, Math.cos(a) * tr.ry) || 1, kk = k * 0.55;
     let a = -t * 0.35 + 2.2; const cars = [];
-    for (let i = 0; i < 4; i++) { const L = (i ? 36 : 46) * kk, Wd = (i ? 20 : 22) * kk; if (i) { const gap = ((i === 1 ? 46 : 36) * kk + L) / 2 + 3 * kk; for (let j = 0; j < 4; j++) a += gap / 4 / sp(a); } cars.push({ i, L, Wd, x: tr.cx + Math.cos(a) * tr.rx, y: tr.cy + Math.sin(a) * tr.ry, ang: Math.atan2(-Math.cos(a) * tr.ry, Math.sin(a) * tr.rx) }); }
+    for (let i = 0; i < 4; i++) { const L = (i ? 44 : 56) * kk, Wd = (i ? 24 : 27) * kk; if (i) { const gap = ((i === 1 ? 56 : 44) * kk + L) / 2 + 3 * kk; for (let j = 0; j < 4; j++) a += gap / 4 / sp(a); } cars.push({ i, L, Wd, x: tr.cx + Math.cos(a) * tr.rx, y: tr.cy + Math.sin(a) * tr.ry, ang: Math.atan2(-Math.cos(a) * tr.ry, Math.sin(a) * tr.rx) }); }
     for (const c of cars.sort((p, q) => p.y - q.y)) {
       g.save(); g.translate(c.x, c.y + 2); g.rotate(c.ang); paintTrainCar(g, 0, 0, c.i ? "wagon" : "loco", c.i - 1, c.L, c.Wd, false, true); g.restore();
       g.save(); g.translate(c.x, c.y); g.rotate(c.ang); paintTrainCar(g, 0, 0, c.i ? "wagon" : "loco", c.i - 1, c.L, c.Wd, false, false); g.restore();
     }
-    // Juguetes grandes a los lados
-    paintBlockStack(g, w * 0.1, h * 0.98, k * 1.05, false, 4);
-    paintTeddy(g, w * 0.9, h * 0.97, k * 1.15, false);
-    paintBall(g, w * 0.25, h * 1.0, k * 0.95, false);
-    paintDuck(g, w * 0.76, h * 0.99, k * 0.8, false, -1);
-    artAlien(g, "green", w * 0.43, h * 0.82, h * 0.27, t, 0);
-    artAlien(g, "orange", w * 0.59, h * 0.79, h * 0.24, t, 1.4);
-    // El rayo de sol con su polvito
-    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "rgba(255,246,220,0.32)"); gr.addColorStop(1, "rgba(255,246,220,0)");
+    // El tipi, el baúl y juguetes al frente
+    paintTipi(g, w * 0.13, h * 0.9, k * 0.62, false);
+    paintToyChest(g, w * 0.86, h * 0.9, k * 0.68, false);
+    paintBall(g, w * 0.3, h * 1.01, k * 0.9, false);
+    paintDuck(g, w * 0.7, h * 1.0, k * 0.8, false, -1);
+    artAlien(g, "green", w * 0.43, h * 0.84, h * 0.27, t, 0);
+    artAlien(g, "orange", w * 0.58, h * 0.8, h * 0.24, t, 1.4);
+    // Luz de la ventana con su polvito
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "rgba(255,246,214,0.3)"); gr.addColorStop(1, "rgba(255,246,214,0)");
     g.fillStyle = gr; poly(g, [[w * 0.62, 0], [w * 0.8, 0], [w * 0.58, h], [w * 0.32, h]]); g.fill();
     g.fillStyle = "#FFFFFF";
-    for (let i = 0; i < 14; i++) { const v = ((i * 0.137 + t * 0.02) % 1), y = v * h, x = w * 0.66 + ((i * 0.31) % 1) * w * 0.12 - v * w * 0.3 + Math.sin(t * 0.5 + i) * 4; g.globalAlpha = 0.6 * Math.sin(v * Math.PI) * (0.5 + 0.5 * Math.sin(t * 1.3 + i)); g.beginPath(); g.arc(x, y, 1.2, 0, TAU); g.fill(); }
+    for (let i = 0; i < 14; i++) { const v = (i * 0.137 + t * 0.02) % 1, y = v * h, x = w * 0.66 + ((i * 0.31) % 1) * w * 0.12 - v * w * 0.3 + Math.sin(t * 0.5 + i) * 4; g.globalAlpha = 0.6 * Math.sin(v * Math.PI) * (0.5 + 0.5 * Math.sin(t * 1.3 + i)); g.beginPath(); g.arc(x, y, 1.2, 0, TAU); g.fill(); }
     g.globalAlpha = 1;
   },
   soon(g, w, h, t) {
@@ -4689,7 +4688,7 @@ function buildBackground() {
   const snowy = isSnow();
   const hb = hudBand();
   field.style.setProperty("--hud-h", Math.max(0, hb - 10) + "px");
-  seaH = isCity() ? hb : isToys() ? Math.max(hb + 40, clamp(H * 0.13, 48, 90)) : Math.max(hb + (snowy ? 14 : 6), snowy ? clamp(H * 0.15, 54, 100) : isJungle() || isToys() ? clamp(H * 0.13, 48, 90) : clamp(H * 0.12, 42, 84));
+  seaH = isCity() ? hb : isToys() ? Math.max(hb + 56, clamp(H * 0.13, 48, 90)) : Math.max(hb + (snowy ? 14 : 6), snowy ? clamp(H * 0.15, 54, 100) : isJungle() || isToys() ? clamp(H * 0.13, 48, 90) : clamp(H * 0.12, 42, 84));
   stars = [];
   const n = Math.round((W * H) / 7000);
   for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(0.6, 1.5), ph: rand(0, TAU), sp: rand(0.6, 1.8) });
@@ -7379,33 +7378,182 @@ function paintShelfToy(g, kind, x, y, s, dark, seed) {
   }
 }
 
-// La pared de arriba: tapiz de rayas suaves con estrellitas, y la repisa con juguetes. (top = donde empieza el piso)
-function paintToyWall(g, w, top, dark, seed, k) {
+// Tipi de tela (vista de 3/4): los palos que salen por arriba con un banderín, la tela con franjas de colores y
+// triangulitos, y la puerta abierta con sus solapas amarradas y un cojín adentro. (x, y) = el centro de la base
+function paintTipi(g, x, y, s, dark) {
+  const Ht = 112 * s, B = 50 * s, ax = x, ay = y - Ht, cv = dark ? "#C9B8A4" : "#FFF4E0", cv2 = dark ? "#A3937F" : "#F0DDBE", pole = dark ? "#7A5E46" : "#B9824C";
+  g.fillStyle = toyShadow(dark); g.beginPath(); g.ellipse(x + 12 * s, y + 2 * s, B * 1.3, 12 * s, 0, 0, TAU); g.fill();
+  // Palos (atrás); por arriba se asoman cruzados
+  g.lineCap = "round"; g.strokeStyle = pole; g.lineWidth = 3.2 * s;
+  const tips = [];
+  for (const bx of [-0.95, -0.35, 0.4, 0.95]) { const px = x + bx * B, py = y - 3 * s, ex = ax + (ax - px) * 0.2, ey = ay + (ay - py) * 0.2; tips.push([ex, ey]); g.beginPath(); g.moveTo(px, py); g.lineTo(ex, ey); g.stroke(); }
+  // Banderín en la punta del palo más alto
+  { const [fx, fy] = tips[1]; g.fillStyle = toyDim("#F0679B", dark); poly(g, [[fx, fy], [fx + 15 * s, fy + 4 * s], [fx + 1 * s, fy + 9 * s]]); g.fill(); }
+  // La tela
+  const tent = () => { g.beginPath(); g.moveTo(ax - 5 * s, ay + 6 * s); g.quadraticCurveTo(x - B * 0.5, y - Ht * 0.45, x - B, y - 2 * s); g.quadraticCurveTo(x, y + 10 * s, x + B, y - 2 * s); g.quadraticCurveTo(x + B * 0.5, y - Ht * 0.45, ax + 5 * s, ay + 6 * s); g.closePath(); };
+  const tg = g.createLinearGradient(x - B, 0, x + B, 0); tg.addColorStop(0, cv); tg.addColorStop(0.55, cv); tg.addColorStop(1, cv2);
+  tent(); g.fillStyle = tg; g.fill();
+  g.save(); tent(); g.clip();
+  // Franjas curvas (más abajo, más curvas) con triangulitos
+  const band = (yy, th, col) => { const c = 10 * s * (1 - (y - yy) / Ht); g.fillStyle = toyDim(col, dark); g.beginPath(); g.moveTo(x - B * 1.3, yy); g.quadraticCurveTo(x, yy + c * 2, x + B * 1.3, yy); g.lineTo(x + B * 1.3, yy + th); g.quadraticCurveTo(x, yy + th + c * 2, x - B * 1.3, yy + th); g.closePath(); g.fill(); return c; };
+  const c1 = band(y - Ht * 0.22, 8 * s, "#F26B5B");
+  g.fillStyle = toyDim("#FFC94A", dark);
+  for (let i = -6; i <= 6; i++) { const px = x + i * 8 * s, u = (px - x) / (B * 1.3), py = y - Ht * 0.22 + c1 * 2 * (1 - u * u) * 0.5 - 1 * s; poly(g, [[px - 3.5 * s, py], [px + 3.5 * s, py], [px, py - 6 * s]]); g.fill(); }
+  band(y - Ht * 0.13, 3.5 * s, "#3FB7C9");
+  band(y - Ht * 0.6, 4.5 * s, "#7FD18A");
+  g.fillStyle = toyDim("#F26B5B", dark);
+  for (let i = -3; i <= 3; i++) { const px = x + i * 6 * s; g.beginPath(); g.arc(px, y - Ht * 0.6 + 7.5 * s + 4 * s * (1 - Math.abs(i) / 4) * 0.4, 1.4 * s, 0, TAU); g.fill(); }
+  // Costuras que bajan desde la punta
+  g.strokeStyle = dark ? "rgba(0,0,0,0.15)" : "rgba(150,110,70,0.2)"; g.lineWidth = 0.9 * s;
+  for (const u of [-0.55, 0.55]) { g.beginPath(); g.moveTo(ax, ay + 8 * s); g.quadraticCurveTo(x + u * B * 0.45, y - Ht * 0.45, x + u * B, y + 4 * s); g.stroke(); }
+  g.restore();
+  // La puerta: adentro oscuro con un cojín, y las solapas dobladas a los lados
+  const dy0 = y - Ht * 0.56, dw = 15 * s;
+  const ig = g.createLinearGradient(0, dy0, 0, y); ig.addColorStop(0, dark ? "#1E1626" : "#6A4A62"); ig.addColorStop(1, dark ? "#2C2234" : "#8A6278");
+  g.fillStyle = ig; g.beginPath(); g.moveTo(x, dy0); g.quadraticCurveTo(x - dw * 0.6, y - Ht * 0.25, x - dw, y + 5 * s); g.quadraticCurveTo(x, y + 9 * s, x + dw, y + 5 * s); g.quadraticCurveTo(x + dw * 0.6, y - Ht * 0.25, x, dy0); g.fill();
+  g.fillStyle = toyDim("#F7A8C4", dark); g.beginPath(); g.ellipse(x + 3 * s, y + 1 * s, 8 * s, 4.5 * s, -0.1, 0, TAU); g.fill();
+  g.fillStyle = "rgba(255,255,255,0.35)"; g.beginPath(); g.ellipse(x + 1 * s, y - 0.5 * s, 4 * s, 1.6 * s, -0.1, 0, TAU); g.fill();
+  for (const sd of [-1, 1]) {
+    g.fillStyle = cv2; g.beginPath(); g.moveTo(x, dy0); g.quadraticCurveTo(x + sd * dw * 0.6, y - Ht * 0.25, x + sd * dw, y + 5 * s); g.lineTo(x + sd * (dw + 10 * s), y - 10 * s); g.quadraticCurveTo(x + sd * dw * 0.8, y - Ht * 0.35, x, dy0); g.fill();
+    g.fillStyle = toyDim("#F26B5B", dark); g.beginPath(); g.moveTo(x + sd * (dw - 1 * s), y + 2 * s); g.lineTo(x + sd * (dw + 9 * s), y - 11 * s); g.lineTo(x + sd * (dw + 10.5 * s), y - 8 * s); g.lineTo(x + sd * (dw + 1.5 * s), y + 5 * s); g.closePath(); g.fill();
+    g.strokeStyle = toyDim("#3FB7C9", dark); g.lineWidth = 1.6 * s; g.beginPath(); g.moveTo(x + sd * (dw * 0.75), y - Ht * 0.3); g.quadraticCurveTo(x + sd * (dw + 4 * s), y - Ht * 0.3, x + sd * (dw + 3 * s), y - Ht * 0.22); g.stroke();
+  }
+  // Orilla suave
+  tent(); g.strokeStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(150,100,60,0.28)"; g.lineWidth = 1.1 * s; g.stroke();
+}
+// Baúl de juguetes con la tapa abierta y juguetes asomándose
+function paintToyChest(g, x, y, s, dark) {
+  const w = 74 * s, h = 38 * s, dx = 12 * s, dy = -16 * s, x0 = x - w / 2, yt = y - h;
+  const blue = toyDim("#4FA9E6", dark), blue2 = toyDim("#3A8CC9", dark), inner = dark ? "#2A1E1A" : "#6B4630", trim = dark ? "#C9C2BA" : "#FFFFFF";
+  g.fillStyle = toyShadow(dark); g.beginPath(); g.ellipse(x + 10 * s, y + 2 * s, w * 0.68, 9 * s, 0, 0, TAU); g.fill();
+  // La tapa, abierta hacia atrás (se ve su lado de adentro)
+  g.fillStyle = toyDim("#9FD3F5", dark); poly(g, [[x0 + dx, yt + dy], [x0 + w + dx, yt + dy], [x0 + w + dx + 4 * s, yt + dy - 30 * s], [x0 + dx + 4 * s, yt + dy - 30 * s]]); g.fill();
+  g.strokeStyle = blue; g.lineWidth = 3 * s; g.lineJoin = "round"; g.stroke();
+  g.fillStyle = "rgba(255,255,255,0.35)"; g.fillRect(x0 + dx + 8 * s, yt + dy - 26 * s, w - 12 * s, 3 * s);
+  // Adentro y los juguetes que se asoman
+  g.fillStyle = inner; poly(g, [[x0, yt], [x0 + w, yt], [x0 + w + dx, yt + dy], [x0 + dx, yt + dy]]); g.fill();
+  // Varita de estrella
+  g.strokeStyle = dark ? "#9C8466" : "#E9C79A"; g.lineWidth = 2 * s; g.lineCap = "round"; g.beginPath(); g.moveTo(x - 4 * s, yt - 2 * s); g.lineTo(x - 14 * s, yt - 32 * s); g.stroke();
+  g.fillStyle = toyDim("#FFC94A", dark); g.beginPath(); for (let i = 0; i < 10; i++) { const r = (i % 2 ? 3.4 : 8) * s, a = (i * Math.PI) / 5 - Math.PI / 2 - 0.3; i ? g.lineTo(x - 15 * s + Math.cos(a) * r, yt - 35 * s + Math.sin(a) * r) : g.moveTo(x - 15 * s + Math.cos(a) * r, yt - 35 * s + Math.sin(a) * r); } g.closePath(); g.fill();
+  // Pelota roja, un bloque y una oreja de conejo de peluche
+  g.fillStyle = toyDim("#F26B5B", dark); g.beginPath(); g.arc(x0 + 18 * s, yt - 6 * s, 11 * s, 0, TAU); g.fill();
+  g.strokeStyle = trim; g.lineWidth = 2.2 * s; g.beginPath(); g.arc(x0 + 18 * s, yt - 6 * s, 11 * s, -2.4, -0.9); g.stroke();
+  g.fillStyle = "rgba(255,255,255,0.4)"; g.beginPath(); g.arc(x0 + 14 * s, yt - 11 * s, 2.6 * s, 0, TAU); g.fill();
+  drawToyBlock(g, x + 18 * s, yt - 7 * s, 14 * s, 2, 0.25, dark);
+  g.fillStyle = toyDim("#C9A8F0", dark); g.beginPath(); g.ellipse(x + 2 * s, yt - 14 * s, 4.5 * s, 13 * s, 0.25, 0, TAU); g.fill();
+  g.fillStyle = toyDim("#F7B8D0", dark); g.beginPath(); g.ellipse(x + 2.4 * s, yt - 14 * s, 2.2 * s, 9 * s, 0.25, 0, TAU); g.fill();
+  // El cajón: lado, frente con tablas y una estrella pintada, orillas blancas y patitas
+  g.fillStyle = blue2; poly(g, [[x0 + w, yt], [x0 + w + dx, yt + dy], [x0 + w + dx, y + dy], [x0 + w, y]]); g.fill();
+  const fg = g.createLinearGradient(0, yt, 0, y); fg.addColorStop(0, mix(blue, "#FFFFFF", 0.12)); fg.addColorStop(1, blue);
+  g.fillStyle = fg; g.fillRect(x0, yt, w, h);
+  g.fillStyle = "rgba(0,0,0,0.1)"; for (let i = 1; i < 3; i++) g.fillRect(x0, yt + (h / 3) * i, w, 1.1 * s);
+  g.fillStyle = toyDim("#FFC94A", dark); g.beginPath(); for (let i = 0; i < 10; i++) { const r = (i % 2 ? 4.6 : 11) * s, a = (i * Math.PI) / 5 - Math.PI / 2; i ? g.lineTo(x + Math.cos(a) * r, yt + h * 0.52 + Math.sin(a) * r) : g.moveTo(x + Math.cos(a) * r, yt + h * 0.52 + Math.sin(a) * r); } g.closePath(); g.fill();
+  g.fillStyle = "rgba(255,255,255,0.45)"; g.beginPath(); g.arc(x - 3 * s, yt + h * 0.42, 1.8 * s, 0, TAU); g.fill();
+  g.fillStyle = trim; g.fillRect(x0, yt - 1 * s, w, 3 * s); g.fillRect(x0, yt, 3 * s, h); g.fillRect(x0 + w - 3 * s, yt, 3 * s, h);
+  poly(g, [[x0 + w, yt - 1 * s], [x0 + w + dx, yt + dy - 1 * s], [x0 + w + dx, yt + dy + 2 * s], [x0 + w, yt + 2 * s]]); g.fill();
+  g.fillStyle = dark ? "#3A2E25" : "#7A5A43"; for (const fx of [x0 + 4 * s, x0 + w - 8 * s]) { g.beginPath(); g.roundRect(fx, y - 1 * s, 4 * s, 4 * s, 1.5 * s); g.fill(); }
+}
+// Caballito mecedor (de lado): balancines de madera, patas, cuerpo blanco con manchitas, crin y cola de estambre y silla
+function paintRockingHorse(g, x, y, s, dark, dir = 1) {
+  const body = dark ? "#C2B6AA" : "#F7EBDD", spot = dark ? "rgba(150,120,130,0.45)" : "rgba(225,150,160,0.6)", mane = toyDim("#F26B5B", dark), wood = dark ? "#8A5A3A" : "#C9783E", wood2 = dark ? "#6E4630" : "#A55E2E";
+  g.fillStyle = toyShadow(dark); g.beginPath(); g.ellipse(x + 4 * s, y + 1 * s, 46 * s, 7 * s, 0, 0, TAU); g.fill();
+  g.save(); g.translate(x, y); g.scale(dir, 1);
+  // Balancines (dos: el de atrás un poco más oscuro y corrido)
+  for (const [ox, col] of [[5 * s, wood2], [0, wood]]) {
+    g.strokeStyle = col; g.lineWidth = 6.5 * s; g.lineCap = "round";
+    g.beginPath(); g.moveTo(-44 * s + ox, -14 * s); g.quadraticCurveTo(ox, 6 * s, 44 * s + ox, -14 * s); g.stroke();
+  }
+  // Patas
+  for (const [a, b, back] of [[-12, -22, 1], [16, 26, 1], [-6, -14, 0], [22, 20, 0]]) {
+    g.strokeStyle = back ? (dark ? "#9A8E84" : "#DCCBB8") : body; g.lineWidth = 6.5 * s;
+    g.beginPath(); g.moveTo(a * s, -40 * s); g.lineTo(b * s, -9 * s); g.stroke();
+    g.fillStyle = dark ? "#3A2E2A" : "#5A4038"; g.beginPath(); g.roundRect((b - 3.6) * s, -11 * s, 7.2 * s, 4.5 * s, 1.5 * s); g.fill();
+  }
+  // Cola
+  g.strokeStyle = mane; g.lineWidth = 3 * s;
+  for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(-26 * s, -46 * s); g.quadraticCurveTo((-36 - i * 2) * s, (-42 + i * 2) * s, (-33 - i * 3) * s, (-26 + i * 3) * s); g.stroke(); }
+  // Cuerpo con manchitas
+  const bg = g.createLinearGradient(0, -58 * s, 0, -30 * s); bg.addColorStop(0, mix(body, "#FFFFFF", 0.4)); bg.addColorStop(1, dark ? "#A0948A" : "#E6D3BF");
+  g.fillStyle = bg; g.beginPath(); g.ellipse(0, -44 * s, 28 * s, 14 * s, 0, 0, TAU); g.fill();
+  g.strokeStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(150,110,80,0.3)"; g.lineWidth = 1 * s; g.stroke();
+  // Cuello y cabeza
+  g.beginPath(); g.moveTo(14 * s, -52 * s); g.quadraticCurveTo(20 * s, -70 * s, 28 * s, -76 * s); g.lineTo(36 * s, -70 * s); g.quadraticCurveTo(30 * s, -56 * s, 26 * s, -40 * s); g.closePath(); g.fill();
+  g.save(); g.translate(36 * s, -72 * s); g.rotate(0.55); g.beginPath(); g.ellipse(0, 0, 14 * s, 7.5 * s, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "#9C8E86" : "#F3D9CF"; g.beginPath(); g.ellipse(9 * s, 0.5 * s, 6 * s, 6 * s, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "#5A4A48" : "#B88A80"; g.beginPath(); g.arc(11 * s, -1 * s, 1.1 * s, 0, TAU); g.fill();
+  g.restore();
+  g.fillStyle = spot; for (const [sx, sy, r] of [[-12, -46, 3], [-4, -40, 2.4], [6, -47, 2.6], [-18, -40, 2], [14, -42, 2]]) { g.beginPath(); g.arc(sx * s, sy * s, r * s, 0, TAU); g.fill(); }
+  g.fillStyle = "#2E2420"; g.beginPath(); g.arc(34 * s, -76 * s, 1.6 * s, 0, TAU); g.fill();
+  g.fillStyle = "rgba(255,255,255,0.8)"; g.beginPath(); g.arc(33.5 * s, -76.6 * s, 0.5 * s, 0, TAU); g.fill();
+  g.fillStyle = body; poly(g, [[27 * s, -80 * s], [29 * s, -89 * s], [32 * s, -79 * s]]); g.fill();
+  // Crin de bolitas de estambre
+  g.fillStyle = mane;
+  for (let i = 0; i < 7; i++) { const u = i / 6, px = (26 - u * 14) * s, py = (-82 + u * 30) * s; g.beginPath(); g.arc(px, py, (3.4 - u * 0.6) * s, 0, TAU); g.fill(); }
+  // Silla, estribo y riendas
+  g.fillStyle = toyDim("#3FB7C9", dark); g.beginPath(); g.moveTo(-12 * s, -55 * s); g.quadraticCurveTo(-2 * s, -50 * s, 8 * s, -56 * s); g.lineTo(6 * s, -44 * s); g.quadraticCurveTo(-2 * s, -40 * s, -10 * s, -44 * s); g.closePath(); g.fill();
+  g.fillStyle = toyDim("#FFC94A", dark); g.fillRect(-12 * s, -56 * s, 4 * s, 3 * s); g.fillRect(4 * s, -57 * s, 4 * s, 3 * s);
+  g.strokeStyle = toyDim("#F26B5B", dark); g.lineWidth = 1.3 * s; g.beginPath(); g.moveTo(42 * s, -66 * s); g.quadraticCurveTo(26 * s, -56 * s, 10 * s, -56 * s); g.stroke();
+  g.fillStyle = dark ? "#8A5A3A" : "#C9783E"; g.beginPath(); g.roundRect(22 * s, -68 * s, 9 * s, 3 * s, 1.5 * s); g.fill();
+  g.fillStyle = "rgba(255,255,255,0.4)"; g.beginPath(); g.ellipse(-6 * s, -51 * s, 12 * s, 2.5 * s, 0, 0, TAU); g.fill();
+  g.restore();
+}
+// Arbolito de madera (de los del tren)
+function paintToyTree(g, x, y, s, dark, col) {
+  const c = toyDim(col || "#5DBB6A", dark);
+  g.fillStyle = toyShadow(dark); g.beginPath(); g.ellipse(x + 3 * s, y + 1 * s, 10 * s, 3 * s, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "#6E5643" : "#E2BE88"; g.beginPath(); g.ellipse(x, y - 1 * s, 7 * s, 2.5 * s, 0, 0, TAU); g.fill();
+  g.fillStyle = dark ? "#7A5E46" : "#B9824C"; g.fillRect(x - 1.8 * s, y - 12 * s, 3.6 * s, 11 * s);
+  const gr = g.createRadialGradient(x - 3 * s, y - 24 * s, 1, x, y - 20 * s, 11 * s); gr.addColorStop(0, mix(c, "#FFFFFF", 0.3)); gr.addColorStop(1, c);
+  g.fillStyle = gr; g.beginPath(); g.ellipse(x, y - 21 * s, 9 * s, 11 * s, 0, 0, TAU); g.fill();
+}
+
+// La pared de arriba: tapiz azul cielo con nubecitas y estrellas, banderines de colores (de noche, con foquitos) y la
+// repisa con juguetes. (top = donde empieza el piso; y0 = de dónde cuelgan los banderines). Regresa la lamparita y los foquitos
+function paintToyWall(g, w, top, dark, seed, k, y0) {
   const R = artRng(seed);
   const wall = g.createLinearGradient(0, 0, 0, top);
-  wall.addColorStop(0, dark ? "#1B1C2E" : "#F8EDE2"); wall.addColorStop(1, dark ? "#24263C" : "#F2E2D3");
+  wall.addColorStop(0, dark ? "#1A1F3E" : "#B9DFF3"); wall.addColorStop(1, dark ? "#232A52" : "#D6EEF9");
   g.fillStyle = wall; g.fillRect(0, 0, w, top + 2);
-  g.fillStyle = dark ? "rgba(255,255,255,0.025)" : "rgba(224,85,143,0.06)";
-  for (let x = 0; x < w; x += 26) g.fillRect(x, 0, 13, top);
-  // Estrellitas del tapiz (de noche, las que brillan en la oscuridad)
-  for (let x = 13 + R() * 10; x < w; x += 26) for (let y = 10 + (Math.round(x / 26) % 2) * 14; y < top - 22; y += 28) {
-    g.fillStyle = dark ? "rgba(220,240,170,0.38)" : "rgba(241,200,77,0.45)"; g.beginPath();
-    for (let i = 0; i < 10; i++) { const r = i % 2 ? 1.3 : 3.2, a = (i * Math.PI) / 5 - Math.PI / 2; i ? g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r) : g.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
+  // Nubecitas y estrellitas del tapiz
+  for (let row = 0, y = 14; y < top - 12; y += 30, row++) for (let x = (row % 2) * 34 + 10; x < w + 20; x += 68) {
+    g.fillStyle = dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.75)";
+    for (const [cx, cy, r] of [[0, 0, 6], [7, -3, 7.5], [14, 0, 5.5], [7, 2, 6]]) { g.beginPath(); g.arc(x + cx, y + cy, r * 0.8, 0, TAU); g.fill(); }
+    const sx = x + 38, sy = y + 12;
+    g.fillStyle = dark ? "rgba(255,230,150,0.55)" : "rgba(255,201,74,0.8)"; g.beginPath();
+    for (let i = 0; i < 10; i++) { const r = i % 2 ? 1.2 : 3, a = (i * Math.PI) / 5 - Math.PI / 2; i ? g.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r) : g.moveTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r); }
     g.closePath(); g.fill();
   }
-  // La repisa: la tabla, su canto y su sombra en la pared
+  // Banderines colgando en curvas (de clavito a clavito)
+  const BC = ["#F26B5B", "#FFC94A", "#3FB7C9", "#7FD18A", "#9B7BE8", "#F7A8C4"], bulbs = [];
+  const yb = y0 == null ? top - 44 : y0, span = Math.max(110, w / Math.max(2, Math.round(w / 150)));
+  let ci = Math.floor(R() * 6);
+  for (let x0 = -span * 0.3; x0 < w; x0 += span) {
+    const x1 = x0 + span, sag = 11 * k, at = (u) => [x0 + (x1 - x0) * u, yb + Math.sin(u * Math.PI) * sag];
+    g.strokeStyle = dark ? "rgba(255,255,255,0.25)" : "rgba(120,90,70,0.55)"; g.lineWidth = 1;
+    g.beginPath(); for (let i = 0; i <= 20; i++) { const [px, py] = at(i / 20); i ? g.lineTo(px, py) : g.moveTo(px, py); } g.stroke();
+    const n = Math.round(span / (13 * k));
+    for (let i = 1; i < n; i++) {
+      const u = i / n, [px, py] = at(u), fw = 5.2 * k, fh = 10 * k, col = toyDim(BC[ci++ % 6], dark);
+      g.fillStyle = col; poly(g, [[px - fw, py], [px + fw, py], [px, py + fh]]); g.fill();
+      g.fillStyle = "rgba(255,255,255,0.3)"; poly(g, [[px - fw, py], [px - fw * 0.2, py], [px - fw * 0.5, py + fh * 0.4]]); g.fill();
+      if (i % 2 === 0) bulbs.push([px, py + 1, BC[(ci + 2) % 6]]);
+    }
+    g.fillStyle = dark ? "#C9B07A" : "#D9B27C"; g.beginPath(); g.arc(x0, yb, 1.8, 0, TAU); g.fill();
+  }
+  // De noche, foquitos sobre el cordón (se ven prendidos)
+  if (dark) for (const [px, py] of bulbs) { g.fillStyle = "#FFE6A8"; g.beginPath(); g.arc(px, py, 1.6, 0, TAU); g.fill(); }
+  // La repisa con sus juguetes
   const sy = top - 9;
-  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(120,80,45,0.14)"; g.fillRect(0, sy + 4, w, 9);
-  // Los juguetes parados en la repisa
+  g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(60,90,120,0.16)"; g.fillRect(0, sy + 4, w, 9);
   const kinds = ["books", "jar", "robot", "blocks", "rocket", "house", "lamp"], n = Math.max(5, Math.round(w / 62));
   const order = []; for (let i = 0; i < n; i++) order.push(kinds[i % kinds.length]);
   if (!order.includes("lamp")) order[n - 2] = "lamp";
   let lampX = w * 0.8;
-  order.forEach((kd, i) => { const x = (w / n) * (i + 0.5) + (R() - 0.5) * 10; if (kd === "lamp") lampX = x; paintShelfToy(g, kd, x, sy, k * 0.9, dark, seed + i * 7); });
-  g.fillStyle = dark ? "#5E4A3B" : "#E1BC86"; g.fillRect(0, sy - 1, w, 3);
-  g.fillStyle = dark ? "#4A3A2E" : "#C99A62"; g.fillRect(0, sy + 2, w, 6);
-  g.fillStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.45)"; g.fillRect(0, sy + 2, w, 1);
-  return lampX;
+  order.forEach((kd, i) => { const x = (w / n) * (i + 0.5) + (R() - 0.5) * 10; if (kd === "lamp") lampX = x; paintShelfToy(g, kd, x, sy, k * 0.95, dark, seed + i * 7); });
+  g.fillStyle = dark ? "#6E5040" : "#F2D3A4"; g.fillRect(0, sy - 1, w, 3);
+  g.fillStyle = dark ? "#553D30" : "#D9A066"; g.fillRect(0, sy + 2, w, 6);
+  g.fillStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.5)"; g.fillRect(0, sy + 2, w, 1);
+  return { lampX, bulbs };
 }
 
 function buildToys() {
@@ -7413,192 +7561,203 @@ function buildToys() {
   const c = document.createElement("canvas");
   c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
   const g = c.getContext("2d"); g.scale(DPR, DPR);
-  // --- El piso: duela de madera (tablas con sus juntas, vetas y uno que otro nudo)
-  const ph = 26 * k, woods = dark ? ["#3A2C27", "#3E302A", "#372A24", "#40322C"] : ["#E6C597", "#E9CB9F", "#E2BF90", "#ECD0A7"];
-  for (let y = top - ph, row = 0; y < H; y += ph, row++) {
+  // --- El piso: duela de roble color miel (tablas con juntas, vetas, nudos y un brillo suave)
+  const ph = 24 * k, woods = dark ? ["#4A3226", "#4F362A", "#453027", "#54392C"] : ["#E3A866", "#E8B172", "#DDA05C", "#EAB87C"];
+  for (let y = top - ph; y < H; y += ph) {
     let x = -rr(0, 180);
     while (x < W) {
-      const len = rr(150, 280) * k;
-      g.fillStyle = pick(woods); g.fillRect(x, y, len, ph);
-      g.strokeStyle = dark ? "rgba(0,0,0,0.2)" : "rgba(150,100,55,0.16)"; g.lineWidth = 0.8;
+      const len = rr(150, 280) * k, wc = pick(woods);
+      const pg = g.createLinearGradient(0, y, 0, y + ph); pg.addColorStop(0, mix(wc, "#FFFFFF", dark ? 0.03 : 0.12)); pg.addColorStop(1, wc);
+      g.fillStyle = pg; g.fillRect(x, y, len, ph);
+      g.strokeStyle = dark ? "rgba(0,0,0,0.22)" : "rgba(150,85,35,0.22)"; g.lineWidth = 0.8;
       for (let j = 0; j < 3; j++) { const yy = y + rr(4, ph - 4); g.beginPath(); g.moveTo(x + 4, yy); g.bezierCurveTo(x + len * 0.3, yy + rr(-2, 2), x + len * 0.6, yy + rr(-2, 2), x + len - 4, yy + rr(-1.5, 1.5)); g.stroke(); }
-      if (R() < 0.16) { const nx = x + rr(20, len - 20), ny = y + ph / 2; g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(150,95,50,0.22)"; g.beginPath(); g.ellipse(nx, ny, 5, 2.4, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(nx, ny, 9, 4.5, 0, 0, TAU); g.stroke(); }
-      g.fillStyle = dark ? "rgba(0,0,0,0.45)" : "rgba(120,80,45,0.32)"; g.fillRect(x + len - 1, y, 1.2, ph);
+      if (R() < 0.14) { const nx = x + rr(20, len - 20), ny = y + ph / 2; g.fillStyle = dark ? "rgba(0,0,0,0.25)" : "rgba(140,80,35,0.28)"; g.beginPath(); g.ellipse(nx, ny, 5, 2.4, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(nx, ny, 9, 4.5, 0, 0, TAU); g.stroke(); }
+      g.fillStyle = dark ? "rgba(0,0,0,0.5)" : "rgba(130,70,30,0.42)"; g.fillRect(x + len - 1, y, 1.3, ph);
       x += len;
     }
-    g.fillStyle = dark ? "rgba(0,0,0,0.5)" : "rgba(120,80,45,0.3)"; g.fillRect(0, y + ph - 1.2, W, 1.2);
-    g.fillStyle = dark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.28)"; g.fillRect(0, y, W, 1);
+    g.fillStyle = dark ? "rgba(0,0,0,0.55)" : "rgba(130,70,30,0.4)"; g.fillRect(0, y + ph - 1.3, W, 1.3);
   }
-  // --- La alfombra de juego: una calle que la cruza, casitas, arbolitos y un charquito impresos (colores muy suaves)
-  const fh = H - top, rug = { x: W * 0.06, y: top + fh * 0.07, w: W * 0.88, h: fh * 0.86 }, rr0 = Math.min(28, rug.w * 0.08);
-  g.fillStyle = dark ? "rgba(0,0,0,0.35)" : "rgba(110,70,40,0.18)"; g.beginPath(); g.roundRect(rug.x + 2, rug.y + 4, rug.w, rug.h, rr0); g.fill();
-  // Flecos arriba y abajo
-  g.strokeStyle = dark ? "#4A5266" : "#F4F1EA"; g.lineWidth = 1.6; g.lineCap = "round";
-  for (let x = rug.x + rr0; x < rug.x + rug.w - rr0; x += 5) { g.beginPath(); g.moveTo(x, rug.y + 1); g.lineTo(x + rr(-1, 1), rug.y - 6); g.moveTo(x, rug.y + rug.h - 1); g.lineTo(x + rr(-1, 1), rug.y + rug.h + 6); g.stroke(); }
-  g.fillStyle = dark ? "#3A4256" : "#F2F4F0"; g.beginPath(); g.roundRect(rug.x, rug.y, rug.w, rug.h, rr0); g.fill();
-  const ins = 9 * k, base = dark ? "#283043" : "#D6E5EE";
-  g.fillStyle = base; g.beginPath(); g.roundRect(rug.x + ins, rug.y + ins, rug.w - ins * 2, rug.h - ins * 2, rr0 - 4); g.fill();
-  g.strokeStyle = dark ? "rgba(255,255,255,0.12)" : "rgba(224,85,143,0.35)"; g.lineWidth = 1.2; g.setLineDash([3, 3]);
-  g.beginPath(); g.roundRect(rug.x + ins * 0.5, rug.y + ins * 0.5, rug.w - ins, rug.h - ins, rr0 - 2); g.stroke(); g.setLineDash([]);
-  g.save(); g.beginPath(); g.roundRect(rug.x + ins, rug.y + ins, rug.w - ins * 2, rug.h - ins * 2, rr0 - 4); g.clip();
-  // Pasto impreso en manchas suaves
-  for (let i = 0; i < 6; i++) { g.fillStyle = dark ? "rgba(70,110,80,0.25)" : "rgba(170,210,165,0.45)"; g.beginPath(); g.ellipse(rug.x + rr(0, rug.w), rug.y + rr(0, rug.h), rr(30, 70) * k, rr(18, 40) * k, 0, 0, TAU); g.fill(); }
-  // La calle: una horizontal y una vertical que se cruzan, con su raya y un paso peatonal
-  const road = 22 * k, ry0 = rug.y + rug.h * 0.5, rx0 = rug.x + rug.w * 0.5, asph = dark ? "#3A4050" : "#BFC7CF", dash = dark ? "rgba(255,255,255,0.25)" : "#FFFFFF";
-  g.fillStyle = asph; g.fillRect(rug.x, ry0 - road / 2, rug.w, road); g.fillRect(rx0 - road / 2, rug.y, road, rug.h);
-  g.strokeStyle = dash; g.lineWidth = 1.6; g.setLineDash([7, 7]);
-  g.beginPath(); g.moveTo(rug.x, ry0); g.lineTo(rx0 - road, ry0); g.moveTo(rx0 + road, ry0); g.lineTo(rug.x + rug.w, ry0); g.moveTo(rx0, rug.y); g.lineTo(rx0, ry0 - road); g.moveTo(rx0, ry0 + road); g.lineTo(rx0, rug.y + rug.h); g.stroke(); g.setLineDash([]);
-  g.fillStyle = dash; for (let i = 0; i < 4; i++) g.fillRect(rx0 + road / 2 + 3, ry0 - road / 2 + 2 + i * (road / 4), 7 * k, road / 8);
-  // Casitas y arbolitos impresos en las esquinas
-  const HOUSES = dark ? ["#6A4E5E", "#4E5E78", "#6E6248"] : ["#F4B9C9", "#B9D4F0", "#F6DFA0"];
-  for (const [u, v, i] of [[0.12, 0.12, 0], [0.84, 0.14, 1], [0.1, 0.86, 2], [0.86, 0.84, 0]]) {
-    const hx = rug.x + rug.w * u, hy = rug.y + rug.h * v, hs = 14 * k;
-    g.fillStyle = HOUSES[i]; g.fillRect(hx - hs / 2, hy - hs / 2, hs, hs);
-    g.fillStyle = dark ? "#7A4A50" : "#E89AA8"; poly(g, [[hx - hs * 0.65, hy - hs / 2], [hx, hy - hs * 1.05], [hx + hs * 0.65, hy - hs / 2]]); g.fill();
-    for (const o of [-1, 1]) { g.fillStyle = dark ? "#3E6A50" : "#9FCF98"; g.beginPath(); g.arc(hx + o * hs * 1.15, hy + hs * 0.2, hs * 0.38, 0, TAU); g.fill(); }
+  // Brillo del barniz
+  const gl = g.createLinearGradient(0, top, W, H); gl.addColorStop(0, dark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.14)"); gl.addColorStop(0.5, "rgba(255,255,255,0)"); gl.addColorStop(1, dark ? "rgba(0,0,0,0.12)" : "rgba(120,60,20,0.08)");
+  g.fillStyle = gl; g.fillRect(0, top, W, H - top);
+  // --- La alfombra: orilla de rayas de colores con su costura, flecos, y el centro crema con confeti de colores
+  const fh = H - top, rug = { x: W * 0.035, y: top + fh * 0.045, w: W * 0.93, h: fh * 0.91 }, rr0 = Math.min(30, rug.w * 0.09);
+  g.fillStyle = dark ? "rgba(0,0,0,0.4)" : "rgba(110,55,20,0.22)"; g.beginPath(); g.roundRect(rug.x + 2, rug.y + 5, rug.w, rug.h, rr0); g.fill();
+  g.strokeStyle = dark ? "#8A8090" : "#FFFFFF"; g.lineWidth = 1.7; g.lineCap = "round";
+  for (let x = rug.x + rr0; x < rug.x + rug.w - rr0; x += 4.5) { g.beginPath(); g.moveTo(x, rug.y + 1); g.lineTo(x + rr(-1, 1), rug.y - 6); g.moveTo(x, rug.y + rug.h - 1); g.lineTo(x + rr(-1, 1), rug.y + rug.h + 6); g.stroke(); }
+  const stripes = [["#F26B5B", 8], ["#FFFFFF", 2.2], ["#FFC94A", 7], ["#FFFFFF", 2.2], ["#3FB7C9", 7], ["#FFFFFF", 2.2]];
+  let ins = 0;
+  for (const [col, wd] of stripes) { g.fillStyle = col === "#FFFFFF" ? (dark ? "#B8AEBE" : "#FFFFFF") : toyDim(col, dark); g.beginPath(); g.roundRect(rug.x + ins, rug.y + ins, rug.w - ins * 2, rug.h - ins * 2, Math.max(4, rr0 - ins * 0.6)); g.fill(); ins += wd * k; }
+  const cx0 = rug.x + ins, cy0 = rug.y + ins, cw = rug.w - ins * 2, chh = rug.h - ins * 2, crr = Math.max(4, rr0 - ins * 0.6);
+  const cg = g.createRadialGradient(W / 2, top + fh * 0.5, 10, W / 2, top + fh * 0.5, Math.max(cw, chh) * 0.7);
+  cg.addColorStop(0, dark ? "#3A3248" : "#FFF8EC"); cg.addColorStop(1, dark ? "#302A3E" : "#FFEFD9");
+  g.fillStyle = cg; g.beginPath(); g.roundRect(cx0, cy0, cw, chh, crr); g.fill();
+  g.strokeStyle = dark ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.9)"; g.lineWidth = 1.2; g.setLineDash([3.5, 3]);
+  g.beginPath(); g.roundRect(rug.x + 4 * k, rug.y + 4 * k, rug.w - 8 * k, rug.h - 8 * k, rr0 - 2); g.stroke(); g.setLineDash([]);
+  // Confeti: estrellas, corazones y puntitos de colores
+  g.save(); g.beginPath(); g.roundRect(cx0, cy0, cw, chh, crr); g.clip();
+  const CC = ["#F26B5B", "#FFC94A", "#3FB7C9", "#7FD18A", "#9B7BE8", "#F7A8C4"];
+  for (let yy = cy0 + 16; yy < cy0 + chh; yy += 34 * k) for (let xx = cx0 + 14 + ((Math.round(yy) / 34) % 2) * 17; xx < cx0 + cw; xx += 34 * k) {
+    const px = xx + rr(-7, 7), py = yy + rr(-7, 7), t = R(), col = toyDim(pick(CC), dark);
+    g.globalAlpha = dark ? 0.35 : 0.55; g.fillStyle = col;
+    if (t < 0.25) { g.beginPath(); for (let i = 0; i < 10; i++) { const r = (i % 2 ? 1.6 : 3.8) * k, a = (i * Math.PI) / 5 - Math.PI / 2 + t * 6; i ? g.lineTo(px + Math.cos(a) * r, py + Math.sin(a) * r) : g.moveTo(px + Math.cos(a) * r, py + Math.sin(a) * r); } g.closePath(); g.fill(); }
+    else if (t < 0.42) { const r = 2.4 * k; g.beginPath(); g.moveTo(px, py + r * 1.4); g.bezierCurveTo(px - r * 2.2, py - r * 0.2, px - r * 0.9, py - r * 1.8, px, py - r * 0.5); g.bezierCurveTo(px + r * 0.9, py - r * 1.8, px + r * 2.2, py - r * 0.2, px, py + r * 1.4); g.fill(); }
+    else if (t < 0.6) { g.save(); g.translate(px, py); g.rotate(t * 9); g.fillRect(-3.5 * k, -1 * k, 7 * k, 2 * k); g.restore(); }
+    else { g.beginPath(); g.arc(px, py, 2.1 * k, 0, TAU); g.fill(); }
   }
-  g.fillStyle = dark ? "rgba(70,120,150,0.35)" : "rgba(150,200,230,0.8)"; g.beginPath(); g.ellipse(rug.x + rug.w * 0.24, rug.y + rug.h * 0.3, 22 * k, 11 * k, 0.2, 0, TAU); g.fill();
+  g.globalAlpha = 1;
   g.restore();
-  // --- El circuito de tren de madera: un óvalo con sus dos ranuras y sus uniones
-  const T = { cx: W / 2, cy: top + fh * 0.52, rx: clamp(W * 0.32, 110, 420), ry: clamp(fh * 0.34, 110, 330), tw: 17 * k, n: 3.4 };
+  // --- La luz de la ventana en el piso (de día): dos manchas con la cruz del marco
+  const win = [];
+  if (!dark) {
+    for (const [u, v] of [[0.62, 0.18], [0.12, 0.62]]) {
+      const wx = W * u, wy = top + fh * v, ww = 62 * k, wh = 78 * k, sk = 26 * k;
+      win.push({ x: wx, y: wy, w: ww, h: wh, sk });
+      g.fillStyle = "rgba(255,246,214,0.32)";
+      for (const [ox, oy] of [[0, 0], [ww / 2 + 2, 0], [0, wh / 2 + 2], [ww / 2 + 2, wh / 2 + 2]]) poly(g, [[wx + ox + sk * (oy / wh), wy + oy], [wx + ox + ww / 2 - 2 + sk * (oy / wh), wy + oy], [wx + ox + ww / 2 - 2 + sk * ((oy + wh / 2 - 2) / wh), wy + oy + wh / 2 - 2], [wx + ox + sk * ((oy + wh / 2 - 2) / wh), wy + oy + wh / 2 - 2]]), g.fill();
+    }
+  }
+  // --- El circuito de tren de madera, con arbolitos alrededor
+  const T = { cx: W / 2, cy: top + fh * 0.555, rx: clamp(W * 0.3, 106, 400), ry: clamp(fh * 0.285, 110, 320), tw: 17 * k, n: 3.4 };
   paintTrack(g, T, dark);
-  // --- Cosas tiradas en el piso (planas): crayones, ladrillitos, piezas de rompecabezas y un carrito
   const free = (x, y, m) => { const d = trackDist(T, x, y); return Math.abs(d - 1) > m && d > 0.45; };
-  const CR = ["#E2604F", "#2FA3C4", "#F1C84D", "#6BCB9B", "#A584E8", "#FF8A65"];
+  // --- Cosas tiradas en el piso (planas): crayones, ladrillitos y piezas de rompecabezas (fuera del centro)
   const flat = [];
-  for (let i = 0; i < (small ? 9 : 16); i++) {
+  for (let i = 0; i < (small ? 8 : 14); i++) {
     for (let tries = 0; tries < 30; tries++) {
-      const x = rr(10, W - 10), y = rr(top + 20, H - 10);
-      if (!free(x, y, 0.16) || trackDist(T, x, y) < 0.8) continue;
-      if (flat.some((f) => Math.hypot(f.x - x, f.y - y) < 40)) continue;
-      flat.push({ x, y }); const t = i % 4;
-      if (t === 0) paintCrayon(g, x, y, rr(22, 30) * k, rr(0, TAU), pick(CR), dark);
-      else if (t === 1) paintBrick(g, x, y, R() < 0.5 ? 2 : 4, rr(-0.6, 0.6), pick(CR), dark, 6.5 * k);
-      else if (t === 2) paintPuzzle(g, x, y, 7 * k, rr(0, TAU), pick(CR), dark);
-      else paintCrayon(g, x, y, rr(22, 30) * k, rr(0, TAU), pick(CR), dark);
+      const x = rr(14, W - 14), y = rr(top + 24, H - 12);
+      if (!free(x, y, 0.18) || trackDist(T, x, y) < 0.82) continue;
+      if (flat.some((f) => Math.hypot(f.x - x, f.y - y) < 46)) continue;
+      flat.push({ x, y }); const t = i % 3;
+      if (t === 0) paintCrayon(g, x, y, rr(26, 34) * k, rr(0, TAU), pick(CC), dark);
+      else if (t === 1) paintBrick(g, x, y, R() < 0.5 ? 2 : 4, rr(-0.6, 0.6), pick(CC), dark, 7.5 * k);
+      else paintPuzzle(g, x, y, 8 * k, rr(0, TAU), pick(CC), dark);
       break;
     }
   }
-  { const x = rug.x + rug.w * 0.78, y = ry0 + road * 0.22; if (free(x, y, 0.1)) paintCar(g, x, y, 2, 30 * k, 15 * k, "#F1C84D", dark, false); }
-  // --- La pared con la repisa de juguetes (arriba, ahí no se entra)
-  const lampX = paintToyWall(g, W, top, dark, 77, k);
-  // Sombra suave de la pared sobre el piso
-  const sh = g.createLinearGradient(0, top, 0, top + 34);
-  sh.addColorStop(0, dark ? "rgba(0,0,0,0.4)" : "rgba(110,70,40,0.18)"); sh.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = sh; g.fillRect(0, top, W, 34);
-  // De noche: la luz cálida de la lamparita en la pared y el piso
+  // --- La pared con banderines y la repisa de juguetes (arriba, ahí no se entra)
+  const WL = paintToyWall(g, W, top, dark, 77, k, top - 46);
+  const sh = g.createLinearGradient(0, top, 0, top + 30);
+  sh.addColorStop(0, dark ? "rgba(0,0,0,0.45)" : "rgba(110,55,20,0.2)"); sh.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = sh; g.fillRect(0, top, W, 30);
   if (dark) {
-    const lg = g.createRadialGradient(lampX, top - 20, 4, lampX, top - 20, 150 * k);
-    lg.addColorStop(0, "rgba(255,214,140,0.28)"); lg.addColorStop(1, "rgba(255,214,140,0)");
-    g.fillStyle = lg; g.fillRect(lampX - 160 * k, 0, 320 * k, top + 150 * k);
+    const lg = g.createRadialGradient(WL.lampX, top - 20, 4, WL.lampX, top - 20, 170 * k);
+    lg.addColorStop(0, "rgba(255,206,130,0.3)"); lg.addColorStop(1, "rgba(255,206,130,0)");
+    g.fillStyle = lg; g.fillRect(WL.lampX - 180 * k, 0, 360 * k, top + 170 * k);
   }
   bgLayer = c;
-  // --- Los juguetes grandes, a los lados y en las esquinas (fuera del circuito); el centro queda libre
-  const plan = small ? ["stack", "teddy", "ball", "rings", "duck", "drum"] : ["stack", "teddy", "ball", "rings", "duck", "drum", "stack", "ball", "rings", "teddy"];
-  const RAD = { stack: 38, teddy: 26, ball: 17, rings: 19, duck: 20, drum: 20 };
-  const placed = [];
-  plan.forEach((kind, i) => {
-    const left = i % 2 === 0;
-    for (let tries = 0; tries < 120; tries++) {
-      const x = left ? rr(W * 0.0, W * 0.3) : rr(W * 0.7, W * 1.0), y = rr(top + 46 * k, H - 8), pr = RAD[kind] * k;
-      if (trackDist(T, x, y) < 1 + (pr + T.tw) / Math.min(T.rx, T.ry)) continue;
-      if (x < -pr * 0.3 || x > W + pr * 0.3) continue;
-      if (placed.some((p) => Math.hypot(p.x - x, (p.y - y) * 1.5) < (RAD[p.kind] + RAD[kind]) * k + 10)) continue;
-      placed.push({ kind, x, y, left }); break;
-    }
-  });
-  for (const p of placed) {
-    const s = k * rr(0.95, 1.12), seed = Math.floor(p.x * 3 + p.y), blk = { stack: [34, 7], teddy: [20, 6], ball: [14, 5], rings: [16, 5], duck: [16, 5], drum: [17, 6] }[p.kind];
-    blocks.push({ x: p.x, y: p.y - 2, rx: blk[0] * s, ry: blk[1] * s });
-    const box = { stack: [110, 82], teddy: [72, 64], ball: [46, 34], rings: [52, 66], duck: [58, 40], drum: [62, 44] }[p.kind], w0 = box[0] * s, tp = box[1] * s;
+  // --- Los juguetes grandes, bien acomodados: arriba el tipi y el baúl; abajo el caballito y la torre de bloques;
+  // a los lados el osito, la pirámide de aros, la pelota, el tambor y el patito; y arbolitos de madera junto a la vía
+  const s0 = clamp(Math.min(W / 390, fh / 600), 0.8, 1.35), gapT = T.cy - T.ry - top, gapB = H - (T.cy + T.ry);
+  const ts = Math.min(s0 * 0.95, (gapT - 22) / 118), sideL = Math.max(30 * s0, (T.cx - T.rx - T.tw) * 0.5), sideR = W - sideL;
+  const plan = [
+    { kind: "tipi", x: Math.max(52 * ts, T.cx - T.rx + 6 * s0), y: T.cy - T.ry - 16 * s0, s: ts, blk: [44, 11] },
+    { kind: "chest", x: Math.min(W - 52 * s0, T.cx + T.rx - 14 * s0), y: T.cy - T.ry - 20 * s0, s: Math.min(s0 * 0.9, (gapT - 22) / 92), blk: [38, 9] },
+    { kind: "horse", x: Math.max(44 * s0, T.cx - T.rx + 12 * s0), y: H - 8 * s0, s: Math.min(s0 * 0.88, gapB / 70), blk: [36, 7] },
+    { kind: "stack", x: Math.min(W - 40 * s0, T.cx + T.rx + 2 * s0), y: H - 10 * s0, s: Math.min(s0 * 0.9, gapB / 74), blk: [30, 7] },
+    { kind: "teddy", x: sideL, y: T.cy - T.ry * 0.25, s: s0 * 0.82, blk: [18, 6] },
+    { kind: "rings", x: sideR, y: T.cy - T.ry * 0.42, s: s0 * 0.85, blk: [14, 5] },
+    { kind: "ball", x: sideL, y: T.cy + T.ry * 0.42, s: s0 * 0.95, blk: [14, 5] },
+    { kind: "drum", x: sideR, y: T.cy + T.ry * 0.2, s: s0 * 0.85, blk: [16, 6] },
+    { kind: "duck", x: sideR, y: T.cy + T.ry * 0.68, s: s0 * 0.8, blk: [14, 5] },
+  ];
+  // Arbolitos de madera a un lado de la vía
+  for (const [u, v, col] of [[-1, -0.78, "#5DBB6A"], [1, 0.02, "#7FD18A"], [-1, 0.1, "#3FA35A"], [1, -0.72, "#5DBB6A"]]) {
+    const x = T.cx + u * (T.rx + T.tw * 1.6), y = T.cy + v * T.ry;
+    if (x > 14 && x < W - 14) plan.push({ kind: "tree", x, y, s: s0 * 0.9, col, blk: [7, 3] });
+  }
+  for (const p of plan) {
+    const s = p.s, seed = Math.floor(p.x * 3 + p.y);
+    blocks.push({ x: p.x, y: p.y - 2, rx: p.blk[0] * s, ry: p.blk[1] * s });
+    const box = { tipi: [150, 140], chest: [110, 96], horse: [110, 104], stack: [110, 82], teddy: [72, 64], ball: [46, 34], rings: [52, 66], duck: [58, 40], drum: [62, 44], tree: [30, 38] }[p.kind], w0 = box[0] * s, tp = box[1] * s;
     const paint = (gg) => {
       const x = w0 / 2, y = tp;
-      if (p.kind === "stack") paintBlockStack(gg, x - 6 * s, y, s, dark, seed);
+      if (p.kind === "tipi") paintTipi(gg, x, y, s, dark);
+      else if (p.kind === "chest") paintToyChest(gg, x - 6 * s, y, s, dark);
+      else if (p.kind === "horse") paintRockingHorse(gg, x - 4 * s, y, s, dark, 1);
+      else if (p.kind === "stack") paintBlockStack(gg, x - 6 * s, y, s, dark, seed);
       else if (p.kind === "teddy") paintTeddy(gg, x, y, s, dark);
       else if (p.kind === "ball") paintBall(gg, x, y, s, dark);
       else if (p.kind === "rings") paintRings(gg, x, y, s, dark);
-      else if (p.kind === "duck") paintDuck(gg, x, y, s, dark, p.left ? 1 : -1);
-      else paintDrum(gg, x, y, s, dark);
+      else if (p.kind === "duck") paintDuck(gg, x, y, s, dark, -1);
+      else if (p.kind === "drum") paintDrum(gg, x, y, s, dark);
+      else paintToyTree(gg, x, y, s, dark, p.col);
     };
-    pines.push({ x: p.x, y: p.y, h: tp, sway: 0, spr: makePropSprite(paint, w0, tp + 8, w0 / 2, tp) });
+    pines.push({ x: p.x, y: p.y, h: tp, sway: 0, spr: makePropSprite(paint, w0, tp + 10, w0 / 2, tp) });
   }
   pines.sort((a, b) => a.y - b.y);
   // --- Lo que se mueve
-  const motes = Array.from({ length: small ? 14 : 24 }, () => ({ u: R(), v: R(), ph: rr(0, TAU), sp: rr(0.3, 0.8), r: rr(0.8, 1.8) }));
+  const motes = Array.from({ length: small ? 16 : 26 }, () => ({ w: Math.floor(R() * Math.max(1, win.length)), u: R(), v: R(), ph: rr(0, TAU), sp: rr(0.3, 0.8), r: rr(0.8, 1.7) }));
   const stars = Array.from({ length: small ? 18 : 30 }, (_, i) => ({ a: rr(0, TAU), d: Math.sqrt(R()) * Math.max(W, fh) * 0.6, s: rr(3, 6.5), ph: rr(0, TAU), c: i % 3 }));
-  const beams = [{ x: W * rr(0.55, 0.75), w: 70 * k }, { x: W * rr(0.2, 0.35), w: 46 * k }];
-  toys = { top, lampX, motes, stars, beams, track: T };
+  // Resplandor de los foquitos (se pinta una vez y se reusa)
+  const glow = document.createElement("canvas"); glow.width = glow.height = 40;
+  { const gg = glow.getContext("2d"), gr = gg.createRadialGradient(20, 20, 0, 20, 20, 20); gr.addColorStop(0, "rgba(255,226,160,0.9)"); gr.addColorStop(0.35, "rgba(255,200,120,0.35)"); gr.addColorStop(1, "rgba(255,200,120,0)"); gg.fillStyle = gr; gg.fillRect(0, 0, 40, 40); }
+  toys = { top, lampX: WL.lampX, bulbs: WL.bulbs, glow, motes, stars, win, track: T };
   setupTrain(T);
 }
-// El circuito de madera (se pinta una vez): sombra, la madera, dos ranuras y las uniones entre piezas
+// El circuito de madera (se pinta una vez): sombra, el grueso de la vía, la madera clara con su brillo, dos ranuras y
+// las uniones entre piezas (con su "huesito" de encaje)
 function paintTrack(g, T, dark, quick) {
   const { cx, cy, rx, ry, tw } = T;
-  g.lineCap = "butt";
-  g.lineJoin = "round";
-  g.strokeStyle = dark ? "rgba(0,0,0,0.4)" : "rgba(90,55,30,0.2)"; g.lineWidth = tw + 2; trackPath(g, T, 0, 3, 1.5); g.stroke();
-  g.strokeStyle = dark ? "#6E5845" : "#C9A26C"; g.lineWidth = tw + 2; trackPath(g, T, 0, 1.2); g.stroke();
-  g.strokeStyle = dark ? "#8C7258" : "#E8CC98"; g.lineWidth = tw; trackPath(g, T, 0); g.stroke();
-  for (const o of [-tw * 0.24, tw * 0.24]) {
-    g.strokeStyle = dark ? "#5A4636" : "#B98E58"; g.lineWidth = 2.4; trackPath(g, T, o); g.stroke();
-    g.strokeStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.5)"; g.lineWidth = 0.8; trackPath(g, T, o, 1.4); g.stroke();
+  g.lineCap = "butt"; g.lineJoin = "round";
+  g.strokeStyle = dark ? "rgba(0,0,0,0.45)" : "rgba(100,50,15,0.24)"; g.lineWidth = tw + 3; trackPath(g, T, 0, 4, 2); g.stroke();
+  g.strokeStyle = dark ? "#6A4E38" : "#C38A4E"; g.lineWidth = tw + 2; trackPath(g, T, 0, 2.2); g.stroke();
+  g.strokeStyle = dark ? "#9A7B5C" : "#F3D19B"; g.lineWidth = tw; trackPath(g, T, 0); g.stroke();
+  g.strokeStyle = dark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.55)"; g.lineWidth = 1.2; trackPath(g, T, -tw * 0.44); g.stroke();
+  for (const o of [-tw * 0.22, tw * 0.22]) {
+    g.strokeStyle = dark ? "#5A4232" : "#B97E42"; g.lineWidth = 2.6; trackPath(g, T, o); g.stroke();
+    g.strokeStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.6)"; g.lineWidth = 0.8; trackPath(g, T, o, 1.5); g.stroke();
   }
   if (quick) {
-    g.strokeStyle = dark ? "rgba(0,0,0,0.45)" : "rgba(120,80,40,0.45)"; g.lineWidth = 1;
+    g.strokeStyle = dark ? "rgba(0,0,0,0.45)" : "rgba(130,70,30,0.5)"; g.lineWidth = 1;
     for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU + 0.1, px = cx + Math.cos(a) * rx, py = cy + Math.sin(a) * ry, tx = -Math.sin(a) * rx, ty = Math.cos(a) * ry, l = Math.hypot(tx, ty), nx = -ty / l, ny = tx / l; g.beginPath(); g.moveTo(px + nx * tw / 2, py + ny * tw / 2); g.lineTo(px - nx * tw / 2, py - ny * tw / 2); g.stroke(); }
     return;
   }
-  // Uniones: una rayita cada pieza (repartidas por largo, no por ángulo)
-  const per = TAU * Math.sqrt((rx * rx + ry * ry) / 2), n = Math.max(10, Math.round(per / 70));
+  const per = TAU * Math.sqrt((rx * rx + ry * ry) / 2), n = Math.max(10, Math.round(per / 64));
   let acc = 0, next = 0, prev = trackPt(T, 0);
-  g.strokeStyle = dark ? "rgba(0,0,0,0.45)" : "rgba(120,80,40,0.45)"; g.lineWidth = 1.2;
   for (let i = 1; i <= 720; i++) {
     const a = (i / 720) * TAU, p = trackPt(T, a);
     acc += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
     if (acc >= next) {
       next += per / n;
       const tx = p[0] - prev[0], ty = p[1] - prev[1], l = Math.hypot(tx, ty) || 1, nx = -ty / l, ny = tx / l;
+      g.strokeStyle = dark ? "rgba(0,0,0,0.5)" : "rgba(130,70,30,0.55)"; g.lineWidth = 1.2;
       g.beginPath(); g.moveTo(p[0] + nx * tw / 2, p[1] + ny * tw / 2); g.lineTo(p[0] - nx * tw / 2, p[1] - ny * tw / 2); g.stroke();
+      g.fillStyle = dark ? "rgba(0,0,0,0.3)" : "rgba(150,90,40,0.35)"; g.beginPath(); g.arc(p[0], p[1], 1.6, 0, TAU); g.fill();
     }
     prev = p;
   }
 }
-// Debajo de los marcianitos: el piso (bgLayer); de día, el rayo de sol con su polvito; de noche, las estrellas de la lamparita
+// Debajo de los marcianitos: el piso (bgLayer); de día, polvito flotando en la luz de la ventana;
+// de noche, las estrellas de la lamparita, los foquitos de los banderines y la lamparita que respira
 function drawToysBg() {
   if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
   if (!toys) return;
   const Y = toys, tt = reduceMotion ? 0 : time;
   if (!PAL.dark) {
-    for (const b of Y.beams) {
-      const a = 0.13 + 0.04 * Math.sin(tt * 0.35 + b.x), gr = ctx.createLinearGradient(0, Y.top, 0, H * 0.9);
-      gr.addColorStop(0, `rgba(255,246,220,${a})`); gr.addColorStop(1, "rgba(255,246,220,0)");
-      ctx.globalAlpha = 1; ctx.fillStyle = gr; poly(ctx, [[b.x, Y.top], [b.x + b.w, Y.top], [b.x + b.w - H * 0.3, H * 0.9], [b.x - H * 0.3 - b.w * 0.3, H * 0.9]]); ctx.fill();
-    }
-    // Polvito que flota despacio dentro del rayo
     ctx.fillStyle = "#FFFFFF";
     for (const m of Y.motes) {
-      const b = Y.beams[m.u < 0.6 ? 0 : 1], v = (m.v + tt * 0.012 * m.sp) % 1, yy = Y.top + v * (H * 0.9 - Y.top), xx = b.x + b.w * (m.u % 0.6) / 0.6 - (yy - Y.top) * (H * 0.3) / (H * 0.9 - Y.top) + Math.sin(tt * 0.5 + m.ph) * 8;
-      ctx.globalAlpha = 0.55 * (0.5 + 0.5 * Math.sin(tt * 1.3 + m.ph)) * Math.sin(v * Math.PI);
+      const w = Y.win[m.w]; if (!w) continue;
+      const v = (m.v + tt * 0.02 * m.sp) % 1, yy = w.y - 30 + v * (w.h + 30), xx = w.x + m.u * w.w + w.sk * v + Math.sin(tt * 0.5 + m.ph) * 6;
+      ctx.globalAlpha = 0.7 * (0.5 + 0.5 * Math.sin(tt * 1.3 + m.ph)) * Math.sin(v * Math.PI);
       ctx.beginPath(); ctx.arc(xx, yy, m.r, 0, TAU); ctx.fill();
     }
   } else {
-    // Estrellas que proyecta la lamparita, girando muy despacio
     const cx = W / 2, cy = Y.top + (H - Y.top) * 0.45, rot = tt * 0.03, cols = ["255,226,150", "190,210,255", "255,190,215"];
     for (const s of Y.stars) {
       const a = s.a + rot, x = cx + Math.cos(a) * s.d, y = cy + Math.sin(a) * s.d * 0.62;
       if (x < -10 || x > W + 10 || y < Y.top || y > H + 10) continue;
-      ctx.globalAlpha = 0.16 + 0.06 * Math.sin(tt * 0.8 + s.ph); ctx.fillStyle = `rgb(${cols[s.c]})`;
+      ctx.globalAlpha = 0.18 + 0.06 * Math.sin(tt * 0.8 + s.ph); ctx.fillStyle = `rgb(${cols[s.c]})`;
       ctx.beginPath();
       for (let i = 0; i < 10; i++) { const r = i % 2 ? s.s * 0.42 : s.s, b = (i * Math.PI) / 5 - Math.PI / 2 + a * 0.5; i ? ctx.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r * 0.7) : ctx.moveTo(x + Math.cos(b) * r, y + Math.sin(b) * r * 0.7); }
       ctx.closePath(); ctx.fill();
     }
-    // La lamparita respira despacio
-    const k = 0.75 + 0.25 * Math.sin(tt * 0.6), lx = Y.lampX, ly = Y.top - 26, gl = ctx.createRadialGradient(lx, ly, 0, lx, ly, 44);
-    gl.addColorStop(0, `rgba(255,226,150,${0.35 * k})`); gl.addColorStop(1, "rgba(255,226,150,0)");
-    ctx.globalAlpha = 1; ctx.fillStyle = gl; ctx.fillRect(lx - 44, ly - 44, 88, 88);
+    for (let i = 0; i < Y.bulbs.length; i++) { const [bx, by] = Y.bulbs[i]; ctx.globalAlpha = 0.65 + 0.35 * Math.sin(tt * 1.1 + i * 1.7); ctx.drawImage(Y.glow, bx - 11, by - 11, 22, 22); }
+    const k = 0.75 + 0.25 * Math.sin(tt * 0.6), lx = Y.lampX, ly = Y.top - 26;
+    ctx.globalAlpha = 0.6 * k; ctx.drawImage(Y.glow, lx - 40, ly - 40, 80, 80);
   }
   ctx.globalAlpha = 1;
 }
-
 /* ---------- Tren de juguete (The Playroom): un trenecito de madera estacionado en su circuito. Al tocar, pita, arranca,
    da una vuelta completa al óvalo y regresa a su lugar; a cada marcianito que se le atraviesa lo avienta fuera de la vía.
    Mejorándolo, sale más seguido y lleva más vagones. ---------- */
@@ -9175,7 +9334,7 @@ const Hero = (() => {
     beach: [{ k: "palm", u: -0.58, v: -0.28, s: 1, r: 7 }, { k: "umbrella", u: 0.58, v: -0.2, s: 1, r: 6 }, { k: "castle", u: 0.4, v: 0.52, s: 1, r: 22 }],
     snow: [{ k: "snowman", u: -0.5, v: 0.45, s: 1, r: 12 }],
     city: [{ k: "tree", u: 0.42, v: 0.68, s: 1, r: 6 }],
-    toys: [{ k: "tstack", u: -0.7, v: -0.3, s: 1, r: 13 }, { k: "teddy", u: 0.68, v: -0.34, s: 1, r: 11 }, { k: "tball", u: -0.42, v: 0.7, s: 1, r: 8 }, { k: "tduck", u: 0.46, v: 0.68, s: 1, r: 8 }],
+    toys: [{ k: "tipi", u: -0.62, v: -0.36, s: 1, r: 16 }, { k: "chest", u: 0.62, v: -0.32, s: 1, r: 14 }, { k: "tball", u: -0.44, v: 0.7, s: 1, r: 8 }, { k: "teddy", u: 0.5, v: 0.62, s: 1, r: 10 }],
     jungle: [{ k: "jtree", u: -0.58, v: -0.32, s: 1, r: 8 }, { k: "banana", u: 0.62, v: -0.24, s: 1, r: 8 }, { k: "bush", u: -0.42, v: 0.52, s: 1, r: 10 }, { k: "shroom", u: 0.56, v: 0.48, s: 1, r: 5 }],
   };
   const heroProps = (lid, e) => { const k = Math.min(e.ry, 78) / 78; return (HERO_PROPS[lid] || []).map((p) => ({ ...p, sc: k, x: e.cx + p.u * e.rx, y: e.cy + p.v * e.ry, rr: p.r * k })); };
@@ -9196,7 +9355,9 @@ const Hero = (() => {
     else if (P.k === "bush") paintFlowerBush(g, x, y, 0.9 * k, dark, 6);
     else if (P.k === "shroom") paintMushrooms(g, x, y, 1.1 * k, dark);
     else if (P.k === "tstack") paintBlockStack(g, x, y, 0.62 * k, dark, 3);
-    else if (P.k === "teddy") paintTeddy(g, x, y, 0.74 * k, dark);
+    else if (P.k === "tipi") paintTipi(g, x, y, 0.62 * k, dark);
+    else if (P.k === "chest") paintToyChest(g, x, y, 0.62 * k, dark);
+    else if (P.k === "teddy") paintTeddy(g, x, y, 0.66 * k, dark);
     else if (P.k === "tball") paintBall(g, x, y, 0.78 * k, dark);
     else if (P.k === "tduck") paintDuck(g, x, y, 0.8 * k, dark, -1);
     else if (P.k === "crystal") {
