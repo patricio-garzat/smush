@@ -560,8 +560,8 @@ def helmet(c, cu, cv, Rk, ringv):
     c.shadow(f'M{cx_-rw:.1f},{ry_:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_:.1f} L{cx_+rw:.1f},{ry_-rh*1.6:.1f} L{cx_-rw:.1f},{ry_-rh*1.6:.1f} Z', 0, -0.5, 0.3)
     band = f'M{cx_-rw:.1f},{ry_:.1f} L{cx_-rw:.1f},{ry_+bh:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_+bh:.1f} L{cx_+rw:.1f},{ry_:.1f} A{rw:.1f},{rh:.1f} 0 0 1 {cx_-rw:.1f},{ry_:.1f} Z'
     return (f'<path d="{dome}" fill="{c.rad([(0,"rgba(225,245,255,0.04)"),(0.72,"rgba(195,232,255,0.16)"),(1,"rgba(150,205,240,0.42)")],.5,.55,.55)}" stroke="#EAF7FF" stroke-width="{S*0.16:.1f}" stroke-opacity=".9"/>'
-            + path(f'M{cx_-R*0.74:.1f},{cy_-R*0.18:.1f} A{R*0.8:.1f},{R*0.8:.1f} 0 0 1 {cx_-R*0.08:.1f},{cy_-R*0.79:.1f}', stroke="#FFFFFF", w=S * 0.42, extra='stroke-linecap="round" opacity=".85"')
-            + path(f'M{cx_+R*0.62:.1f},{cy_+R*0.1:.1f} A{R*0.72:.1f},{R*0.72:.1f} 0 0 0 {cx_+R*0.7:.1f},{cy_-R*0.2:.1f}', stroke="#FFFFFF", w=S * 0.22, extra='stroke-linecap="round" opacity=".55"')
+            + path(f'M{cx_-R*0.74:.1f},{cy_-R*0.18:.1f} A{R*0.8:.1f},{R*0.8:.1f} 0 0 1 {cx_-R*0.08:.1f},{cy_-R*0.79:.1f}', stroke="#FFFFFF", w=S * 0.42, extra='opacity=".85"')
+            + path(f'M{cx_+R*0.62:.1f},{cy_+R*0.1:.1f} A{R*0.72:.1f},{R*0.72:.1f} 0 0 0 {cx_+R*0.7:.1f},{cy_-R*0.2:.1f}', stroke="#FFFFFF", w=S * 0.22, extra='opacity=".55"')
             + f'<path d="{band}" fill="{c.lin([(0,"#E9EDF4"),(0.5,"#B4BDCD"),(1,"#7E89A0")],0,0,1,0)}" stroke="#6E7A90" stroke-width="{S*0.1:.1f}"/>'
             + f'<path d="M{cx_-rw:.1f},{ry_:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_:.1f}" fill="none" stroke="#FFFFFF" stroke-width="{S*0.2:.1f}" opacity=".85"/>'
             + f'<path d="M{cx_-rw:.1f},{ry_+bh*0.5:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_+bh*0.5:.1f}" fill="none" stroke="#2FA3C4" stroke-width="{S*0.22:.1f}"/>'
