@@ -470,42 +470,49 @@ BA(c, 'wing', (2.4, 2.8), wing(c, 2.4, 2.8, -16, 1.05, "#FFB3D3", "#E0679B", "#A
 ch[('jungle', 'yellow')] = c
 
 # ===================== THE PLAYROOM (cuarto de juegos) =====================
-# Verde: soldadito de plomo (gorro alto rojo con su placa dorada, visera, penacho blanco; correas blancas cruzadas)
+# Verde: soldadito de plomo. Gorro alto rojo (placa dorada, penacho blanco y visera chiquita), y abajo, debajo de los
+# ojos, su chaqueta roja con orilla dorada, cinturón blanco con hebilla y una charretera dorada en el hombro
 c = Ch('green', 'tg'); S = c.S
 c.strip(['M-720.6-551.6', 'cx="-769.6"', 'M-611.6-548.6', 'cx="-567.6"'])  # sin antenas: el gorro las tapa
 ex, ey = c.P(5.0, 5.0)
 c.defs.append(f'<clipPath id="tg-clip"><ellipse cx="{ex:.1f}" cy="{ey:.1f}" rx="{c.bw*0.5:.1f}" ry="{c.bh*0.49:.1f}"/></clipPath>')
-belts = [f'M{c.p(1.0,4.0)} L{c.p(8.6,9.6)}', f'M{c.p(8.8,4.6)} L{c.p(1.6,10.0)}']
-for d in belts: c.shadow_stroke(d, S * 0.7, 0, 0.3, 0.35)
-F(c, '<g clip-path="url(#tg-clip)">', *[path(d, stroke="#F4F1EA", w=S * 0.75) for d in belts], *[path(d, stroke="#D8D1C2", w=S * 0.12, extra='opacity=".7"') for d in belts], '</g>')
-F(c, circ(c, 5.05, 7.0, 0.55, "#F1C84D"), circ(c, 5.05, 7.0, 0.3, "#C9962A"))
-hat = f'M{c.p(2.5,1.6)} L{c.p(2.1,-3.6)} Q{c.p(5.1,-4.3)} {c.p(8.1,-3.6)} L{c.p(7.7,1.6)} Q{c.p(5.1,2.2)} {c.p(2.5,1.6)} Z'
+jtop = f'M{c.p(-1,6.85)} Q{c.p(4.5,7.75)} {c.p(11,6.65)}'
+jk = jtop + f' L{c.p(11,11.5)} L{c.p(-1,11.5)} Z'
+belt = f'M{c.p(-1,8.95)} Q{c.p(4.5,9.85)} {c.p(11,8.7)}'
+c.shadow(jtop + f' L{c.p(11,7.9)} Q{c.p(4.5,9.15)} {c.p(-1,8.2)} Z', 0, -0.25, 0.28)
+F(c, '<g clip-path="url(#tg-clip)">', path(jk, fill=c.lin([(0, "#EE5A50"), (0.55, "#CF3438"), (1, "#A2232F")])),
+  path(jtop, stroke="#F1C84D", w=S * 0.3), path(belt, stroke="#F7F3EA", w=S * 0.42),
+  ''.join(circ(c, u, v, 0.22, "#F1C84D", 'stroke="#A8770C" stroke-width="2"') for u, v in ((8.6, 7.6), (8.45, 8.3))), '</g>')
+bx_, by_ = c.P(8.1, 9.1)
+F(c, f'<rect x="{bx_-S*0.45:.1f}" y="{by_-S*0.4:.1f}" width="{S*0.9:.1f}" height="{S*0.8:.1f}" rx="{S*0.12:.1f}" fill="{c.lin([(0,"#FFF0A8"),(1,"#D49A16")])}" stroke="#A8770C" stroke-width="{S*0.08:.1f}"/>')
+hat = f'M{c.p(2.5,1.6)} L{c.p(2.15,-3.6)} Q{c.p(5.1,-4.3)} {c.p(8.05,-3.6)} L{c.p(7.7,1.6)} Q{c.p(5.1,2.2)} {c.p(2.5,1.6)} Z'
 c.shadow(hat, 0.1, 0.5, 0.45)
 F(c, path(hat, fill=c.lin([(0, "#F06A5E"), (0.55, "#D8393A"), (1, "#A82331")], 0, 0, 1, 0.2)))
 c.defs.append(f'<clipPath id="tg-hat"><path d="{hat}"/></clipPath>')
 F(c, '<g clip-path="url(#tg-hat)">', path(f'M{c.p(1.5,-4.4)} L{c.p(8.8,-4.4)} L{c.p(8.8,-2.7)} Q{c.p(5.1,-3.4)} {c.p(1.5,-2.7)} Z', fill="#1F2235"),
-  path(f'M{c.p(1.5,0.5)} Q{c.p(5.1,1.2)} {c.p(8.8,0.5)}', stroke="#F1C84D", w=S * 0.32), '</g>')
-F(c, path(f'M{c.p(2.55,1.55)} Q{c.p(5.1,2.15)} {c.p(7.65,1.55)}', stroke="#1F2235", w=S * 0.36))
-# placa dorada (escudo) del lado de la cara
-sx_, sy_ = c.P(6.2, -1.1)
+  path(f'M{c.p(1.5,0.45)} Q{c.p(5.1,1.15)} {c.p(8.8,0.45)}', stroke="#F1C84D", w=S * 0.32), '</g>')
+F(c, path(f'M{c.p(2.55,1.55)} Q{c.p(5.1,2.15)} {c.p(7.65,1.55)}', stroke="#1F2235", w=S * 0.4))
+sx_, sy_ = c.P(6.1, -1.1)
 F(c, f'<path d="M{sx_-S*0.75:.1f},{sy_-S*0.75:.1f} H{sx_+S*0.75:.1f} V{sy_+S*0.15:.1f} Q{sx_+S*0.75:.1f},{sy_+S*0.95:.1f} {sx_:.1f},{sy_+S*1.2:.1f} Q{sx_-S*0.75:.1f},{sy_+S*0.95:.1f} {sx_-S*0.75:.1f},{sy_+S*0.15:.1f} Z" fill="{c.lin([(0,"#FFF0A8"),(1,"#D49A16")])}" stroke="#A8770C" stroke-width="{S*0.1:.1f}"/>')
-F(c, circ(c, 6.2, -1.05, 0.25, "#A8770C"))
-visor = f'M{c.p(6.6,1.5)} Q{c.p(9.6,1.3)} {c.p(10.5,2.2)} Q{c.p(9.2,2.65)} {c.p(6.7,2.25)} Z'
-c.shadow(visor, -0.1, 0.5, 0.45)
-F(c, path(visor, fill=c.lin([(0, "#3A3F5C"), (1, "#14172A")])), path(f'M{c.p(6.8,1.6)} Q{c.p(9.4,1.45)} {c.p(10.3,2.15)}', stroke="#6E7598", w=S * 0.1))
+F(c, circ(c, 6.1, -1.05, 0.25, "#A8770C"))
+visor = f'M{c.p(7.0,1.45)} Q{c.p(8.8,1.45)} {c.p(9.5,2.0)} Q{c.p(8.5,2.3)} {c.p(7.1,2.1)} Z'
+c.shadow(visor, -0.1, 0.45, 0.4)
+F(c, path(visor, fill=c.lin([(0, "#3A3F5C"), (1, "#14172A")])), path(f'M{c.p(7.2,1.55)} Q{c.p(8.7,1.55)} {c.p(9.3,1.98)}', stroke="#6E7598", w=S * 0.09))
 F(c, f'<ellipse cx="{c.P(3.2,-1.4)[0]:.1f}" cy="{c.P(3.2,-1.4)[1]:.1f}" rx="{S*0.28:.1f}" ry="{S*1.5:.1f}" fill="#fff" opacity=".3"/>')
 FA(c, 'leaf', (5.1, -4.0), fluff(c, 5.1, -5.2, 1.35, "#FFFFFF", "#C9C3D8", 10) + circ(c, 5.1, -4.05, 0.45, "#F1C84D"), ph=1)
 ch[('toys', 'green')] = c
 
-# Naranja: juguete de cuerda (llave dorada en la espalda que gira, y su cinturón de lámina con remaches)
+# Naranja: juguete de cuerda (cinturón de lámina con remaches en la parte de abajo, debajo de los ojos, y la llave
+# dorada en la espalda que gira)
 c = Ch('orange', 'to'); S = c.S
 ex, ey = c.P(5.0, 4.95)
 c.defs.append(f'<clipPath id="to-clip"><ellipse cx="{ex:.1f}" cy="{ey:.1f}" rx="{c.bw*0.5:.1f}" ry="{c.bh*0.49:.1f}"/></clipPath>')
-c.shadow(f'M{c.p(-1,5.6)} Q{c.p(5,6.6)} {c.p(11,5.6)} L{c.p(11,7.6)} Q{c.p(5,8.6)} {c.p(-1,7.6)} Z', 0, -0.3, 0.35)
-F(c, '<g clip-path="url(#to-clip)">', path(f'M{c.p(-1,5.7)} Q{c.p(5,6.7)} {c.p(11,5.7)} L{c.p(11,7.5)} Q{c.p(5,8.5)} {c.p(-1,7.5)} Z', fill=c.lin([(0, "#E9EEF5"), (0.5, "#B7C1D1"), (1, "#8A96AB")])),
-  path(f'M{c.p(-1,5.95)} Q{c.p(5,6.95)} {c.p(11,5.95)}', stroke="#FFFFFF", w=S * 0.14, extra='opacity=".8"'),
-  ''.join(circ(c, u, 6.65 + 0.42 * (1 - ((u - 5) / 5) ** 2), 0.2, "#6E7A90") for u in (1.2, 3.1, 5.0, 6.9, 8.8)), '</g>')
-# la llave: astil que sale de la espalda y el moño con dos orejas (gira: se ve angostar y ensanchar)
+band = f'M{c.p(-1,8.0)} Q{c.p(5,9.0)} {c.p(11,8.0)} L{c.p(11,9.7)} Q{c.p(5,10.7)} {c.p(-1,9.7)} Z'
+c.shadow(band, 0, -0.35, 0.32)
+F(c, '<g clip-path="url(#to-clip)">', path(band, fill=c.lin([(0, "#F2F5FA"), (0.45, "#BCC6D5"), (1, "#8A96AB")])),
+  path(f'M{c.p(-1,8.2)} Q{c.p(5,9.2)} {c.p(11,8.2)}', stroke="#FFFFFF", w=S * 0.14, extra='opacity=".85"'),
+  path(f'M{c.p(-1,9.55)} Q{c.p(5,10.55)} {c.p(11,9.55)}', stroke="#6E7A90", w=S * 0.12, extra='opacity=".6"'),
+  ''.join(circ(c, u, 8.85 + 0.5 * (1 - ((u - 5) / 5.5) ** 2), 0.19, "#6E7A90") + circ(c, u - 0.06, 8.79 + 0.5 * (1 - ((u - 5) / 5.5) ** 2), 0.07, "#FFFFFF", 'opacity=".8"') for u in (1.0, 2.9, 4.8, 6.7, 8.6)), '</g>')
 kx, ky = c.P(-0.3, 4.6)
 B(c, f'<rect x="{kx-S*1.6:.1f}" y="{ky-S*0.32:.1f}" width="{S*1.9:.1f}" height="{S*0.64:.1f}" rx="{S*0.2:.1f}" fill="{c.lin([(0,"#FFE07A"),(1,"#C98C12")])}" stroke="#9A6A0C" stroke-width="{S*0.08:.1f}"/>')
 bow = (f'<g><path d="M{kx-S*1.5:.1f},{ky:.1f} C{kx-S*1.9:.1f},{ky-S*2.6:.1f} {kx-S*4.0:.1f},{ky-S*2.6:.1f} {kx-S*3.6:.1f},{ky-S*0.2:.1f} Z" fill="{c.lin([(0,"#FFF0A8"),(1,"#D49A16")])}" stroke="#9A6A0C" stroke-width="{S*0.12:.1f}"/>'
@@ -515,7 +522,7 @@ bow = (f'<g><path d="M{kx-S*1.5:.1f},{ky:.1f} C{kx-S*1.9:.1f},{ky-S*2.6:.1f} {kx
 BA(c, 'key', (-1.8, 4.6), bow)
 ch[('toys', 'orange')] = c
 
-# Morado: conejito de peluche (orejas largas que se mueven, costura, parche de corazón y colita esponjosa)
+# Morado: conejito de peluche (orejas largas que se mueven, un moñito rosa en una oreja, costura atrás y colita esponjosa)
 c = Ch('purple', 'tp'); S = c.S
 c.strip(['M89.4-582.6', 'cx="38.4"', 'M315.4-642.6', 'M266.7-578.7', 'cx="322.4"'])
 def ear(c, u, v, ang, L, ph):
@@ -525,28 +532,41 @@ def ear(c, u, v, ang, L, ph):
     return (f'<g transform="rotate({ang} {x:.1f} {y:.1f})"><path d="{d}" fill="{c.lin([(0,"#C9B2F7"),(1,"#8B6BE0")],0,0,1,0)}" stroke="#5E43B8" stroke-width="{S*0.1:.1f}"/>'
             f'<path d="{di}" fill="{c.lin([(0,"#FFD3E6"),(1,"#F49AC0")],0,0,0,1)}"/>'
             f'<path d="M{x:.1f},{y-S*0.6:.1f} L{x:.1f},{y-S*L*0.75:.1f}" stroke="#E07FAA" stroke-width="{S*0.08:.1f}" opacity=".6" stroke-dasharray="{S*0.25:.1f} {S*0.2:.1f}"/></g>')
+def bunbow(c, u, v, sc=1):
+    x, y = c.P(u, v); s = S * sc
+    return (f'<path d="M{x:.1f},{y:.1f} C{x-s*0.9:.1f},{y-s*1.1:.1f} {x-s*1.9:.1f},{y-s*0.4:.1f} {x-s*1.5:.1f},{y+s*0.5:.1f} C{x-s*1.1:.1f},{y+s*0.9:.1f} {x-s*0.4:.1f},{y+s*0.4:.1f} {x:.1f},{y:.1f} Z" fill="{c.lin([(0,"#FFB8D2"),(1,"#E0679B")])}" stroke="#B84A7A" stroke-width="{s*0.08:.1f}"/>'
+            f'<path d="M{x:.1f},{y:.1f} C{x+s*0.9:.1f},{y-s*1.1:.1f} {x+s*1.9:.1f},{y-s*0.4:.1f} {x+s*1.5:.1f},{y+s*0.5:.1f} C{x+s*1.1:.1f},{y+s*0.9:.1f} {x+s*0.4:.1f},{y+s*0.4:.1f} {x:.1f},{y:.1f} Z" fill="{c.lin([(0,"#FFB8D2"),(1,"#E0679B")])}" stroke="#B84A7A" stroke-width="{s*0.08:.1f}"/>'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{s*0.42:.1f}" fill="#E0679B" stroke="#B84A7A" stroke-width="{s*0.08:.1f}"/>'
+            f'<ellipse cx="{x-s*1.0:.1f}" cy="{y-s*0.25:.1f}" rx="{s*0.35:.1f}" ry="{s*0.18:.1f}" fill="#fff" opacity=".6"/>')
 BA(c, 'leaf', (3.4, 1.0), ear(c, 3.4, 1.2, -16, 5.4, 0), ph=0)
 FA(c, 'leaf', (6.4, 1.0), ear(c, 6.4, 1.2, 12, 5.8, 1), ph=2)
 B(c, fluff(c, -0.2, 6.8, 1.25, "#FFFFFF", "#B9A6E6", 10))
-seam = f'M{c.p(5.0,1.6)} Q{c.p(4.4,5.0)} {c.p(5.0,9.6)}'
-F(c, '<g clip-path="url(#tp-body)">', path(seam, stroke="#4A2FA0", w=S * 0.12, extra=f'stroke-dasharray="{S*0.35:.1f} {S*0.28:.1f}" opacity=".55"'), '</g>')
-hx, hy = c.P(3.0, 7.4)
-F(c, f'<path d="M{hx:.1f},{hy+S*0.75:.1f} C{hx-S*1.2:.1f},{hy-S*0.1:.1f} {hx-S*0.6:.1f},{hy-S*0.95:.1f} {hx:.1f},{hy-S*0.35:.1f} C{hx+S*0.6:.1f},{hy-S*0.95:.1f} {hx+S*1.2:.1f},{hy-S*0.1:.1f} {hx:.1f},{hy+S*0.75:.1f} Z" fill="#F49AC0" stroke="#FFFFFF" stroke-width="{S*0.12:.1f}" stroke-dasharray="{S*0.22:.1f} {S*0.16:.1f}"/>')
+seam = f'M{c.p(4.2,1.4)} Q{c.p(3.4,5.0)} {c.p(3.9,9.6)}'
+F(c, '<g clip-path="url(#tp-body)">', path(seam, stroke="#4A2FA0", w=S * 0.12, extra=f'stroke-dasharray="{S*0.35:.1f} {S*0.28:.1f}" opacity=".45"'), '</g>')
+F(c, bunbow(c, 6.0, 1.15, 0.95))
 ch[('toys', 'purple')] = c
 
-# Amarillo: astronauta de juguete (casco de burbuja con su reflejo, cuello de metal y mochila con foquito)
+# Amarillo: astronauta de juguete. Casco de burbuja (con su reflejo) que baja hasta un cuello de metal, justo donde
+# empiezan las patitas (no las corta), y su mochila con foquito
 c = Ch('yellow', 'ty'); S = c.S; c.padk = 0.45
 px_, py_ = c.P(-0.9, 3.6)
 B(c, f'<rect x="{px_-S*0.6:.1f}" y="{py_:.1f}" width="{S*2.2:.1f}" height="{S*4.6:.1f}" rx="{S*0.6:.1f}" fill="{c.lin([(0,"#F4F6FA"),(1,"#AEB7C8")],0,0,1,0)}" stroke="#7C879C" stroke-width="{S*0.12:.1f}"/>',
   f'<rect x="{px_-S*0.25:.1f}" y="{py_+S*0.6:.1f}" width="{S*1.4:.1f}" height="{S*0.9:.1f}" rx="{S*0.25:.1f}" fill="#2FA3C4"/>',
   f'<circle cx="{px_+S*0.45:.1f}" cy="{py_+S*2.6:.1f}" r="{S*0.38:.1f}" fill="#FF6B5A"/><circle cx="{px_+S*0.33:.1f}" cy="{py_+S*2.48:.1f}" r="{S*0.12:.1f}" fill="#fff" opacity=".8"/>')
-cx_, cy_ = c.P(5.0, 3.3); R = c.bw * 0.82
-ring = f'M{cx_-R*0.82:.1f},{cy_+R*0.52:.1f} Q{cx_:.1f},{cy_+R*0.86:.1f} {cx_+R*0.82:.1f},{cy_+R*0.52:.1f}'
-c.shadow_stroke(ring, S * 0.9, 0, 0.3, 0.35)
-F(c, f'<circle cx="{cx_:.1f}" cy="{cy_:.1f}" r="{R:.1f}" fill="{c.rad([(0,"rgba(220,245,255,0.05)"),(0.75,"rgba(190,230,255,0.18)"),(1,"rgba(150,205,240,0.45)")],.5,.5,.5)}" stroke="#E8F6FF" stroke-width="{S*0.16:.1f}" stroke-opacity=".9"/>',
-  path(f'M{cx_-R*0.72:.1f},{cy_-R*0.28:.1f} A{R*0.78:.1f},{R*0.78:.1f} 0 0 1 {cx_-R*0.05:.1f},{cy_-R*0.78:.1f}', stroke="#FFFFFF", w=S * 0.42, extra='stroke-linecap="round" opacity=".85"'),
-  path(f'M{cx_+R*0.55:.1f},{cy_+R*0.35:.1f} A{R*0.7:.1f},{R*0.7:.1f} 0 0 0 {cx_+R*0.7:.1f},{cy_+R*0.05:.1f}', stroke="#FFFFFF", w=S * 0.22, extra='stroke-linecap="round" opacity=".55"'),
-  path(ring, stroke=c.lin([(0, "#F4F6FA"), (1, "#9AA5BA")]), w=S * 0.95), path(ring, stroke="#FFFFFF", w=S * 0.2, extra=f'transform="translate(0 {-S*0.22:.1f})" opacity=".7"'))
+def helmet(c, cu, cv, Rk, ringv):
+    cx_, cy_ = c.P(cu, cv); R = S * Rk; ry_ = c.P(0, ringv)[1]; dy = ry_ - cy_; hw = math.sqrt(max(1, R * R - dy * dy))
+    dome = f'M{cx_-hw:.1f},{ry_:.1f} A{R:.1f},{R:.1f} 0 1 1 {cx_+hw:.1f},{ry_:.1f} Z'
+    rw, rh, bh = hw + S * 0.25, S * 0.7, S * 0.9
+    c.shadow(f'M{cx_-rw:.1f},{ry_:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_:.1f} L{cx_+rw:.1f},{ry_-rh*1.6:.1f} L{cx_-rw:.1f},{ry_-rh*1.6:.1f} Z', 0, -0.5, 0.3)
+    band = f'M{cx_-rw:.1f},{ry_:.1f} L{cx_-rw:.1f},{ry_+bh:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_+bh:.1f} L{cx_+rw:.1f},{ry_:.1f} A{rw:.1f},{rh:.1f} 0 0 1 {cx_-rw:.1f},{ry_:.1f} Z'
+    return (f'<path d="{dome}" fill="{c.rad([(0,"rgba(225,245,255,0.04)"),(0.72,"rgba(195,232,255,0.16)"),(1,"rgba(150,205,240,0.42)")],.5,.55,.55)}" stroke="#EAF7FF" stroke-width="{S*0.16:.1f}" stroke-opacity=".9"/>'
+            + path(f'M{cx_-R*0.74:.1f},{cy_-R*0.18:.1f} A{R*0.8:.1f},{R*0.8:.1f} 0 0 1 {cx_-R*0.08:.1f},{cy_-R*0.79:.1f}', stroke="#FFFFFF", w=S * 0.42, extra='stroke-linecap="round" opacity=".85"')
+            + path(f'M{cx_+R*0.62:.1f},{cy_+R*0.1:.1f} A{R*0.72:.1f},{R*0.72:.1f} 0 0 0 {cx_+R*0.7:.1f},{cy_-R*0.2:.1f}', stroke="#FFFFFF", w=S * 0.22, extra='stroke-linecap="round" opacity=".55"')
+            + f'<path d="{band}" fill="{c.lin([(0,"#E9EDF4"),(0.5,"#B4BDCD"),(1,"#7E89A0")],0,0,1,0)}" stroke="#6E7A90" stroke-width="{S*0.1:.1f}"/>'
+            + f'<path d="M{cx_-rw:.1f},{ry_:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_:.1f}" fill="none" stroke="#FFFFFF" stroke-width="{S*0.2:.1f}" opacity=".85"/>'
+            + f'<path d="M{cx_-rw:.1f},{ry_+bh*0.5:.1f} A{rw:.1f},{rh:.1f} 0 0 0 {cx_+rw:.1f},{ry_+bh*0.5:.1f}" fill="none" stroke="#2FA3C4" stroke-width="{S*0.22:.1f}"/>'
+            + ''.join(f'<circle cx="{cx_+rw*t:.1f}" cy="{ry_+bh*0.5+rh*math.sqrt(1-t*t):.1f}" r="{S*0.17:.1f}" fill="#FF6B5A"/>' for t in (-0.55, 0.0, 0.55)))
+F(c, helmet(c, 5.05, 4.4, 6.8, 9.0))
 ch[('toys', 'yellow')] = c
 
 LEVELS = [
@@ -907,17 +927,25 @@ c = FC('green', 'ftg'); S = c.S
 c.strip(['M298.3,255.1', 'cx="244.8"', 'M418.1,255.5c10.8', 'M418.1,255.5c-.3', 'cx="465.3"'])
 ex, ey = c.P(5.0, 5.0)
 c.defs.append(f'<clipPath id="ftg-clip"><ellipse cx="{ex:.1f}" cy="{ey:.1f}" rx="{c.bw*0.5:.1f}" ry="{c.bh*0.49:.1f}"/></clipPath>')
-belts = [f'M{c.p(1.2,5.0)} L{c.p(8.6,10.2)}', f'M{c.p(8.8,5.0)} L{c.p(1.4,10.2)}']
-F(c, '<g clip-path="url(#ftg-clip)">', *[path(d, stroke="#F4F1EA", w=S * 0.75) for d in belts], '</g>', circ(c, 5.0, 7.6, 0.55, "#F1C84D"), circ(c, 5.0, 7.6, 0.3, "#C9962A"))
+jtop = f'M{c.p(-1,7.75)} Q{c.p(5,8.6)} {c.p(11,7.75)}'
+belt = f'M{c.p(-1,9.15)} Q{c.p(5,9.9)} {c.p(11,9.15)}'
+c.shadow(jtop + f' L{c.p(11,8.6)} Q{c.p(5,9.45)} {c.p(-1,8.6)} Z', 0, -0.25, 0.28)
+F(c, '<g clip-path="url(#ftg-clip)">', path(jtop + f' L{c.p(11,11.5)} L{c.p(-1,11.5)} Z', fill=c.lin([(0, "#EE5A50"), (0.55, "#CF3438"), (1, "#A2232F")], 0, 0, 1, 0)),
+  path(jtop, stroke="#F1C84D", w=S * 0.3), path(belt, stroke="#F7F3EA", w=S * 0.42), circ(c, 5.0, 8.75, 0.22, "#F1C84D", 'stroke="#A8770C" stroke-width="2"'), '</g>')
+bx_, by_ = c.P(5.0, 9.52)
+F(c, f'<rect x="{bx_-S*0.5:.1f}" y="{by_-S*0.42:.1f}" width="{S*1.0:.1f}" height="{S*0.84:.1f}" rx="{S*0.12:.1f}" fill="{c.lin([(0,"#FFF0A8"),(1,"#D49A16")])}" stroke="#A8770C" stroke-width="{S*0.08:.1f}"/>')
+for eu, rot in ((0.75, 22), (9.25, -22)):
+    fr = ''.join(path(f'M{c.p(eu - 0.8 + i * 0.4, 7.15)} L{c.p(eu - 0.85 + i * 0.42, 8.0)}', stroke="#E2AE2A", w=S * 0.16) for i in range(5))
+    F(c, fr, ell(c, eu, 6.95, 1.15, 0.5, c.lin([(0, "#FFF0A8"), (1, "#D49A16")]), rot, f'stroke="#A8770C" stroke-width="{S*0.08:.1f}"'))
 hat = f'M{c.p(2.4,2.0)} L{c.p(2.0,-3.4)} Q{c.p(5.0,-4.1)} {c.p(8.0,-3.4)} L{c.p(7.6,2.0)} Q{c.p(5.0,2.6)} {c.p(2.4,2.0)} Z'
 c.shadow(hat, 0, 0.5, 0.45)
 F(c, path(hat, fill=c.lin([(0, "#F06A5E"), (0.5, "#D8393A"), (1, "#A82331")], 0, 0, 1, 0)))
 c.defs.append(f'<clipPath id="ftg-hat"><path d="{hat}"/></clipPath>')
 F(c, '<g clip-path="url(#ftg-hat)">', path(f'M{c.p(1.5,-4.2)} L{c.p(8.5,-4.2)} L{c.p(8.5,-2.5)} Q{c.p(5,-3.2)} {c.p(1.5,-2.5)} Z', fill="#1F2235"),
-  path(f'M{c.p(1.5,0.9)} Q{c.p(5,1.6)} {c.p(8.5,0.9)}', stroke="#F1C84D", w=S * 0.32), '</g>')
+  path(f'M{c.p(1.5,0.85)} Q{c.p(5,1.55)} {c.p(8.5,0.85)}', stroke="#F1C84D", w=S * 0.32), '</g>')
 sx_, sy_ = c.P(5.0, -0.9)
 F(c, f'<path d="M{sx_-S*0.75:.1f},{sy_-S*0.75:.1f} H{sx_+S*0.75:.1f} V{sy_+S*0.15:.1f} Q{sx_+S*0.75:.1f},{sy_+S*0.95:.1f} {sx_:.1f},{sy_+S*1.2:.1f} Q{sx_-S*0.75:.1f},{sy_+S*0.95:.1f} {sx_-S*0.75:.1f},{sy_+S*0.15:.1f} Z" fill="{c.lin([(0,"#FFF0A8"),(1,"#D49A16")])}" stroke="#A8770C" stroke-width="{S*0.1:.1f}"/>')
-visor = f'M{c.p(2.8,1.95)} Q{c.p(5,3.4)} {c.p(7.2,1.95)} Q{c.p(5,2.5)} {c.p(2.8,1.95)} Z'
+visor = f'M{c.p(2.7,1.95)} Q{c.p(5,3.1)} {c.p(7.3,1.95)} Q{c.p(5,2.55)} {c.p(2.7,1.95)} Z'
 F(c, path(visor, fill=c.lin([(0, "#3A3F5C"), (1, "#14172A")])))
 FA(c, 'leaf', (5.0, -3.8), fluff(c, 5.0, -5.0, 1.35, "#FFFFFF", "#C9C3D8", 10) + circ(c, 5.0, -3.85, 0.45, "#F1C84D"), ph=1)
 fch[('toys', 'green')] = c
@@ -925,12 +953,11 @@ fch[('toys', 'green')] = c
 c = FC('orange', 'fto'); S = c.S
 ex, ey = c.P(5.0, 4.95)
 c.defs.append(f'<clipPath id="fto-clip"><ellipse cx="{ex:.1f}" cy="{ey:.1f}" rx="{c.bw*0.5:.1f}" ry="{c.bh*0.49:.1f}"/></clipPath>')
-F(c, '<g clip-path="url(#fto-clip)">', path(f'M{c.p(-1,6.2)} Q{c.p(5,7.2)} {c.p(11,6.2)} L{c.p(11,8.0)} Q{c.p(5,9.0)} {c.p(-1,8.0)} Z', fill=c.lin([(0, "#E9EEF5"), (0.5, "#B7C1D1"), (1, "#8A96AB")])),
-  ''.join(circ(c, u, 7.15 + 0.42 * (1 - ((u - 5) / 5) ** 2), 0.2, "#6E7A90") for u in (1.2, 3.1, 5.0, 6.9, 8.8)), '</g>')
-# de frente, la llave asoma por arriba del hombro (detrás)
-kx, ky = c.P(8.6, 1.4)
-BA(c, 'key', (8.6, 1.4), f'<path d="M{kx:.1f},{ky:.1f} C{kx+S*1.6:.1f},{ky-S*2.2:.1f} {kx+S*3.0:.1f},{ky-S*0.8:.1f} {kx+S*1.9:.1f},{ky+S*0.6:.1f} Z" fill="{c.lin([(0,"#FFF0A8"),(1,"#D49A16")])}" stroke="#9A6A0C" stroke-width="{S*0.12:.1f}"/>'
-   f'<path d="M{kx:.1f},{ky:.1f} C{kx-S*0.4:.1f},{ky-S*2.6:.1f} {kx+S*1.2:.1f},{ky-S*3.4:.1f} {kx+S*1.4:.1f},{ky-S*1.6:.1f} Z" fill="{c.lin([(0,"#F6C945"),(1,"#B07A0E")])}" stroke="#9A6A0C" stroke-width="{S*0.12:.1f}"/>')
+band = f'M{c.p(-1,8.15)} Q{c.p(5,9.1)} {c.p(11,8.15)} L{c.p(11,9.75)} Q{c.p(5,10.7)} {c.p(-1,9.75)} Z'
+c.shadow(band, 0, -0.35, 0.32)
+F(c, '<g clip-path="url(#fto-clip)">', path(band, fill=c.lin([(0, "#F2F5FA"), (0.45, "#BCC6D5"), (1, "#8A96AB")])),
+  path(f'M{c.p(-1,8.35)} Q{c.p(5,9.3)} {c.p(11,8.35)}', stroke="#FFFFFF", w=S * 0.14, extra='opacity=".85"'),
+  ''.join(circ(c, u, 8.95 + 0.48 * (1 - ((u - 5) / 5.5) ** 2), 0.19, "#6E7A90") + circ(c, u - 0.06, 8.89 + 0.48 * (1 - ((u - 5) / 5.5) ** 2), 0.07, "#FFFFFF", 'opacity=".8"') for u in (1.2, 3.1, 5.0, 6.9, 8.8)), '</g>')
 fch[('toys', 'orange')] = c
 
 c = FC('purple', 'ftp'); S = c.S
@@ -943,16 +970,11 @@ def fear(u, v, ang, L):
             f'<path d="{di}" fill="{c.lin([(0,"#FFD3E6"),(1,"#F49AC0")],0,0,0,1)}"/></g>')
 BA(c, 'leaf', (3.2, 1.2), fear(3.2, 1.4, -14, 5.4), ph=0)
 BA(c, 'leaf', (6.8, 1.2), fear(6.8, 1.4, 14, 5.4), ph=2)
-hx, hy = c.P(7.6, 8.2)
-F(c, f'<path d="M{hx:.1f},{hy+S*0.75:.1f} C{hx-S*1.2:.1f},{hy-S*0.1:.1f} {hx-S*0.6:.1f},{hy-S*0.95:.1f} {hx:.1f},{hy-S*0.35:.1f} C{hx+S*0.6:.1f},{hy-S*0.95:.1f} {hx+S*1.2:.1f},{hy-S*0.1:.1f} {hx:.1f},{hy+S*0.75:.1f} Z" fill="#F49AC0" stroke="#FFFFFF" stroke-width="{S*0.12:.1f}" stroke-dasharray="{S*0.22:.1f} {S*0.16:.1f}"/>')
+F(c, bunbow(c, 7.3, 1.35, 0.95))
 fch[('toys', 'purple')] = c
 
 c = FC('yellow', 'fty'); S = c.S; c.padk = 0.45
-cx_, cy_ = c.P(5.0, 3.3); R = c.bw * 0.82
-ring = f'M{cx_-R*0.82:.1f},{cy_+R*0.52:.1f} Q{cx_:.1f},{cy_+R*0.86:.1f} {cx_+R*0.82:.1f},{cy_+R*0.52:.1f}'
-F(c, f'<circle cx="{cx_:.1f}" cy="{cy_:.1f}" r="{R:.1f}" fill="{c.rad([(0,"rgba(220,245,255,0.05)"),(0.75,"rgba(190,230,255,0.18)"),(1,"rgba(150,205,240,0.45)")],.5,.5,.5)}" stroke="#E8F6FF" stroke-width="{S*0.16:.1f}" stroke-opacity=".9"/>',
-  path(f'M{cx_-R*0.72:.1f},{cy_-R*0.28:.1f} A{R*0.78:.1f},{R*0.78:.1f} 0 0 1 {cx_-R*0.05:.1f},{cy_-R*0.78:.1f}', stroke="#FFFFFF", w=S * 0.42, extra='stroke-linecap="round" opacity=".85"'),
-  path(ring, stroke=c.lin([(0, "#F4F6FA"), (1, "#9AA5BA")]), w=S * 0.95))
+F(c, helmet(c, 5.0, 4.45, 7.1, 8.95))
 fch[('toys', 'yellow')] = c
 
 def export_front(c, base, fa):
