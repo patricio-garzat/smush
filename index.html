@@ -1127,7 +1127,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.0";
+const VERSION = "0.49.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1312,7 +1312,8 @@ const TOOLS = {
   // The Jungle
   arrows: { price: 16000, world: 4, only: 4, max: 10, upgrades: Array.from({ length: 9 }, (_, i) => nice(20000 * 1.45 ** i)), count: [3, 4, 5, 5, 6, 7, 8, 8, 9, 10], cooldown: [5, 4.7, 4.4, 4.1, 3.8, 3.5, 3.2, 3, 2.8, 2.5] }, // flechas por lado (3 → 10)
   // The Playroom
-  train:  { price: 18000, world: 5, only: 5, max: 10, upgrades: Array.from({ length: 9 }, (_, i) => nice(24000 * 1.45 ** i)), wagons: [2, 2, 3, 3, 3, 4, 4, 4, 5, 5], cooldown: [7, 6.4, 5.8, 5.3, 4.8, 4.3, 3.8, 3.4, 3, 2.6], lap: [2.7, 2.65, 2.6, 2.55, 2.5, 2.4, 2.35, 2.3, 2.2, 2.1] }, // da una vuelta al circuito
+  // Tren: siempre hace lo mismo (silbato que los atrae a la vía, vapor a los lados y efecto boliche); las mejoras solo bajan la espera
+  train:  { price: 18000, world: 5, only: 5, max: 10, upgrades: Array.from({ length: 9 }, (_, i) => nice(24000 * 1.45 ** i)), cooldown: [9, 8.2, 7.5, 6.8, 6.2, 5.6, 5.1, 4.6, 4.2, 3.8] },
   aval:   { price: 15000, world: 2, only: 2, max: 20, upgrades: ups(20000, 1.34), cooldown: L20((v) => Math.round(geo(9, 3.5, v) * 10) / 10), dur: L20((v) => curve(3.0, 2.3, v)) }, // avalancha: baja de los picos y arrastra a todos
 };
 const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car", "arrows", "train"];
@@ -1632,7 +1633,7 @@ const STR = {
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies across the middle of the field and scatters 6 huge bombs all over it.", "Cruza por en medio del campo y reparte 6 bombas enormes por todos lados."],
   arrows: ["Arrows", "Flechas"], arrowsD: ["Tap to shoot: arrows fly in from both sides and go right through every alien in their way. Upgrade it for more arrows on each side.", "Toca para disparar: salen flechas volando desde los dos lados y atraviesan a todos los marcianitos en su camino. Mejórala para que salgan más flechas por lado."],
   secJungle: ["The Jungle", "The Jungle"], secToys: ["The Playroom", "The Playroom"],
-  train: ["Toy train", "Tren de juguete"], trainD: ["Tap to send it: the little steam train whistles, comes out of its tunnel, winds down its track and knocks every alien in its way right off the rails. Next time it comes back up into the tunnel. Upgrade it for more wagons and less waiting.", "Toca para mandarlo: el trenecito de vapor pita, sale de su túnel, baja por su vía y avienta fuera de los rieles a todos los marcianitos que se le atraviesan. La siguiente vez regresa y se mete al túnel. Mejóralo para que lleve más vagones y salga más seguido."],
+  train: ["Toy train", "Tren de juguete"], trainD: ["Tap to send it: the steam train whistles and the aliens nearby walk onto the tracks to look. Then it comes out, blows steam to both sides and sends them flying, and each one knocks down the others where it lands. Upgrades let you send it more often.", "Toca para mandarlo: el tren de vapor pita y los marcianitos cercanos se acercan a la vía a ver. Luego sale, echa vapor a los lados y los avienta volando, y cada uno tumba a los que están donde cae. Las mejoras hacen que lo puedas mandar más seguido."],
   car: ["Car", "Carro"], carD: ["Tap to send it: a car speeds down its lane and runs over every alien in the way, leaving them flattened on the pavement with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: un carro pasa a toda velocidad por su carril y atropella a todos los marcianitos en su camino; quedan embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
   secCity: ["The City", "The City"],
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
@@ -1706,7 +1707,7 @@ function statText(id, lvl) {
   if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]); return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   if (id === "car") { const c = TOOLS.car.cooldown[i]; return es ? `Atropella un carril · cada ${c} s` : `Runs over a lane · every ${c}s`; }
-  if (id === "train") { const n = TOOLS.train.wagons[i], c = TOOLS.train.cooldown[i]; return es ? `${n} vagones · cada ${c} s` : `${n} wagons · every ${c}s`; }
+  if (id === "train") { const c = TOOLS.train.cooldown[i]; return es ? `Sale cada ${c} s` : `Every ${c}s`; }
   if (id === "arrows") { const n = TOOLS.arrows.count[i], c = TOOLS.arrows.cooldown[i]; return es ? `${n} flechas por lado · cada ${c} s` : `${n} arrows per side · every ${c}s`; }
   if (id === "bomb") { const n = TOOLS.bomb.count[i], r = px(TOOLS.bomb.radius[i]); return es ? `${n} ${n === 1 ? "bomba" : "bombas"} · ${r} px` : `${n} ${n === 1 ? "bomb" : "bombs"} · ${r} px`; }
   const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
@@ -1719,7 +1720,7 @@ function statShort(id, lvl) {
   if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${px(TOOLS.bolt.range[i])} px`;
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval" || id === "car") return `${TOOLS[id].cooldown[i]}${s}`;
-  if (id === "train") return `${TOOLS.train.wagons[i]} · ${TOOLS.train.cooldown[i]}${s}`;
+  if (id === "train") return `${TOOLS.train.cooldown[i]}${s}`;
   if (id === "arrows") return `${TOOLS.arrows.count[i]}×2`;
   if (id === "bomb") return `${TOOLS.bomb.count[i]} · ${px(TOOLS.bomb.radius[i])} px`;
   return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
@@ -1973,10 +1974,10 @@ const Sound = (() => {
     homeSwap() { breath({ dur: 0.45, vol: 0.04, from: 1500, to: 450 }); tone(620, { t: 0.06, dur: 0.5, vol: 0.025, type: "triangle", slide: 0.5, attack: 0.03 }); },
     // El carro: un claxon suavecito y el motor que pasa de lejos a cerca y se va
     // Tren de juguete: un silbato de madera (dos notas suaves y cálidas), el chucu-chucu bajito y un "toc" al golpear
-    train(dur) {
+    train(dur, delay = 0) {
       for (const [t, k] of [[0, 1], [0.32, 0.8]]) { tone(415.3, { t, dur: 0.26, vol: 0.035 * k, type: "triangle", attack: 0.04, slide: 1.02 }); tone(523.25, { t, dur: 0.26, vol: 0.028 * k, type: "triangle", attack: 0.04, slide: 1.02 }); breath({ t, dur: 0.28, vol: 0.02 * k, from: 900, to: 1300 }); }
       const n = Math.max(4, Math.round(dur / 0.16));
-      for (let i = 0; i < n; i++) noise({ t: 0.2 + i * (dur / n), dur: 0.07, vol: 0.022 * (i < 2 ? 0.6 : i > n - 3 ? 0.5 : 1), freq: i % 2 ? 520 : 380, q: 0.8, attack: 0.005, kind: "bandpass" });
+      for (let i = 0; i < n; i++) noise({ t: delay + 0.2 + i * (dur / n), dur: 0.07, vol: 0.022 * (i < 2 ? 0.6 : i > n - 3 ? 0.5 : 1), freq: i % 2 ? 520 : 380, q: 0.8, attack: 0.005, kind: "bandpass" });
     },
     toyHit() { const c = ensure(); if (!c || c.currentTime - lastThunk < 0.06) return; lastThunk = c.currentTime; thump({ vol: 0.08 }); tone(vary(240, 0.08), { dur: 0.08, vol: 0.05, slide: 0.75, attack: 0.002 }); noise({ dur: 0.04, vol: 0.035, freq: 1400, q: 2, attack: 0.001, kind: "bandpass" }); },
     car() {
@@ -2627,10 +2628,14 @@ function updateBalls(dt) {
     if (b.state === "in" && b.t >= 0.45) b.state = "live";
     // Rumbo que serpentea con dos ondas lentas: trayectorias orgánicas, nunca iguales
     const wob = Math.sin(time * b.f1 + b.p1) + 0.6 * Math.sin(time * b.f2 + b.p2);
-    b.heading += wob * b.turn * SPAWN.wander * dt;
+    // El silbato del tren: caminan derechito a su lugar en la vía y ahí se quedan viendo
+    const lu = b.lure && time < b.lure.until ? b.lure : null;
+    let lureD = 0;
+    if (lu) { const dx = lu.x - b.x, dy = lu.y - (b.y + b.T.bottom * 0.7); lureD = Math.hypot(dx, dy); b.heading = Math.atan2(dy, dx); }
+    else b.heading += wob * b.turn * SPAWN.wander * dt;
     // Mientras va entrando, sigue hacia el centro para no darse la vuelta en la orilla
     if (!b.entered) b.heading += angDiff(b.goal, b.heading) * Math.min(1, dt * 2);
-    const sp = b.speed * (0.82 + 0.18 * Math.sin(time * b.f3 + b.p3)) * evSlow();
+    const sp = lu ? (lureD < 5 ? 0 : Math.max(b.speed * 1.7, 80) * Math.min(1, lureD / 18)) : b.speed * (0.82 + 0.18 * Math.sin(time * b.f3 + b.p3)) * evSlow();
     const k = Math.min(1, dt * 2.5);
     b.vx += (Math.cos(b.heading) * sp - b.vx) * k;
     b.vy += (Math.sin(b.heading) * sp - b.vy) * k;
@@ -7945,7 +7950,11 @@ function setupTrain(R) {
   toyTrain = { R, run: null, cars: [], puff: 0, want: 0, dir: 1, len: 0 };
   setTrainCars(trainWagons());
 }
-const trainWagons = () => TOOLS.train.wagons[clamp(save.tools.train || 1, 1, TOOLS.train.max) - 1];
+// Lo que hace el tren (siempre igual): vagones, cuánto tarda en cruzar, el silbato (cuánto dura y qué tan lejos se oye),
+// el vapor a los lados de la locomotora y el radio del efecto boliche (px en el celular; en pantallas grandes, en proporción)
+const TRAIN_FX = { wagons: 4, lap: 2.4, call: 1.1, callR: 175, steam: 46, bowl: 30, depth: 4 };
+const trainWagons = () => TRAIN_FX.wagons;
+const trainPx = () => clamp(W / 390, 1, 1.6);
 function setTrainCars(n) {
   const T = toyTrain; if (!T) return;
   const k = (W < PHONE_WIDTH ? 0.98 : 1.1) * clamp(Math.min(W / 390, (H - seaH) / 600), 0.9, 1.3), kinds = ["loco"];
@@ -7958,17 +7967,38 @@ function setTrainCars(n) {
 function launchTrain(L) {
   const T = toyTrain; if (!T || T.run) return false;
   if (T.want !== trainWagons()) setTrainCars(trainWagons());
-  const D = TOOLS.train.lap[L];
-  T.run = { t: 0, D, dir: T.dir }; T.dir = -T.dir;
-  Sound.train(D); buzz([10, 50, 10]);
+  const D = TRAIN_FX.lap, C = TRAIN_FX.call, R = T.R, dir = T.dir;
+  T.run = { t: 0, D, dir, call: C, wave: 0 }; T.dir = -T.dir;
+  // El silbato: los marcianitos cercanos caminan a la vía (cada uno a su lugar, repartidos) y ahí esperan al tren
+  const reach = TRAIN_FX.callR * trainPx(), until = time + C + D + 0.4;
+  for (const b of balls) {
+    if (b.state === "die" || b.pull || !b.entered) continue;
+    const fy = b.y + b.T.bottom * 0.7; let best = -1, bd = 1e9;
+    for (let i = 0; i < R.pts.length; i += 2) { const p = R.pts[i]; if (p[1] < seaTop() + 20 || p[1] > H - 10) continue; const d = Math.hypot(p[0] - b.x, p[1] - fy); if (d < bd) { bd = d; best = i; } }
+    if (best < 0 || bd > reach) continue;
+    const j = clamp(best + Math.round(rand(-4, 4)), 0, R.pts.length - 1);
+    b.lure = { x: R.pts[j][0], y: R.pts[j][1], until };
+  }
+  Sound.train(D, C); buzz([10, 50, 10]);
   return true;
 }
 function updateTrain(dt) {
   const T = toyTrain; if (!T || !T.run) return;
   const r = T.run, R = T.R;
   r.t += dt;
+  // Primero el silbato: ondas y vapor donde va a salir el tren (la boca del túnel, o abajo si viene de regreso)
+  if (r.t < r.call) {
+    r.wave -= dt;
+    if (r.wave <= 0) {
+      r.wave = 0.32;
+      const M = toys && toys.mouth, [ex, ey] = r.dir > 0 && M ? [M.x, M.y - M.ph * 0.6] : railAt(R, R.wlen - 30);
+      ring(ex, ey, 6, 46 * trainPx(), 0.6, "#FFFFFF", 2.2, PAL.dark ? 0.35 : 0.6);
+      part(ex + rand(-6, 6), ey - 6, rand(-10, 10), -rand(20, 34), rand(3, 4.5), 0.7, PAL.dark ? "#B9AFC0" : "#FFFFFF", "smoke", 2, -14, PAL.dark ? 0.3 : 0.5);
+    }
+    return;
+  }
   // Sale de adentro del túnel (o de abajo) ya andando, recorre la vía a velocidad pareja y se va por el otro lado
-  const travel = R.wlen + T.len * 2 + 40, v = travel / r.D, front = -T.len - 20 + v * r.t;
+  const travel = R.wlen + T.len * 2 + 40, v = travel / r.D, front = -T.len - 20 + v * (r.t - r.call);
   for (const c of T.cars) {
     const s = front - T.cars[0].L / 2 - c.off, ss = r.dir > 0 ? s : R.wlen - s, [x, y, a] = railAt(R, ss);
     c.x = x; c.y = y; c.a = r.dir > 0 ? a : a + Math.PI; c.th = headingOf(c.a);
@@ -7977,7 +8007,8 @@ function updateTrain(dt) {
   // Avienta a todos los que se le atraviesan (a un lado de la vía y un poco hacia adelante)
   for (const c of T.cars) {
     if (c.y < seaTop() || c.y > H + 40) continue;
-    const ca = Math.cos(c.a), sa = Math.sin(c.a), half = 15 * c.k;
+    // La locomotora además echa vapor a los lados: avienta también a los que están cerca de la vía
+    const ca = Math.cos(c.a), sa = Math.sin(c.a), half = 15 * c.k + (c.kind === "loco" ? TRAIN_FX.steam * trainPx() : 0);
     const along0 = c.L / 2 * Math.hypot(Math.cos(c.th), Math.sin(c.th) * DEP);
     for (const b of balls) {
       if (b.state === "die" || b.pull) continue;
@@ -7985,9 +8016,14 @@ function updateTrain(dt) {
       if (Math.abs(along) > along0 + b.r * 0.35 || Math.abs(across) > half + b.r * 0.5) continue;
       const side = across >= 0 ? 1 : -1;
       let dx = -sa * side * 0.85 + ca * 0.55, dy = ca * side * 0.85 + sa * 0.55; const n = Math.hypot(dx, dy); dx /= n; dy /= n;
-      b.tossed = { dx, dy, sd: dx >= 0 ? 1 : -1, landed: false };
+      b.tossed = { dx, dy, sd: dx >= 0 ? 1 : -1, landed: false, depth: 0 };
       hit(b, 999, b.x, b.y, true, false);
       Sound.toyHit();
+    }
+    // Las nubecitas de vapor que salen por los lados de la locomotora
+    if (c.kind === "loco" && c.y > seaTop() && c.y < H + 10 && !(toys && toys.mouth && c.y < toys.mouth.y) && Math.random() < (lowFx ? 0.35 : 0.8)) {
+      const th = c.th, vx = -Math.sin(th), vy = Math.cos(th) * DEP;
+      for (const sd of [-1, 1]) part(c.x + vx * sd * 14 * c.k, c.y + vy * sd * 14 * c.k - 4, vx * sd * rand(90, 150), vy * sd * rand(90, 150) - 10, rand(3, 5), 0.5, PAL.dark ? "#C9C0D0" : "#FFFFFF", "smoke", 3, -8, PAL.dark ? 0.3 : 0.55);
     }
   }
   // Humito de la chimenea
@@ -8017,6 +8053,18 @@ function tossTick(b) {
     o.landed = true;
     const fe = 1, x = b.x + o.dx * b.r * 3.2 * fe, y = b.y + b.T.bottom + o.dy * b.r * 3.2 * fe * 0.6;
     for (let i = 0; i < (lowFx ? 3 : 6); i++) { const a = rand(Math.PI, TAU); part(x + rand(-6, 6), y - 2, Math.cos(a) * rand(30, 80), Math.sin(a) * rand(10, 40), rand(2.5, 4), 0.5, PAL.mist, "smoke", 3, 0, 0.35); }
+    // Efecto boliche: tumba a los que están donde cae (y esos, a su vez, a otros; hasta TRAIN_FX.depth veces)
+    if ((o.depth || 0) < TRAIN_FX.depth) {
+      const R0 = TRAIN_FX.bowl * trainPx(); let n = 0;
+      for (const q of balls) {
+        if (q === b || q.state === "die" || q.pull) continue;
+        if (Math.hypot(q.x - x, q.y + q.T.bottom - y) > R0 + q.r * 0.5) continue;
+        const a = Math.atan2(o.dy, o.dx) + rand(-0.7, 0.7);
+        q.tossed = { dx: Math.cos(a), dy: Math.sin(a), sd: Math.cos(a) >= 0 ? 1 : -1, landed: false, depth: (o.depth || 0) + 1 };
+        hit(q, 999, x, y, true, false); n++;
+      }
+      if (n) { Sound.toyHit(); ring(x, y - 4, 4, R0 * 1.2, 0.35, "#FFFFFF", 2, 0.55); }
+    }
   }
 }
 function drawTossedAlien(b) {
