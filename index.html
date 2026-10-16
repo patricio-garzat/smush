@@ -1105,7 +1105,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.46.3";
+const VERSION = "0.47.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1287,7 +1287,7 @@ const TOOLS = {
   car:    { price: 15000, world: 3, only: 3, max: 20, upgrades: ups(18000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.2, v) * 10) / 10) }, // carro: pasa por un carril y atropella a todos
   // The Jungle
   arrows: { price: 16000, world: 4, only: 4, max: 10, upgrades: Array.from({ length: 9 }, (_, i) => nice(20000 * 1.45 ** i)), count: [3, 4, 5, 5, 6, 7, 8, 8, 9, 10], cooldown: [5, 4.7, 4.4, 4.1, 3.8, 3.5, 3.2, 3, 2.8, 2.5] }, // flechas por lado (3 → 10)
-  aval:   { price: 15000, world: 2, only: 2, max: 20, upgrades: ups(20000, 1.34), cooldown: L20((v) => Math.round(geo(9, 3.5, v) * 10) / 10), dur: L20((v) => curve(2.3, 1.6, v)) }, // avalancha: baja de los picos y arrastra a todos
+  aval:   { price: 15000, world: 2, only: 2, max: 20, upgrades: ups(20000, 1.34), cooldown: L20((v) => Math.round(geo(9, 3.5, v) * 10) / 10), dur: L20((v) => curve(3.0, 2.3, v)) }, // avalancha: baja de los picos y arrastra a todos
 };
 const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car", "arrows"];
 const PREMIUM = new Set();
@@ -1716,7 +1716,7 @@ function upText(k, l, short) {
 
 /* ---------- 4. Sonido (Web Audio, sin archivos): cálido, suave, tipo ASMR ---------- */
 const Sound = (() => {
-  let lastSaw = 0, lastSplash = 0, lastGulp = 0; // el "shing" de la sierra (y los chapuzones) no se amontonan
+  let lastSaw = 0, lastSplash = 0, lastGulp = 0, lastBury = 0, lastPoof = 0; // el "shing" de la sierra (y los chapuzones) no se amontonan
   let ctx = null, master = null, noiseBuf = null, unlocked = false;
   // Cadena de salida cálida: filtro que quita lo agudo, compresor suave y una reverberación corta
   function build(c) {
@@ -2005,6 +2005,8 @@ const Sound = (() => {
     wave() { breath({ dur: 0.6, vol: 0.05, from: 900, to: 300 }); tone(55, { dur: 1.2, vol: 0.09, attack: 0.35, slide: 1.3 }); },
     // …y la ola rompe: un rugido de agua que se va apagando
     splash() { const c = ensure(); if (!c || c.currentTime - lastSplash < 0.09) return; lastSplash = c.currentTime; noise({ dur: 0.22, vol: 0.05, freq: vary(1400, 0.15), q: 0.7, attack: 0.004, kind: "bandpass", sweep: 0.5 }); thump({ vol: 0.05 }); },
+    bury() { const c = ensure(); if (!c || c.currentTime - lastBury < 0.08) return; lastBury = c.currentTime; noise({ dur: 0.18, vol: 0.06, freq: vary(520, 0.15), q: 0.5, attack: 0.004, kind: "lowpass", sweep: 0.6 }); thump({ vol: 0.06 }); },
+    snowPoof() { const c = ensure(); if (!c || c.currentTime - lastPoof < 0.1) return; lastPoof = c.currentTime; noise({ dur: 0.22, vol: 0.035, freq: vary(1500, 0.2), q: 0.6, attack: 0.01, kind: "bandpass", sweep: 0.5 }); },
     gulp() { const c = ensure(); if (!c || c.currentTime - lastGulp < 0.12) return; lastGulp = c.currentTime; tone(vary(260, 0.08), { dur: 0.16, vol: 0.05, slide: 0.55, attack: 0.006 }); tone(vary(420, 0.08), { t: 0.09, dur: 0.1, vol: 0.03, slide: 1.4, attack: 0.004 }); },
     waveCrash() { noise({ dur: 1.4, vol: 0.09, freq: 700, q: 0.4, attack: 0.08, kind: "lowpass", sweep: 0.5 }); breath({ dur: 1.2, vol: 0.06, from: 1600, to: 400 }); thump({ vol: 0.14 }); },
     // Avalancha: un retumbo grave que crece y un soplo de nieve; al final, un golpe sordo
@@ -2515,7 +2517,7 @@ function aliveCount() { let n = 0; for (const b of balls) if (b.state !== "die")
 function spawnStep(dt) {
   // Solo mientras el agua del tsunami espera a que se hunda el último (un momentito) no llegan nuevos: si no, llegarían
   // a ahogarse y el agua no se iría. Durante la ola sí llegan (la ola se los lleva), así el campo nunca se queda vacío
-  if (waves.some((w) => w.kind !== "aval" && w.t - TSU_PREP >= w.dur && !(w.backT > 0) && (w.hold || 0) < 3)) return;
+  if (waves.some((w) => w.t - (w.kind === "aval" ? AVAL_PREP : TSU_PREP) >= w.dur && !(w.backT > 0) && (w.hold || 0) < 3)) return;
   // Si el equipo no alcanza (perfCap baja), también se recortan los extra de la mejora "más marcianitos"
   const perfK = clamp((perfCap - SPAWN.min) / (SPAWN.max - SPAWN.min), 0, 1);
   const target = Math.min(baseTarget, perfCap + Math.round(FX.crowdExtra(save.up.crowd) * (0.35 + 0.65 * perfK))) + evCrowd();
@@ -2547,7 +2549,7 @@ function updateBalls(dt) {
       if (b.burn && b.bs > 1) b.t += dt * (b.bs - 1);
       if (b.burn) burnTick(b, dt);
       if (b.drown) drownTick(b, dt);
-      if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : b.burn ? BURN_DIE : b.drown ? DROWN_DIE : b.flat ? 0.1 : DIE)) balls.splice(i, 1);
+      if (b.t >= (b.cutAng != null ? SAW_CUT_DIE : b.burn ? BURN_DIE : b.drown ? DROWN_DIE : b.snow ? SNOW_DIE : b.flat ? 0.1 : DIE)) balls.splice(i, 1);
       continue;
     }
     b.squash = Math.max(0, b.squash - dt / 0.24);
@@ -2618,6 +2620,7 @@ function floatText(x, y, text, color, size) { texts.push({ x, y, text, color, si
 function burst(b) {
   if (b.flat) { roadkill(b); return; } // lo atropelló el carro: queda embarrado en el pavimento
   if (b.drown) { drownBurst(b); return; } // se lo llevó el tsunami: se hunde
+  if (b.snow) { snowBurst(b); return; } // la avalancha lo enterró: desaparece bajo la nieve
   if (b.zapped != null && time - b.zapped < 0.05 && b.cutAng == null) { burnBurst(b); return; } // lo mató el rayo: se quema
   const T = b.T;
   gooBurst(b);
@@ -2785,7 +2788,7 @@ function smush(b, auto) {
   save.smushed++; save.byType[b.type]++;
   burst(b);
   goalsOnSmush(b, auto);
-  if (!b.flat && !b.drown) Sound.pop(b.type, auto); // el ahogado suena a "blup" (drownBurst)
+  if (!b.flat && !b.drown && !b.snow) Sound.pop(b.type, auto); // el ahogado suena a "blup" (drownBurst)
   if (!auto && !b.flat) buzz(b.type === "yellow" ? 20 : b.type === "purple" ? 12 : 7);
   if (!save.hinted && !auto) { save.hinted = true; $("#hint").classList.remove("on"); }
 }
@@ -3206,6 +3209,43 @@ function drawDrownAlien(b) {
   drawInWater(b, S, walk, b.x, gy, wl, tilt, 0.6 * Math.pow(1 - u, 1.4));
   waterRing(b, b.x, wl, k * (1 - u * 0.4), true);
   ctx.globalAlpha = 1;
+}
+// --- Avalancha: enterrado en un montículo de nieve, solo asoman las antenitas (se mueven); luego se hunden ---
+function snowMound(b, k) {
+  const r = b.r, gy = b.y + b.T.bottom, w = r * 1.35, h = b.T.bottom + r * 0.69, dk = PAL.dark;
+  const top = gy - h * k, path = () => { ctx.beginPath(); ctx.moveTo(b.x - w, gy); ctx.bezierCurveTo(b.x - w * 0.75, top + h * 0.1 * k, b.x - w * 0.4, top, b.x, top); ctx.bezierCurveTo(b.x + w * 0.4, top, b.x + w * 0.75, top + h * 0.1 * k, b.x + w, gy); ctx.ellipse(b.x, gy, w, w * 0.22, 0, 0, Math.PI); ctx.closePath(); };
+  return { gy, w, top, path, dk };
+}
+function drawBuriedAlien(b) {
+  const S = spriteOf(b); if (!S) return;
+  const dying = b.state === "die", u = dying ? clamp(b.t / SNOW_DIE, 0, 1) : 0;
+  const M = snowMound(b, 1 - 0.55 * smooth01(0.35, 1, u)), r = b.r, fade = 1 - smooth01(0.55, 1, u);
+  // Las antenitas (y lo que traiga en la cabeza): el marcianito hundido, recortado arriba del montículo
+  const shake = dying ? 0 : Math.sin(time * 30 + (b.p1 || 0)) * 0.8, down = dying ? easeIn(u) * r * 1.6 : 0, fx = Math.sign(b.flip || 1);
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(b.x - M.w, M.gy); ctx.bezierCurveTo(b.x - M.w * 0.75, M.top + (M.gy - M.top) * 0.1, b.x - M.w * 0.4, M.top, b.x, M.top);
+  ctx.bezierCurveTo(b.x + M.w * 0.4, M.top, b.x + M.w * 0.75, M.top + (M.gy - M.top) * 0.1, b.x + M.w, M.gy); ctx.lineTo(b.x + M.w, M.gy - 600); ctx.lineTo(b.x - M.w, M.gy - 600); ctx.closePath(); ctx.clip();
+  // Hundido: solo asoman las puntas de las antenas (o la bolita del gorro)
+  ctx.globalAlpha = 1; ctx.translate(b.x + shake, M.gy + r * 0.55 + down); ctx.scale(fx, 1); drawRig(ctx, S, b.walk, time, b.p1 || 0);
+  ctx.restore();
+  // El montículo: sombra al pie, nieve con luz arriba a la izquierda y un poco azulada abajo, y destellitos
+  ctx.globalAlpha = fade * (M.dk ? 0.4 : 0.18); ctx.fillStyle = M.dk ? "#000000" : "#4A6FA5";
+  ctx.beginPath(); ctx.ellipse(b.x + r * 0.15, M.gy + 1, M.w * 1.05, M.w * 0.24, 0, 0, TAU); ctx.fill();
+  const gr = ctx.createLinearGradient(b.x - M.w * 0.6, M.top, b.x + M.w * 0.5, M.gy);
+  gr.addColorStop(0, M.dk ? "#DCE5F2" : "#FFFFFF"); gr.addColorStop(0.6, M.dk ? "#B7C4DA" : "#EEF4FB"); gr.addColorStop(1, M.dk ? "#8E9FBB" : "#D3E0F0");
+  ctx.globalAlpha = fade; ctx.fillStyle = gr; M.path(); ctx.fill();
+  ctx.strokeStyle = M.dk ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.95)"; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(b.x - M.w * 0.62, M.gy - (M.gy - M.top) * 0.55); ctx.quadraticCurveTo(b.x - M.w * 0.35, M.top + 1.5, b.x + M.w * 0.05, M.top + 1); ctx.stroke();
+  ctx.fillStyle = M.dk ? "#FFFFFF" : "#9CB7DA";
+  for (let i = 0; i < 3; i++) { const k = Math.pow(Math.max(0, Math.sin(time * 2.4 + i * 2.1 + (b.p1 || 0))), 10); if (k < 0.05) continue; const x = b.x + (i - 1) * M.w * 0.45, y = M.gy - (M.gy - M.top) * (0.35 + (i % 2) * 0.2); ctx.globalAlpha = fade * k * 0.45; ctx.beginPath(); ctx.arc(x, y, 1.1, 0, TAU); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+// Al desaparecer: una bocanada de nieve que sale del montículo
+function snowBurst(b) {
+  const w = waves.find((q) => q.kind === "aval"), r = b.r, top = b.y - r;
+  if (w) for (let j = 0; j < 3; j++) w.puffs.push(puff(b.x + rand(-r * 0.6, r * 0.6), top + rand(-4, 8), 0.55));
+  if (!lowFx) for (let j = 0; j < 8; j++) part(b.x + rand(-r * 0.5, r * 0.5), top, rand(-50, 50), -rand(40, 110), rand(1.2, 2.4), rand(0.35, 0.55), PAL.dark ? "#DCE5F2" : "#FFFFFF", "dot", 3, 300, 0.95);
+  Sound.snowPoof();
 }
 // Al hundirse: una salpicada, y luego burbujas que suben y truenan en la superficie
 function drownBurst(b) {
@@ -7006,7 +7046,9 @@ function drawSnowfall(dt) {
 
 // Avalancha (herramienta de The Slopes): la nieve se desprende de los picos, baja rodando como una pared
 // de bolas de nieve con una nube de polvo, se lleva a todos los marcianitos y luego se asienta y se derrite.
-const AVAL_BACK = 1.4;
+const AVAL_BACK = 1.6, AVAL_PREP = 1.0; // s que la nieve tarda en derretirse / que los picos se agrietan antes de soltarla
+// Los que alcanza la avalancha quedan enterrados (montículo con las antenitas asomando) y luego desaparecen (SNOW_DIE s)
+const SNOW_DIE = 0.9;
 const avalCrest = (w, x) => w.front + Math.sin(x * 0.028 + w.t * 1.8) * 9 + Math.sin(x * 0.083 - w.t * 2.6) * 4;
 const crestAt = (w, x) => (w.kind === "aval" ? avalCrest(w, x) : waveCrest(w, x));
 function launchAval(dur) {
@@ -7018,12 +7060,24 @@ function updatePuffs(w, dt) {
   for (let i = w.puffs.length - 1; i >= 0; i--) { const p = w.puffs[i]; p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.t >= p.life) w.puffs.splice(i, 1); }
 }
 function drawAval(w) {
-  const tr = w.t - WAVE_PREP, dark = PAL.dark;
+  const tr = w.t - AVAL_PREP, dark = PAL.dark;
   let back = 0;
-  if (tr >= w.dur) back = Math.min(1, (tr - w.dur) / AVAL_BACK);
-  if (tr >= 0 && back > 0) {
-    // La nieve se asienta y se derrite poco a poco
-    ctx.globalAlpha = (1 - back) * 0.88; ctx.fillStyle = dark ? "#3A4760" : "#FAFCFE";
+  if (tr >= w.dur) back = Math.min(1, (w.backT || 0) / AVAL_BACK);
+  if (tr < 0) {
+    // Antes de soltarse: la nieve de los picos se agrieta (una grieta que se abre de lado a lado) y se ve el borde de la placa
+    const k = easeOut(clamp(w.t / AVAL_PREP, 0, 1)), y0 = seaH + 6, n = Math.ceil(W / 14) + 1;
+    const cy = (i) => y0 + Math.sin(i * 1.7 + 0.5) * 3 + Math.sin(i * 0.6) * 4;
+    const reach = W * Math.min(1, k * 1.4);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.globalAlpha = 0.5 * k; ctx.fillStyle = dark ? "rgba(0,0,0,0.5)" : "rgba(90,125,180,0.35)";
+    ctx.beginPath(); ctx.moveTo(0, cy(0)); for (let i = 0; i <= n && i * 14 <= reach; i++) ctx.lineTo(i * 14, cy(i)); for (let i = Math.min(n, Math.floor(reach / 14)); i >= 0; i--) ctx.lineTo(i * 14, cy(i) + 2 + 5 * k); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 0.9 * k; ctx.strokeStyle = dark ? "#1E2838" : "#5E7FAE"; ctx.lineWidth = 1.2 + 1.6 * k;
+    ctx.beginPath(); for (let i = 0; i <= n && i * 14 <= reach; i++) i ? ctx.lineTo(i * 14, cy(i)) : ctx.moveTo(0, cy(0)); ctx.stroke();
+    ctx.globalAlpha = 0.8 * k; ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 1;
+    ctx.beginPath(); for (let i = 0; i <= n && i * 14 <= reach; i++) i ? ctx.lineTo(i * 14, cy(i) - 2) : ctx.moveTo(0, cy(0) - 2); ctx.stroke();
+  } else if (tr >= w.dur) {
+    // La nieve asentada: cubre todo (con sus montículos) mientras alguien sigue enterrado; luego se derrite poco a poco
+    ctx.globalAlpha = (1 - back) * 0.94; ctx.fillStyle = dark ? "#3A4760" : "#FAFCFE";
     ctx.fillRect(0, seaH, W, H - seaH);
     for (let i = 0; i < 16; i++) {
       const x = (i * 97 + 31) % W, y = seaH + 30 + ((i * 137) % Math.max(60, H - seaH - 40)), r = 18 + (i % 4) * 8;
@@ -7031,7 +7085,7 @@ function drawAval(w) {
       ctx.beginPath(); ctx.ellipse(x + 3, y + 4, r, r * 0.42, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = dark ? "#4A5874" : "#FFFFFF"; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.42, 0, 0, TAU); ctx.fill();
     }
-  } else if (tr >= 0) {
+  } else {
     const front = w.front, crest = (x) => avalCrest(w, x), top = seaH * 0.55;
     // La sombra que el frente proyecta sobre la nieve
     ctx.globalAlpha = dark ? 0.4 : 0.18; ctx.fillStyle = dark ? "#000000" : "#4A6FA5";
@@ -7303,7 +7357,8 @@ const TSU_PREP = 0.85;                   // s que el mar se retira antes de que 
 // Los que atrapa el tsunami se ahogan: chapotean medio hundidos un ratito y luego se hunden (DROWN_DIE s)
 const DROWN_DIE = 1.7;
 const waveCrest = (w, x) => w.front + Math.sin(x * 0.045 + w.t * 7) * 6 + Math.sin(x * 0.014 - w.t * 3.2) * 9;
-function smushCarried(b) { b.pull = null; b.carried = false; b.tumble = 0; hit(b, 999, b.x, b.y - 20, true); }
+// Enterrado en la nieve: desaparece (cuenta como aplastado, con sus monedas)
+function buryNow(b) { b.pull = null; b.carried = false; b.snow = true; hit(b, 999, b.x, b.y, true); }
 // Se hunde: muere ahogado (cuenta como aplastado, con sus monedas) y su animación es hundirse con burbujas
 function drownNow(b) { b.pull = null; b.carried = false; b.drown = true; b.wl = b.y + b.r * 0.32; b.dTilt = b.tumble || 0; b.tumble = 0; hit(b, 999, b.x, b.y, true); }
 function updateWaves(dt) {
@@ -7312,10 +7367,13 @@ function updateWaves(dt) {
     const w = waves[i], aval = w.kind === "aval", start = aval ? seaH - 30 : -60;
     w.t += dt;
     if (aval) updatePuffs(w, dt);
-    const prep = aval ? WAVE_PREP : TSU_PREP, tr = w.t - prep;
+    const prep = aval ? AVAL_PREP : TSU_PREP, tr = w.t - prep;
     if (tr < 0) {
       // 1) Tsunami: el mar se retira (se ve la arena mojada) mientras la ola toma fuerza. Avalancha: la nieve se desprende
-      if (aval) { if (Math.random() < dt * 40) w.puffs.push(puff(rand(0, W), seaH - rand(0, 18), 0.6)); }
+      if (aval) {
+        if (Math.random() < dt * 30) w.puffs.push(puff(rand(0, W), seaH - rand(0, 18), 0.6));
+        if (!lowFx && Math.random() < dt * 26) part(rand(0, W), seaH + rand(-4, 8), rand(-20, 20), rand(20, 60), rand(1.6, 3.4), rand(0.4, 0.7), PAL.dark ? "#C9D4E6" : "#FFFFFF", "dot", 2, 260, 0.95);
+      }
       else shift = Math.min(shift, -40 * easeOut(w.t / prep));
       w.front = start;
     } else if (tr < w.dur) {
@@ -7325,7 +7383,7 @@ function updateWaves(dt) {
       if (!w.crashed && w.front > seaH) { w.crashed = true; if (aval) buzz([20, 40, 24, 40, 28]); else { Sound.waveCrash(); buzz([24, 50, 30]); } }
       const spray = aval ? (PAL.dark ? "#DCE5F1" : "#F2F7FD") : "#FFFFFF";
       if (!lowFx) for (let j = 0; j < (aval ? 3 : 6); j++) { const x = rand(0, W); part(x, crestAt(w, x) + (aval ? 0 : rand(-6, 10)), rand(-50, 50), rand(40, aval ? 170 : 230), rand(1.5, aval ? 3.2 : 3.8), rand(0.4, 0.75), spray, "dot", 3, 120, 0.9); }
-      if (aval && Math.random() < dt * (lowFx ? 10 : 26)) { const x = rand(-20, W + 20); w.puffs.push(puff(x, crestAt(w, x) - rand(0, 26), 1)); }
+      if (aval && Math.random() < dt * (lowFx ? 12 : 40)) { const x = rand(-20, W + 20), p = puff(x, crestAt(w, x) + rand(-30, 14), rand(1, 1.6)); p.vy = rand(30, 90); w.puffs.push(p); }
       // Atrapa a los que alcanza la cresta
       for (const b of balls) {
         if (b.state === "die" || b.pull) continue;
@@ -7336,6 +7394,7 @@ function updateWaves(dt) {
           w.caught.push(b);
           // Tsunami: queda chapoteando medio hundido, lo arrastra tantito la corriente y luego se hunde
           if (!aval) { b.swim = 0; b.sinkAt = rand(0.5, 0.95); b.drift = rand(60, 110); b.tumble = 0; Sound.splash(); }
+          else { b.bury = 0; b.sinkAt = rand(0.9, 1.5); b.tumble = 0; b.y = Math.min(b.y + rand(4, 14), H - b.T.bottom - 4); Sound.bury(); for (let j = 0; j < 3; j++) w.puffs.push(puff(b.x + rand(-b.r, b.r), b.y - rand(0, b.r), 0.7)); }
           for (let j = 0; j < (aval ? 4 : 8); j++) part(b.x, b.y, rand(-60, 60), rand(-110, -30), rand(1.6, 3), 0.5, spray, "dot", 3, 260, 0.9);
         }
       }
@@ -7343,12 +7402,12 @@ function updateWaves(dt) {
       // 3) Revienta abajo (el agua regresa al mar; la nieve se asienta). Tsunami: el agua se queda cubriendo todo hasta
       // que el último atrapado termina de hundirse (si no, parecía que se hundían en la arena); máx. 3 s de espera
       w.front = H + 80;
-      if (!aval) {
-        const busy = w.caught.some((b) => (b.carried && b.state !== "die") || (b.drown && b.state === "die" && b.t < DROWN_DIE && balls.includes(b)));
+      {
+        const busy = w.caught.some((b) => (b.carried && b.state !== "die") || (b.drown && b.state === "die" && b.t < DROWN_DIE && balls.includes(b)) || (b.snow && b.state === "die" && b.t < SNOW_DIE && balls.includes(b)));
         if (busy && (w.hold || 0) < 3) {
           w.hold = (w.hold || 0) + dt;
           // El que entre al campo mientras tanto también cae al agua
-          for (const b of balls) if (b.state !== "die" && !b.pull && b.entered) { b.pull = w; b.carried = true; b.tumble = 0; b.swim = 0; b.sinkAt = rand(0.5, 0.9); b.drift = rand(20, 40); if (b.claimed) { b.claimed.target = null; b.claimed = null; } w.caught.push(b); Sound.splash(); }
+          for (const b of balls) if (b.state !== "die" && !b.pull && b.entered) { b.pull = w; b.carried = true; b.tumble = 0; b.swim = 0; b.bury = 0; b.sinkAt = rand(0.5, 0.9); b.drift = rand(20, 40); if (b.claimed) { b.claimed.target = null; b.claimed = null; } w.caught.push(b); (aval ? Sound.bury : Sound.splash)(); }
         } else w.backT = (w.backT || 0) + dt;
       }
       if (!w.broke) {
@@ -7367,16 +7426,13 @@ function updateWaves(dt) {
       if (!lowFx && Math.random() < dt * 12) part(b.x + rand(-b.r, b.r), b.y + rand(-2, 4), rand(-40, 40), -rand(60, 140), rand(1.1, 2.2), rand(0.3, 0.5), "#FFFFFF", "dot", 3, 340, 0.85);
       if (b.swim >= b.sinkAt) drownNow(b);
     }
-    // Avalancha: los atrapados viajan en la cresta dando vueltas; al llegar al fondo, revientan
+    // Avalancha: los atrapados quedan enterrados; las antenitas se mueven un rato y luego se hunden
     if (aval) for (const b of w.caught) {
       if (b.state === "die" || !b.carried) continue;
-      const ty = Math.min(w.front, H + 40) - b.cOff;
-      b.y += (ty - b.y) * Math.min(1, dt * 10);
-      b.x = clamp(b.x + Math.sin(time * 2.5 + b.p1) * 30 * dt, b.T.side, W - b.T.side);
-      b.tumble += b.spin * dt;
-      if (b.y > H - b.T.bottom * 0.5 || w.broke) smushCarried(b);
+      b.bury += dt; b.walk += dt * 16;
+      if (b.bury >= b.sinkAt) buryNow(b);
     }
-    if (aval ? tr > w.dur + AVAL_BACK : (w.backT || 0) > WAVE_BACK) { for (const b of w.caught) if (b.carried && b.state !== "die") (aval ? smushCarried : drownNow)(b); waves.splice(i, 1); }
+    if ((w.backT || 0) > (aval ? AVAL_BACK : WAVE_BACK)) { for (const b of w.caught) if (b.carried && b.state !== "die") (aval ? buryNow : drownNow)(b); waves.splice(i, 1); }
   }
   seaShift += (shift - seaShift) * Math.min(1, dt * 8);
 }
@@ -7992,6 +8048,8 @@ function drawAlien(b) {
   if (b.state === "die" && b.burn) { drawBurnAlien(b); return; } // el rayo lo quemó
   if (b.state === "die" && b.drown) { drawDrownAlien(b); return; } // se lo llevó el tsunami: se hunde
   if (b.carried && b.pull && b.pull.kind !== "aval") { drawSwimAlien(b); return; } // chapoteando en el tsunami
+  if (b.carried && b.pull && b.pull.kind === "aval") { drawBuriedAlien(b); return; } // enterrado en la nieve
+  if (b.state === "die" && b.snow) { drawBuriedAlien(b); return; } // desapareciendo bajo la nieve
   let sx = 1, sy = 1, alpha = 1, lift = 0, tilt = 0;
   if (b.state === "in") { const k = easeOut(Math.min(1, b.t / 0.45)); sx = sy = 0.35 + 0.65 * k; alpha = k; }
   else if (b.state === "die" && b.flat) { const k = easeOut(Math.min(1, b.t / 0.1)); sx = 1 + 0.42 * k; sy = 1 - 0.7 * k; alpha = 1 - k; }
@@ -8079,7 +8137,7 @@ function render(dt) {
     if (b.state === "in") a = Math.min(1, b.t / 0.45);
     else if (b.state === "die" && b.cutAng != null) continue; // las mitades llevan su propia sombra
     else if (b.state === "die" && b.burn) a = 1 - smooth01(BURN.dust[0], BURN.dust[1], b.t);
-    else if (b.state === "die" && b.drown) continue; // en el agua no hay sombra
+    else if (b.state === "die" && (b.drown || b.snow)) continue; // en el agua o bajo la nieve no hay sombra
     else if (b.state === "die") { const u = Math.min(1, b.t / DIE); w = 1 + 0.4 * Math.min(1, u * 3); a = 1 - u; }
     ctx.globalAlpha = a;
     ctx.beginPath(); ctx.ellipse(b.x, b.y + T.bottom - 1, T.r * 0.95 * w, T.r * 0.26 * w, 0, 0, TAU); ctx.fill();
