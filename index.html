@@ -1105,7 +1105,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.46.0";
+const VERSION = "0.46.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -3957,9 +3957,23 @@ $("#trip").addEventListener("click", () => {
   const n = nextLvl();
   if (n && save.smushed >= n.smush && save.coins >= n.cost) openReady(); else openSheet($("#sheet-levels"));
 });
+// Mientras tienes el dedo puesto en una hoja, lo que se vuelve a armar solo (Niveles, la vitrina) espera a que sueltes:
+// si se rearma entre que pones el dedo y lo levantas, el botón que tocaste ya es otro y el toque se pierde
+const tapHold = { on: false, pend: new Set() };
+document.addEventListener("pointerdown", (e) => { if (e.target.closest && e.target.closest(".sheet .panel")) tapHold.on = true; }, { capture: true, passive: true });
+const tapRelease = () => {
+  if (!tapHold.on) return;
+  tapHold.on = false;
+  // Después del "click" (que llega justo después de soltar)
+  setTimeout(() => { if (tapHold.on) return; const p = [...tapHold.pend]; tapHold.pend.clear(); p.forEach((f) => f(false)); }, 80);
+};
+window.addEventListener("pointerup", tapRelease, { capture: true, passive: true });
+window.addEventListener("pointercancel", tapRelease, { capture: true, passive: true });
 function renderLevels(animate) {
   const list = $("#levels-list");
+  if (!animate && tapHold.on) { tapHold.pend.add(renderLevels); return; }
   let html = "";
+  const cards = [];
   const cur = real ? real.level : save.level; // tu nivel de verdad (aunque estés de visita)
   LEVELS.forEach((L, i) => {
     const here = i === cur, done = i < cur, isNext = !real && i === cur + 1, visitingThis = !!real && i === save.level;
@@ -3977,13 +3991,21 @@ function renderLevels(animate) {
       <p class="fresh">${tx("freshStart").replace("{c}", fmtFull(startCoins(i)))}</p>
       <button class="travel-btn${okS && okC ? " go" : ""}" type="button" data-travel ${okS && okC ? "" : "disabled"}>${!okS ? tx("needSmush") : !okC ? tx("needCoins") : `${tx("travelTo")} ${L.name}`}</button>`;
     }
-    html += `<div class="lvl-card${i > cur ? " locked" : ""}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`;
+    cards.push(`<div class="lvl-card${i > cur ? " locked" : ""}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`);
   });
-  html += `<div class="lvl-card"><div class="lvl-art soon"><canvas data-art="soon" aria-hidden="true"></canvas></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`;
-  list.innerHTML = html;
+  cards.push(`<div class="lvl-card"><div class="lvl-art soon"><canvas data-art="soon" aria-hidden="true"></canvas></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`);
+  // Solo se cambia la tarjeta que cambió (normalmente la del siguiente nivel): los botones de las demás siguen siendo los mismos
+  if (animate || list.children.length !== cards.length) {
+    list.innerHTML = cards.join("");
+    [...list.children].forEach((c, i) => { c._src = cards[i]; c.style.setProperty("--i", i); });
+  } else {
+    cards.forEach((h, i) => {
+      const el = list.children[i]; if (el._src === h) return;
+      const tmp = document.createElement("div"); tmp.innerHTML = h; const nu = tmp.firstElementChild; nu._src = h; nu.style.setProperty("--i", i); el.replaceWith(nu);
+    });
+  }
   mountArts(list, "lv");
   list.classList.toggle("enter", !!animate);
-  [...list.children].forEach((c, i) => c.style.setProperty("--i", i));
   $("#levels-coins").textContent = fmtFull(save.coins);
 }
 $("#lvl-chip").addEventListener("click", () => { Sound.unlock(); openSheet($("#sheet-levels")); });
@@ -10004,6 +10026,7 @@ function renderGoalsBadge() {
 }
 function renderGoals(animate) {
   const body = $("#goals-body"); if (!body) return;
+  if (!animate && tapHold.on) { tapHold.pend.add(renderGoals); return; }
   document.querySelectorAll("#goals-tabs button").forEach((b) => { const on = b.dataset.tab === goalsTab; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
   $("#goals-count").textContent = `${achCount()}/${ACH.length}`;
   let h = "";
