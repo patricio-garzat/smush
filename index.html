@@ -1154,8 +1154,28 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.54.0";
+const VERSION = "0.55.0";
 const SAVE_KEY = "smush-save-v1";
+// Copia en iCloud (solo en la app de iOS, desde 0.55.0): la app nativa pone la copia de la nube en window.__cloudSave al
+// arrancar y recibe cada guardado (CloudSave en AppDelegate.swift). Al abrir se usa la que lleve más avance; así el progreso
+// sobrevive a borrar la app y pasa a otro iPhone o iPad con la misma cuenta de Apple.
+const saveScore = (raw) => { try { const o = JSON.parse(raw || "null"); return o && typeof o === "object" ? [Number(o.smushed) || 0, Number(o.earned) || 0] : null; } catch (e) { return null; } };
+const better = (a, b) => !!a && (!b || a[0] > b[0] || (a[0] === b[0] && a[1] > b[1])); // ¿a lleva más avance que b?
+function bestSaveRaw() {
+  let local = null; try { local = localStorage.getItem(SAVE_KEY); } catch (e) {}
+  const cloud = typeof window.__cloudSave === "string" && window.__cloudSave ? window.__cloudSave : null;
+  if (cloud && better(saveScore(cloud), saveScore(local))) { try { localStorage.setItem(SAVE_KEY, cloud); } catch (e) {} return cloud; }
+  return local;
+}
+const cloudPush = (json) => { try { const h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.cloudSave; if (h) h.postMessage(json); } catch (e) {} };
+// La copia de iCloud llegó después de abrir (recién instalada): si lleva más avance, se usa (una sola vez)
+window.__cloudArrived = (raw) => {
+  if (window.__cloudUsed || real || typeof save === "undefined") return;
+  if (!better(saveScore(raw), saveScore(JSON.stringify(save)))) return;
+  window.__cloudUsed = true;
+  try { localStorage.setItem(SAVE_KEY, raw); } catch (e) {}
+  location.reload();
+};
 const SETTINGS_KEY = "smush-settings-v1";
 
 // Marcianitos. r = radio del cuerpo en px; speed = px/s; hp = puntos de daño; weight = probabilidad de aparecer
@@ -1504,7 +1524,7 @@ const freshSave = () => ({
 function loadSave() {
   const d = freshSave();
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    const s = JSON.parse(bestSaveRaw() || "null");
     if (!s || typeof s !== "object") return d;
     const num = (v) => (Number.isFinite(v) && v >= 0 ? v : 0);
     // Lo esencial primero: nivel y progreso (si algo de abajo fallara, esto nunca se pierde)
@@ -1635,7 +1655,9 @@ let saveTimer = 0;
 function writeSave() {
   clearTimeout(saveTimer); saveTimer = 0;
   if (!real) save.lastSeen = Date.now();
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(real || save)); } catch (e) {}
+  const json = JSON.stringify(real || save);
+  try { localStorage.setItem(SAVE_KEY, json); } catch (e) {}
+  cloudPush(json);
 }
 function markSave() { if (!saveTimer) saveTimer = setTimeout(writeSave, 800); }
 setInterval(() => { if (!document.hidden) writeSave(); }, 15000);

@@ -72,9 +72,52 @@ class GameViewController: CAPBridgeViewController {
         let config = super.webViewConfiguration(for: instanceConfiguration)
         config.mediaTypesRequiringUserActionForPlayback = []
         config.allowsInlineMediaPlayback = true
-        // Pantalla encendida mientras juegas: el juego avisa con window.webkit.messageHandlers.keepAwake.postMessage(true/false)
-        config.userContentController.add(KeepAwake(), name: "keepAwake")
         return config
+    }
+
+    // Ojo: Capacitor cambia el userContentController DESPUÉS de webViewConfiguration (prepareWebView), así que los
+    // mensajes del juego se registran aquí, cuando el WebView ya existe y antes de que cargue la página.
+    override func capacitorDidLoad() {
+        super.capacitorDidLoad()
+        guard let ucc = webView?.configuration.userContentController else { return }
+        // Pantalla encendida mientras juegas: el juego avisa con window.webkit.messageHandlers.keepAwake.postMessage(true/false)
+        ucc.add(KeepAwake(), name: "keepAwake")
+        // Copia de la partida en iCloud (sobrevive a borrar la app): el juego la recibe al arrancar en window.__cloudSave
+        // y manda cada guardado con window.webkit.messageHandlers.cloudSave.postMessage(json)
+        let cloud = NSUbiquitousKeyValueStore.default
+        cloud.synchronize()
+        let saved = cloud.string(forKey: CloudSave.key) ?? ""
+        NSLog("SMUSH iCloud: al abrir hay %d bytes en la nube", saved.utf8.count)
+        ucc.addUserScript(WKUserScript(source: "window.__cloudSave = \(CloudSave.jsString(saved));", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        ucc.add(CloudSave(), name: "cloudSave")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Si la copia de iCloud llega después de abrir (p. ej. recién instalada), se le pasa al juego, que decide si la usa
+        NotificationCenter.default.addObserver(forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification, object: NSUbiquitousKeyValueStore.default, queue: .main) { [weak self] _ in
+            let saved = NSUbiquitousKeyValueStore.default.string(forKey: CloudSave.key) ?? ""
+            NSLog("SMUSH iCloud: llegó una copia de la nube (%d bytes)", saved.utf8.count)
+            guard !saved.isEmpty else { return }
+            self?.webView?.evaluateJavaScript("window.__cloudArrived && window.__cloudArrived(\(CloudSave.jsString(saved)));", completionHandler: nil)
+        }
+    }
+}
+
+/// Guarda la partida (el mismo JSON de localStorage) en el almacenamiento clave-valor de iCloud del jugador.
+/// No necesita cuenta ni servidor; si el iPhone no tiene iCloud, simplemente no hace nada.
+class CloudSave: NSObject, WKScriptMessageHandler {
+    static let key = "smush-save-v1"
+    static func jsString(_ s: String) -> String {
+        guard let d = try? JSONSerialization.data(withJSONObject: [s]), let a = String(data: d, encoding: .utf8) else { return "\"\"" }
+        return String(a.dropFirst().dropLast()) // ["…"] → "…"
+    }
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let json = message.body as? String, !json.isEmpty, json.utf8.count < 900_000 else { return }
+        let cloud = NSUbiquitousKeyValueStore.default
+        if cloud.string(forKey: CloudSave.key) == json { return }
+        cloud.set(json, forKey: CloudSave.key)
+        NSLog("SMUSH iCloud: partida guardada (%d bytes)", json.utf8.count)
     }
 }
 
