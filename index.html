@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>SMUSH! · BluBer Games</title>
-<meta name="description" content="SMUSH! A calm, satisfying little game by BluBer Games: smush tiny aliens, earn coins, hire helper fingers and unlock new tools.">
+<meta name="description" content="SMUSH! A calm, satisfying game by BluBer Games: smush aliens, earn coins, hire helper fingers and unlock new tools.">
 <meta name="theme-color" content="#F6F5F1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#191918" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-title" content="SMUSH!">
@@ -1152,7 +1152,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.53.1";
+const VERSION = "0.53.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1649,14 +1649,14 @@ const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.strin
 
 /* ---------- 3. Idioma: inglés por defecto, español en Ajustes ---------- */
 const STR = {
-  smushedTotal: ["Aliens smushed", "Marcianitos aplastados"],
+  smushedTotal: ["Aliens smushed", "Marcianos aplastados"],
   smushed: ["smushed", "aplastados"],
   shop: ["Shop", "Tienda"],
   shopSub: ["Tools, helpers & boosts", "Herramientas, ayudantes y mejoras"],
   shopCan: ["things you can buy", "cosas que puedes comprar"], shopCan1: ["thing you can buy", "cosa que puedes comprar"],
   tabTools: ["Tools", "Herramientas"], tabHelpers: ["Helpers", "Ayudantes"], tabBoosts: ["Boosts", "Mejoras"],
   noteTools: ["Tools stay unlocked forever. Switch anytime from the bar below.", "Las herramientas quedan desbloqueadas para siempre. Cámbialas cuando quieras desde la barra."],
-  noteHelpers: ["Helpers work on their own, even while you're away. Clouds stay in their spot (drag them to move them); hunting fingers chase the aliens.", "Los ayudantes trabajan solos, incluso cuando no estás. Las nubes se quedan en su lugar (arrástralas para moverlas); los dedos cazadores persiguen a los marcianitos."],
+  noteHelpers: ["Helpers work on their own, even while you're away. Clouds stay in their spot (drag them to move them); hunting fingers chase the aliens.", "Los ayudantes trabajan solos, incluso cuando no estás. Las nubes se quedan en su lugar (arrástralas para moverlas); los dedos cazadores persiguen a los marcianos."],
   working: ["Working", "Trabajando"], turnedOff: ["Off", "Apagado"],
   noteBoosts: ["Permanent upgrades that make every smush count more.", "Mejoras permanentes para que cada aplastón rinda más."],
   settings: ["Settings", "Ajustes"],
@@ -1667,18 +1667,18 @@ const STR = {
   auto: ["Auto", "Auto"], light: ["Light", "Claro"], dark: ["Dark", "Oscuro"],
   language: ["Language", "Idioma"],
   records: ["Records", "Récords"],
-  totalSmushed: ["Aliens smushed", "Marcianitos aplastados"],
+  totalSmushed: ["Aliens smushed", "Marcianos aplastados"],
   coinsEarned: ["Coins earned (all time)", "Monedas ganadas (en total)"],
   coinsSpent: ["Coins spent", "Monedas gastadas"],
   coinsNow: ["Coins you have now", "Monedas que tienes ahora"],
   awayEarned: ["Earned while away", "Ganadas mientras no estabas"],
   howTo: ["How to play", "Cómo jugar"],
-  how1: ["Tap the aliens to smush them and earn coins.", "Toca los marcianitos para aplastarlos y ganar monedas."],
+  how1: ["Tap the aliens to smush them and earn coins.", "Toca a los marcianos para aplastarlos y ganar monedas."],
   how2: ["Spend coins in the Shop on tools, helpers and boosts.", "Usa tus monedas en la Tienda: herramientas, ayudantes y mejoras."],
   how3: ["Switch tools anytime from the bar below. Hold and drag to use the Saw.", "Cambia de herramienta cuando quieras en la barra de abajo. Mantén presionado y arrastra para usar la Sierra."],
-  how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 60.", "Los marcianitos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 60."],
-  how5: ["Unlock helpers and shock clouds arrive to zap aliens on their own (drag them anywhere). Then hire hunting fingers that chase the aliens. They keep working while you're away.", "Desbloquea a los ayudantes y llegan nubes eléctricas que electrocutan marcianitos solas (arrástralas a donde quieras). Luego contrata dedos cazadores que persiguen a los marcianitos. Siguen trabajando cuando no estás."],
-  how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there with a few coins of that world; your smush count comes with you.", "Cada marcianito que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marcianito vale más. Ahí empiezas de cero con unas monedas de ese mundo; tu cuenta de aplastados viaja contigo."],
+  how4: ["Aliens walk in and out of the screen. Smush them before they get away! Purple ones need 3 hits; golden ones are worth 60.", "Los marcianos entran y salen de la pantalla. ¡Aplástalos antes de que se escapen! Los morados necesitan 3 golpes y los dorados valen 60."],
+  how5: ["Unlock helpers and shock clouds arrive to zap aliens on their own (drag them anywhere). Then hire hunting fingers that chase the aliens. They keep working while you're away.", "Desbloquea a los ayudantes y llegan nubes eléctricas que electrocutan marcianos solas (arrástralas a donde quieras). Luego contrata dedos cazadores que persiguen a los marcianos. Siguen trabajando cuando no estás."],
+  how7: ["Every alien you smush counts for the whole game. Reach the total each level asks for and pay the trip to travel on, where every alien is worth more. You start fresh there with a few coins of that world; your smush count comes with you.", "Cada marciano que aplastas cuenta para todo el juego. Llega al total que pide cada nivel y paga el viaje para seguir, donde cada marciano vale más. Ahí empiezas de cero con unas monedas de ese mundo; tu cuenta de aplastados viaja contigo."],
   how6: ["Every so often a ×2 or ×4 bubble shows up. Tap it within 3 seconds to multiply your coins for 10 seconds.", "De vez en cuando aparece una burbuja ×2 o ×4. Tócala en menos de 3 segundos y tus monedas se multiplican por 10 segundos."],
   data: ["Data", "Datos"],
   reset: ["Reset progress", "Reiniciar progreso"],
@@ -1690,7 +1690,7 @@ const STR = {
   version: ["Version", "Versión"],
   website: ["Website", "Sitio web"],
   support: ["Support", "Soporte"],
-  hint: ["Tap the aliens to smush them", "Toca los marcianitos para aplastarlos"],
+  hint: ["Tap the aliens to smush them", "Toca a los marcianos para aplastarlos"],
   welcome: ["Welcome back!", "¡Qué bueno verte!"],
   homeTag: ["Smush. Collect. Relax.", "Aplasta. Junta. Relájate."], missions: ["Missions", "Misiones"], trophyCase: ["Trophy case", "Vitrina"], collection: ["Collection", "Colección"], trophies: ["Trophies", "Trofeos"], play: ["Play", "Jugar"], continue: ["Continue", "Continuar"],
   menu: ["Menu", "Menú"], howSub: ["The basics", "Lo básico"], setSub: ["Sound & theme", "Sonido y tema"],
@@ -1698,19 +1698,19 @@ const STR = {
   buy: ["Buy", "Comprar"], owned: ["Yours", "Tuya"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
   finger: ["Click", "Click"], saw: ["Saw", "Sierra"], bolt: ["Shock", "Descarga"],
   bomb: ["Bomb", "Bomba"], bombD: ["Place bombs anywhere, then press Detonate. Buy more to place up to 10 at once.", "Pon bombas donde quieras y luego presiona Detonar. Compra más para poner hasta 10 a la vez."],
-  wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
+  wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies across the middle of the field and scatters 6 huge bombs all over it.", "Cruza por en medio del campo y reparte 6 bombas enormes por todos lados."],
-  arrows: ["Arrows", "Flechas"], arrowsD: ["Tap to shoot: arrows fly in from both sides and go right through every alien in their way. Buy it once and use it as much as you like.", "Toca para disparar: salen flechas volando desde los dos lados y atraviesan a todos los marcianitos en su camino. Se compra una vez y la usas cuantas veces quieras."],
+  arrows: ["Arrows", "Flechas"], arrowsD: ["Tap to shoot: arrows fly in from both sides and go right through every alien in their way. Buy it once and use it as much as you like.", "Toca para disparar: salen flechas volando desde los dos lados y atraviesan a todos los marcianos en su camino. Se compra una vez y la usas cuantas veces quieras."],
   secJungle: ["The Jungle", "The Jungle"], secToys: ["The Playroom", "The Playroom"],
-  train: ["Toy train", "Tren de juguete"], trainD: ["Tap to send it: the steam train whistles and the aliens nearby walk onto the tracks to look. Then it comes out, blows steam to both sides and sends them flying, and each one knocks down the others where it lands. Buy it once and send it as often as you like.", "Toca para mandarlo: el tren de vapor pita y los marcianitos cercanos se acercan a la vía a ver. Luego sale, echa vapor a los lados y los avienta volando, y cada uno tumba a los que están donde cae. Se compra una vez y lo mandas cuantas veces quieras."],
-  car: ["Car", "Carro"], carD: ["Tap to send it: it honks and the aliens nearby step onto its lane to look, then it speeds through and runs over all of them, leaving them flattened with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: pita el claxon y los marcianitos cercanos se meten a su carril a ver; luego pasa a toda velocidad y los atropella a todos, embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
+  train: ["Toy train", "Tren de juguete"], trainD: ["Tap to send it: the steam train whistles and the aliens nearby walk onto the tracks to look. Then it comes out, blows steam to both sides and sends them flying, and each one knocks down the others where it lands. Buy it once and send it as often as you like.", "Toca para mandarlo: el tren de vapor pita y los marcianos cercanos se acercan a la vía a ver. Luego sale, echa vapor a los lados y los avienta volando, y cada uno tumba a los que están donde cae. Se compra una vez y lo mandas cuantas veces quieras."],
+  car: ["Car", "Carro"], carD: ["Tap to send it: it honks and the aliens nearby step onto its lane to look, then it speeds through and runs over all of them, leaving them flattened with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: pita el claxon y los marcianos cercanos se meten a su carril a ver; luego pasa a toda velocidad y los atropella a todos, embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
   secCity: ["The City", "The City"],
-  aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
-  secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
+  aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianos."],
+  secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
-  sawD: ["Hold and drag: a spinning saw that slices every alien it touches in half. Upgrades make it bigger.", "Mantén y arrastra: una sierra que gira y parte a la mitad a cada marcianito que toca. Las mejoras la hacen más grande."],
-  boltD: ["Zaps every alien in its tap area and arcs on to their neighbors. Each upgrade widens the tap (same sizes as Click, up to 90 px) and adds one more jump to the chain (up to 10).", "Electrocuta a todos los marcianitos en el área de su toque y salta a los cercanos. Cada mejora agranda el toque (con los mismos tamaños que el Click, hasta 90 px) y suma un salto más a la cadena (hasta 10)."],
+  sawD: ["Hold and drag: a spinning saw that slices every alien it touches in half. Upgrades make it bigger.", "Mantén y arrastra: una sierra que gira y parte a la mitad a cada marciano que toca. Las mejoras la hacen más grande."],
+  boltD: ["Zaps every alien in its tap area and arcs on to their neighbors. Each upgrade widens the tap (same sizes as Click, up to 90 px) and adds one more jump to the chain (up to 10).", "Electrocuta a todos los marcianos en el área de su toque y salta a los cercanos. Cada mejora agranda el toque (con los mismos tamaños que el Click, hasta 90 px) y suma un salto más a la cadena (hasta 10)."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
   secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"], secSnow: ["The Slopes", "The Slopes"],
@@ -1718,20 +1718,20 @@ const STR = {
   lvShort: ["Lv", "Nv"], buyQty: ["Levels per tap", "Niveles por toque"], maxShort: ["Max", "Máx."], needMore: ["Need", "Faltan"],
   unlocksAt: ["Unlocks at", "Se desbloquea en"],
   levels: ["Levels", "Niveles"], level: ["Level", "Nivel"],
-  voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianitos."],
-  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs and the Tsunami.", "Sol, arena y olas. Cada marcianito vale ×2 y te esperan herramientas nuevas: Bombas y el Tsunami."],
-  snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marcianito vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
-  toysD: ["A playroom full of toys: a tipi, a toy chest, a rocking horse and a little steam train that comes out of a tunnel and winds across a colorful rug. Every alien is worth ×32; at night fairy lights and a moon lamp keep it cozy.", "Un cuarto de juegos lleno de juguetes: un tipi, un baúl, un caballito mecedor y un trenecito de vapor que sale de un túnel y cruza una alfombra de colores. Cada marcianito vale ×32; de noche lo alumbran foquitos y una lamparita de luna."],
-  jungleD: ["Giant trees, ferns and a quiet pond under a green canopy. Every alien is worth ×16; butterflies drift by in the day and fireflies glow at night.", "Árboles gigantes, helechos y un estanque tranquilo bajo un techo de hojas. Cada marcianito vale ×16; de día pasan mariposas y de noche brillan las luciérnagas."],
-  cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
+  voidD: ["Where it all began. Quiet, endless and full of aliens.", "Donde todo empezó. Tranquilo, infinito y lleno de marcianos."],
+  beachD: ["Sun, sand and waves. Every alien is worth ×2, and new tools await: Bombs and the Tsunami.", "Sol, arena y olas. Cada marciano vale ×2 y te esperan herramientas nuevas: Bombas y el Tsunami."],
+  snowD: ["Snow, pines and quiet peaks. Every alien is worth ×4, the oranges ski past leaving tracks, and Meteors and the Avalanche arrive. No sea here, so no Tsunami.", "Nieve, pinos y picos tranquilos. Cada marciano vale ×4, los naranjas pasan esquiando y dejando huella, y llegan los Meteoritos y la Avalancha. Aquí no hay mar, así que no hay Tsunami."],
+  toysD: ["A playroom full of toys: a tipi, a toy chest, a rocking horse and a steam train that comes out of a tunnel and winds across a colorful rug. Every alien is worth ×32; at night fairy lights and a moon lamp keep it cozy.", "Un cuarto de juegos lleno de juguetes: un tipi, un baúl, un caballito mecedor y un tren de vapor que sale de un túnel y cruza una alfombra de colores. Cada marciano vale ×32; de noche lo alumbran luces y una lámpara de luna."],
+  jungleD: ["Giant trees, ferns and a quiet pond under a green canopy. Every alien is worth ×16; butterflies drift by in the day and fireflies glow at night.", "Árboles gigantes, helechos y un estanque tranquilo bajo un techo de hojas. Cada marciano vale ×16; de día pasan mariposas y de noche brillan las luciérnagas."],
+  cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marciano vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
   visitLvl: ["Visit", "Visitar"], visitKicker: ["Just visiting", "De visita"], visitingNow: ["Visiting", "De visita"], backTo: ["Back to", "Regresar a"],
   visitNote: ["Just a visit: you arrive with your coins, tools and helpers, and you can smush and buy as usual, but nothing there counts. Your progress stays exactly as it is.", "Solo de visita: llegas con tus monedas, herramientas y ayudantes, y puedes aplastar y comprar como siempre, pero nada de lo de allá cuenta. Tu progreso se queda exactamente igual."],
   tripNext: ["Next island", "Siguiente isla"], finGoal: ["Final goal", "Meta final"], finName: ["The end", "El final"], finCoins: ["Coins for the finale", "Monedas para el final"], finReady: ["You made it!", "¡Lo lograste!"], finSee: ["See the ending", "Ver el final"], finSeen: ["See the ending again", "Ver el final otra vez"], lastIsle: ["Last island, for now", "Última isla, por ahora"], tripSaving: ["Coins for the trip", "Monedas para el viaje"], tripReady: ["Ready to travel!", "¡Lista para viajar!"],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
-  reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
+  reqSmush: ["Aliens smushed in total", "Marcianos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
   freshStart: ["Fresh start: tools, helpers and boosts reset, and you begin with {c} coins. Your smush count comes with you.", "Empiezas de cero: herramientas, ayudantes y mejoras se reinician y arrancas con {c} monedas. Tu cuenta de aplastados viaja contigo."], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
-  soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianitos, nuevas herramientas."],
+  soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianos, nuevas herramientas."],
   ready: ["Ready!", "¡Listo!"],
   stay: ["Stay a bit", "Un rato más"], travelNow: ["Travel now", "Viajar ya"], unlocked: ["unlocked", "desbloqueado"],
   readyTitle: ["is waiting for you", "te espera"], welcomeTo: ["Welcome to", "Bienvenido a"],
@@ -1739,18 +1739,18 @@ const STR = {
   needFinger: ["Needs a finger", "Falta un dedo"], needBoot: ["Needs a boot", "Falta una bota"],
   convert: ["Convert", "Convertir"],
   escaped: ["Got away", "Se escaparon"],
-  hire: ["Helpers", "Ayudantes"], hireD: ["Unlock your helpers: shock clouds arrive and start zapping aliens on their own, even while you're away. Drag them anywhere you like.", "Desbloquea a tus ayudantes: llegan nubes eléctricas que electrocutan marcianitos solas, incluso cuando no estás. Arrástralas a donde quieras."],
-  fingers: ["Hunting fingers", "Dedos cazadores"], fingersD: ["Each one chases the aliens on its own and smushes them. Upgrade their speed.", "Cada uno persigue a los marcianitos solo y los aplasta. Mejora su velocidad."],
+  hire: ["Helpers", "Ayudantes"], hireD: ["Unlock your helpers: shock clouds arrive and start zapping aliens on their own, even while you're away. Drag them anywhere you like.", "Desbloquea a tus ayudantes: llegan nubes eléctricas que electrocutan marcianos solas, incluso cuando no estás. Arrástralas a donde quieras."],
+  fingers: ["Hunting fingers", "Dedos cazadores"], fingersD: ["Each one chases the aliens on its own and smushes them. Upgrade their speed.", "Cada uno persigue a los marcianos solo y los aplasta. Mejora su velocidad."],
   needHire: ["Unlock helpers first", "Primero desbloquea"], unlocked: ["Unlocked", "Desbloqueado"], needFingers: ["Hire a finger first", "Primero contrata un dedo"],
   fspeed: ["Finger speed", "Velocidad"], fspeedD: ["How many times per second each hunting finger taps (up to 10).", "Cuántas veces por segundo toca cada dedo cazador (hasta 10)."],
   carea: ["Cloud reach", "Alcance"], careaD: ["How far around its spot each cloud can zap.", "Qué tan lejos de su lugar alcanza a electrocutar cada nube."],
-  cchain: ["Chain shock", "Descarga en cadena"], cchainD: ["How many aliens each shock jumps through (up to 10).", "A cuántos marcianitos salta cada descarga (hasta 10)."],
+  cchain: ["Chain shock", "Descarga en cadena"], cchainD: ["How many aliens each shock jumps through (up to 10).", "A cuántos marcianos salta cada descarga (hasta 10)."],
   secFingers: ["Hunting fingers", "Dedos cazadores"], secClouds: ["Shock clouds", "Nubes eléctricas"],
   toPlace: ["to place when you close the Shop", "por acomodar al cerrar la Tienda"], placeLeft: ["more", "más"],
   modeFingers: ["Fingers", "Dedos"], modeClouds: ["Clouds", "Nubes"], unlock: ["Unlock", "Desbloquear"],
   placeHint: ["Tap where your helper should go", "Toca donde quieres poner a tu ayudante"], dragHint: ["Drag the clouds on the field to move them.", "Arrastra las nubes en el campo para moverlas."],
-  value: ["Golden touch", "Toque de oro"], valueD: ["Every alien is worth more coins.", "Cada marcianito vale más monedas."],
-  crowd: ["Busy planet", "Planeta lleno"], crowdD: ["More aliens, arriving faster.", "Más marcianitos, y llegan más rápido."],
+  value: ["Golden touch", "Toque de oro"], valueD: ["Every alien is worth more coins.", "Cada marciano vale más monedas."],
+  crowd: ["Busy planet", "Planeta lleno"], crowdD: ["More aliens, arriving faster.", "Más marcianos, y llegan más rápido."],
   luck: ["Lucky star", "Estrella de la suerte"], luckD: ["Golden aliens show up more often.", "Los dorados aparecen más seguido."],
   night: ["Night shift", "Turno de noche"], nightD: ["Helpers keep working longer while you're away.", "Tus ayudantes trabajan más tiempo mientras no estás."],
   green: ["Green", "Verdes"], orange: ["Orange", "Naranjas"], purple: ["Purple", "Morados"], yellow: ["Golden", "Dorados"],
@@ -1800,14 +1800,14 @@ function upText(k, l, short) {
     case "fingers": return short ? String(l) : es ? `${l} de ${helperCap()} ${l === 1 ? "dedo" : "dedos"}` : `${l} of ${helperCap()} ${l === 1 ? "finger" : "fingers"}`;
     case "fspeed": { const r = FX.fingerRate(l); return short ? `${r}/s` : es ? `${r} toques por segundo` : `${r} taps per second`; }
     case "carea": { const r = px(FX.cloudArea(l)); return short ? `${r} px` : es ? `Alcance de ${r} px` : `${r} px reach`; }
-    case "cchain": { const r = FX.cloudHits(l), j = px(FX.cloudJump(l)); return short ? `${r} · ${j} px` : es ? `${r} marcianitos por descarga · saltos de ${j} px` : `${r} aliens per shock · ${j} px jumps`; }
+    case "cchain": { const r = FX.cloudHits(l), j = px(FX.cloudJump(l)); return short ? `${r} · ${j} px` : es ? `${r} marcianos por descarga · saltos de ${j} px` : `${r} aliens per shock · ${j} px jumps`; }
     case "jet": {
       if (!l) return tx("notHired");
       const s = n(FX.jetEvery(l));
       return short ? `${s} s` : es ? `Pasa cada ${s} s` : `Every ${s}s`;
     }
     case "value": { const m = "×" + n(FX.valueMult(l)); return short ? m : es ? `${m} monedas` : `${m} coins`; }
-    case "crowd": { const e = FX.crowdExtra(l); return short ? `+${e}` : es ? `+${e} marcianitos` : `+${e} aliens`; }
+    case "crowd": { const e = FX.crowdExtra(l); return short ? `+${e}` : es ? `+${e} marcianos` : `+${e} aliens`; }
     case "luck": { const m = "×" + n(FX.luckWeight(l) / FX.luckWeight(0)); return short ? m : es ? `${m} dorados` : `${m} golden`; }
     case "night": { const h = FX.nightHours(l), t = h < 1 ? `${Math.round(h * 60)} min` : `${n(h >= 10 ? Math.round(h) : Math.round(h * 10) / 10)} h`; return short ? t : es ? `${t} trabajando fuera` : `${t} of work while away`; }
   }
@@ -3717,7 +3717,7 @@ function showWelcome() {
   const mins = Math.round(a.away / 60), t = mins < 60 ? `${Math.max(1, mins)} min` : `${fmt1(a.away / 3600)} h`;
   const capped = a.away > a.secs + 1;
   $("#welcome-msg").textContent = (es
-    ? `Estuviste fuera ${t} y tus ayudantes aplastaron ${fmt(a.aliens)} marcianitos.`
+    ? `Estuviste fuera ${t} y tus ayudantes aplastaron ${fmt(a.aliens)} marcianos.`
     : `You were away for ${t} and your helpers smushed ${fmt(a.aliens)} aliens.`)
     + (capped ? (es ? ` Trabajan hasta ${upText("night", save.up.night, true)}; con Turno de noche, más.` : ` They work up to ${upText("night", save.up.night, true)}. Night shift lets them work longer.`) : "");
   $("#welcome-coins").textContent = "+" + fmt(a.coins);
@@ -4292,7 +4292,7 @@ function openReady() {
   $("#ready-kicker").textContent = `${tx("level")} ${save.level + 2} ${tx("unlocked")}`;
   $("#ready-title").textContent = `${n.name} ${tx("readyTitle")}`;
   $("#ready-msg").textContent = es
-    ? `Ya llevas ${fmt(n.smush)} marcianitos aplastados y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero con ${fmtFull(startCoins(save.level + 1))} monedas; tu cuenta de aplastados viaja contigo.`
+    ? `Ya llevas ${fmt(n.smush)} marcianos aplastados y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero con ${fmtFull(startCoins(save.level + 1))} monedas; tu cuenta de aplastados viaja contigo.`
     : `You've smushed ${fmt(n.smush)} aliens in total and you have the ${fmt(n.cost)} coins for the trip. You start fresh there with ${fmtFull(startCoins(save.level + 1))} coins; your smush count comes with you.`;
   $("#btn-go").textContent = tx("travelNow");
   readyEl.classList.toggle("to-snow", n.id === "snow");
@@ -4417,8 +4417,8 @@ const Finale = (() => {
     const title = es ? "¡Llegaste al final!" : "You've reached the end!";
     // Letra por letra, pero sin partir las palabras al cambiar de renglón
     $("#fin-t").innerHTML = title.split(" ").map((wd) => `<span class="w">${[...wd].map((ch) => `<b>${ch}</b>`).join("")}</span>`).join(" ");
-    $("#fin-s").textContent = es ? "…por ahora. Vienen muchas islas más, con nuevos marcianitos y herramientas." : "…for now. Many more islands are on the way, with new aliens and new tools.";
-    $("#fin-stats").textContent = es ? `${fmtFull(save.smushed)} marcianitos aplastados` : `${fmtFull(save.smushed)} aliens smushed`;
+    $("#fin-s").textContent = es ? "…por ahora. Vienen muchas islas más, con nuevos marcianos y herramientas." : "…for now. Many more islands are on the way, with new aliens and new tools.";
+    $("#fin-stats").textContent = es ? `${fmtFull(save.smushed)} marcianos aplastados` : `${fmtFull(save.smushed)} aliens smushed`;
     $("#fin-btn").textContent = es ? "Seguir aplastando" : "Keep smushing";
     el.hidden = false; void el.offsetWidth; el.classList.add("open");
     t0 = performance.now(); raf = requestAnimationFrame(frame);
@@ -10875,7 +10875,7 @@ const tracking = () => !real && save && save.g;
 const EVENTS = {
   void:   { name: ["Star shower", "Lluvia de estrellas"], sub: ["Tap the golden stars!", "¡Toca las estrellas doradas!"], dur: 16 },
   beach:  { name: ["Low tide", "Marea baja"], sub: ["Shells on the sand: tap them!", "Conchas en la arena: ¡tócalas!"], dur: 18 },
-  snow:   { name: ["Blizzard", "Ventisca"], sub: ["Slow aliens · +50% coins", "Marcianitos lentos · +50 % monedas"], dur: 15 },
+  snow:   { name: ["Blizzard", "Ventisca"], sub: ["Slow aliens · +50% coins", "Marcianos lentos · +50 % monedas"], dur: 15 },
   city:   { name: ["Rush hour", "Hora pico"], sub: ["The streets fill up!", "¡Se llenan las calles!"], dur: 15 },
   jungle: { name: ["Coconut rain", "Lluvia de cocos"], sub: ["Coconuts fall from the trees", "Caen cocos de los árboles"], dur: 14 },
   toys:   { name: ["Block rain", "Lluvia de bloques"], sub: ["Wooden blocks tumble from the shelf", "Caen bloques de madera del librero"], dur: 14 },
@@ -10973,9 +10973,9 @@ const ACH = [];
 const addAch = (id, grp, glyph, tier, name, desc, prog) => ACH.push({ id, grp, glyph, tier, name, desc, prog });
 const fmtK = (n) => fmtShort(n);
 [[1000, 0], [10000, 0], [20000, 1], [50000, 1], [100000, 2], [200000, 2], [500000, 3], [1000000, 3]].forEach(([n, t]) =>
-  addAch("smush" + n, "smush", "alien", t, [`${fmtK(n)} smushed`, `${fmtK(n)} aplastados`], [`Smush ${fmt(n)} aliens in total`, `Aplasta ${fmt(n)} marcianitos en total`], () => [save.smushed, n]));
+  addAch("smush" + n, "smush", "alien", t, [`${fmtK(n)} smushed`, `${fmtK(n)} aplastados`], [`Smush ${fmt(n)} aliens in total`, `Aplasta ${fmt(n)} marcianos en total`], () => [save.smushed, n]));
 [[25, 0], [50, 1], [100, 2], [160, 3]].forEach(([n, t]) =>
-  addAch("speed" + n, "speed", "clock", t, [`${n} in 30 s`, `${n} en 30 s`], [`Smush ${n} aliens in under 30 seconds`, `Aplasta ${n} marcianitos en menos de 30 segundos`], () => [save.g.best.speed, n]));
+  addAch("speed" + n, "speed", "clock", t, [`${n} in 30 s`, `${n} en 30 s`], [`Smush ${n} aliens in under 30 seconds`, `Aplasta ${n} marcianos en menos de 30 segundos`], () => [save.g.best.speed, n]));
 [[10000, 0], [100000, 0], [1e6, 1], [1e7, 2], [1e8, 3]].forEach(([n, t]) =>
   addAch("spent" + n, "spent", "coin", t, [`Big spender ${fmtK(n)}`, `Gastador ${fmtK(n)}`], [`Spend ${fmt(n)} coins`, `Gasta ${fmt(n)} monedas`], () => [save.spent, n]));
 [[10, 0], [25, 1], [50, 2], [100, 3]].forEach(([n, t]) =>
@@ -10984,23 +10984,23 @@ const fmtK = (n) => fmtShort(n);
   addAch("rare" + n, "rare", "crown", t, [n === 1 ? "Royal catch" : `${n} kings`, n === 1 ? "Captura real" : `${n} reyes`], [`Catch ${n === 1 ? "a" : n} rare king${n === 1 ? "" : "s"}`, `Atrapa ${n === 1 ? "a un" : n} rey${n === 1 ? "" : "es"}`], () => [save.g.rares, n]));
 [[1, 0], [2, 1], [3, 1], [4, 2], [5, 3]].forEach(([i, t]) =>
   addAch("lv" + i, "levels", "flag", t, [LEVELS[i].name, LEVELS[i].name], [`Travel to ${LEVELS[i].name}`, `Viaja a ${LEVELS[i].name}`], () => [save.level >= i ? 1 : 0, 1]));
-for (const L of LEVELS) addAch("ev_" + L.id, "events", "bolt", 1, EVENTS[L.id].name, [`Smush 20 aliens during the ${LX(EVENTS[L.id].name)} in ${L.name}`, `Aplasta 20 marcianitos en la ${LX(EVENTS[L.id].name)} de ${L.name}`], () => [save.g.ev[L.id] ? 1 : 0, 1]);
+for (const L of LEVELS) addAch("ev_" + L.id, "events", "bolt", 1, EVENTS[L.id].name, [`Smush 20 aliens during the ${LX(EVENTS[L.id].name)} in ${L.name}`, `Aplasta 20 marcianos en la ${LX(EVENTS[L.id].name)} de ${L.name}`], () => [save.g.ev[L.id] ? 1 : 0, 1]);
 for (const L of LEVELS) addAch("col_" + L.id, "collect", "gem", 2, COL[L.id].name, [`Collect all 10 in ${L.name}`, `Junta las 10 de ${L.name}`], () => [(save.g.col[L.id] || []).length, 10]);
 [[5, 0], [25, 1], [100, 2]].forEach(([n, t]) =>
   addAch("mis" + n, "missions", "check", t, [`${n} missions`, `${n} misiones`], [`Complete ${n} missions`, `Completa ${n} misiones`], () => [save.g.misDone, n]));
 [[50, 0], [250, 1], [1000, 2], [3000, 3]].forEach(([n, t]) =>
-  addAch("gold" + n, "gold", "star", t, [`Golden touch ${fmtK(n)}`, `Toque dorado ${fmtK(n)}`], [`Smush ${fmt(n)} golden aliens`, `Aplasta ${fmt(n)} marcianitos dorados`], () => [save.byType.yellow, n]));
+  addAch("gold" + n, "gold", "star", t, [`Golden touch ${fmtK(n)}`, `Toque dorado ${fmtK(n)}`], [`Smush ${fmt(n)} golden aliens`, `Aplasta ${fmt(n)} marcianos dorados`], () => [save.byType.yellow, n]));
 [[25, 0], [100, 1], [300, 2]].forEach(([n, t]) =>
   addAch("ups" + n, "upgrades", "up", t, [`${n} upgrades`, `${n} mejoras`], [`Buy ${n} upgrade levels`, `Compra ${n} niveles de mejoras`], () => [save.g.ups, n]));
 addAch("maxtool", "upgrades", "up", 2, ["Maxed out", "Al máximo"], ["Take any tool to its last level", "Lleva cualquier herramienta a su último nivel"], () => [TOOL_ORDER.some((k) => k !== "finger" && !ONE_SHOT.has(k) && save.tools[k] >= toolMax(k)) ? 1 : 0, 1]);
 [[10, 0], [50, 1], [150, 2]].forEach(([n, t]) =>
   addAch("bub" + n, "bubbles", "bubble", t, [`${n} bubbles`, `${n} burbujas`], [`Pop ${n} ×2 or ×4 bubbles`, `Revienta ${n} burbujas ×2 o ×4`], () => [save.g.bubbles, n]));
 [[1000, 0], [10000, 1], [100000, 2]].forEach(([n, t]) =>
-  addAch("auto" + n, "helpers", "cloud", t, [`Team work ${fmtK(n)}`, `Trabajo en equipo ${fmtK(n)}`], [`Your helpers smush ${fmt(n)} aliens`, `Tus ayudantes aplastan ${fmt(n)} marcianitos`], () => [save.g.auto, n]));
+  addAch("auto" + n, "helpers", "cloud", t, [`Team work ${fmtK(n)}`, `Trabajo en equipo ${fmtK(n)}`], [`Your helpers smush ${fmt(n)} aliens`, `Tus ayudantes aplastan ${fmt(n)} marcianos`], () => [save.g.auto, n]));
 [[1800, 0, "30 min"], [7200, 1, "2 h"], [36000, 2, "10 h"], [86400, 3, "24 h"]].forEach(([n, t, lb]) =>
   addAch("play" + n, "play", "hourglass", t, [`${lb} of smushing`, `${lb} aplastando`], [`Play for ${lb} in total`, `Juega ${lb} en total`], () => [Math.floor(save.g.play), n]));
 [[6, 1], [10, 2], [13, 3]].forEach(([n, t]) =>
-  addAch("chain" + n, "chain", "bolt", t, [`Chain of ${n}`, `Cadena de ${n}`], [`Hit ${n} aliens with one chain lightning`, `Pégale a ${n} marcianitos con un solo rayo en cadena`], () => [save.g.best.chain, n]));
+  addAch("chain" + n, "chain", "bolt", t, [`Chain of ${n}`, `Cadena de ${n}`], [`Hit ${n} aliens with one chain lightning`, `Pégale a ${n} marcianos con un solo rayo en cadena`], () => [save.g.best.chain, n]));
 [[10000, 0], [1000000, 2]].forEach(([n, t]) =>
   addAch("away" + n, "away", "moon", t, [`Night shift ${fmtK(n)}`, `Turno de noche ${fmtK(n)}`], [`Earn ${fmt(n)} coins while you're away`, `Gana ${fmt(n)} monedas mientras no estás`], () => [Math.floor(save.awayEarned), n]));
 addAch("helpers", "helpers", "cloud", 1, ["Full team", "Equipo completo"], ["Hire every hunting finger you can", "Contrata a todos los dedos cazadores que puedas"], () => [save.up.fingers, helperCap()]);
@@ -11065,14 +11065,14 @@ const TYPE_NAME = { green: ["green", "verdes"], orange: ["orange", "naranjas"], 
 function misText(m) {
   const lid = lvl().id;
   switch (m.k) {
-    case "type": return LX([`Smush ${fmt(m.n)} ${TYPE_NAME[m.a][0]} aliens`, `Aplasta ${fmt(m.n)} marcianitos ${TYPE_NAME[m.a][1]}`]);
-    case "total": return LX([`Smush ${fmt(m.n)} aliens`, `Aplasta ${fmt(m.n)} marcianitos`]);
+    case "type": return LX([`Smush ${fmt(m.n)} ${TYPE_NAME[m.a][0]} aliens`, `Aplasta ${fmt(m.n)} marcianos ${TYPE_NAME[m.a][1]}`]);
+    case "total": return LX([`Smush ${fmt(m.n)} aliens`, `Aplasta ${fmt(m.n)} marcianos`]);
     case "tool": return LX([`Smush ${fmt(m.n)} with ${tx(m.a)}`, `Aplasta ${fmt(m.n)} con ${tx(m.a)}`]);
     case "combo": return LX([`Reach a ×${m.n} combo`, `Haz un combo de ×${m.n}`]);
     case "rare": return LX([`Catch the ${LX(RARE_NAME[lid])}`, `Atrapa al ${LX(RARE_NAME[lid])}`]);
     case "event": return LX([`Smush ${m.n} during the ${LX(EVENTS[lid].name)}`, `Aplasta ${m.n} en la ${LX(EVENTS[lid].name)}`]);
     case "collect": return LX(COL[lid].find);
-    case "speed": return LX([`Smush ${m.n} aliens in 30 seconds`, `Aplasta ${m.n} marcianitos en 30 segundos`]);
+    case "speed": return LX([`Smush ${m.n} aliens in 30 seconds`, `Aplasta ${m.n} marcianos en 30 segundos`]);
     case "bubble": return LX([`Pop ${m.n} ×2 or ×4 bubbles`, `Revienta ${m.n} burbujas ×2 o ×4`]);
     case "helpers": return LX([`Let your helpers smush ${fmt(m.n)}`, `Que tus ayudantes aplasten ${fmt(m.n)}`]);
     case "upgrade": return LX([`Buy ${m.n} upgrade levels`, `Compra ${m.n} niveles de mejoras`]);
