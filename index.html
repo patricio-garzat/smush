@@ -1126,7 +1126,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.50.2";
+const VERSION = "0.51.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1305,18 +1305,20 @@ const TOOLS = {
   saw:    { price: 10000, max: 4, upgrades: [20000, 40000, 80000], radius: [20, 25, 30, 35] },
   // The Beach
   bomb:   { price: 4000, world: 1, max: 20, upgrades: ups(1500, 1.38), count: L20((v) => Math.min(10, v)), radius: L20((v) => Math.round(curve(70, 185, v))) }, // hasta 10 bombas; luego, más grandes
-  wave:   { price: 15000, world: 1, only: 1, max: 20, upgrades: ups(20000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.5, v) * 10) / 10), dur: L20((v) => curve(2.8, 2.2, v)) }, // tsunami: baja desde el mar y arrastra a todos
+  // Tsunami, Meteoritos, Avalancha, Carro, Flechas y Tren: se compran una vez y se usan cuantas veces quieras, sin espera
+  // (no tienen mejoras: siempre son igual de fuertes). Solo uno a la vez donde no tiene sentido encimarlos
+  wave:   { price: 15000, world: 1, only: 1, max: 1, upgrades: [], dur: 2.5 }, // tsunami: baja desde el mar y arrastra a todos
   // The Slopes
-  meteor: { price: 10000, world: 2, max: 20, upgrades: ups(15000, 1.34), count: L20((v) => 8 + Math.floor((v - 1) * 0.65)), radius: L20((v) => Math.round(curve(64, 84, v))), damage: 3, spread: L20((v) => Math.round(curve(150, 230, v))), cooldown: L20((v) => Math.round(geo(3, 1, v) * 10) / 10) },
+  meteor: { price: 10000, world: 2, max: 1, upgrades: [], count: 16, radius: 76, damage: 3, spread: 200 },
   // The City
-  car:    { price: 15000, world: 3, only: 3, max: 20, upgrades: ups(18000, 1.33), cooldown: L20((v) => Math.round(geo(8, 2.2, v) * 10) / 10) }, // carro: pasa por un carril y atropella a todos
+  car:    { price: 15000, world: 3, only: 3, max: 1, upgrades: [] }, // carro: pita, se juntan en su carril y los atropella
   // The Jungle
-  arrows: { price: 16000, world: 4, only: 4, max: 10, upgrades: Array.from({ length: 9 }, (_, i) => nice(20000 * 1.45 ** i)), count: [3, 4, 5, 5, 6, 7, 8, 8, 9, 10], cooldown: [5, 4.7, 4.4, 4.1, 3.8, 3.5, 3.2, 3, 2.8, 2.5] }, // flechas por lado (3 → 10)
+  arrows: { price: 16000, world: 4, only: 4, max: 1, upgrades: [], count: 7 }, // flechas por lado
   // The Playroom
-  // Tren: siempre hace lo mismo (silbato que los atrae a la vía, vapor a los lados y efecto boliche); las mejoras solo bajan la espera
-  train:  { price: 18000, world: 5, only: 5, max: 10, upgrades: Array.from({ length: 9 }, (_, i) => nice(24000 * 1.45 ** i)), cooldown: [9, 8.2, 7.5, 6.8, 6.2, 5.6, 5.1, 4.6, 4.2, 3.8] },
-  aval:   { price: 15000, world: 2, only: 2, max: 20, upgrades: ups(20000, 1.34), cooldown: L20((v) => Math.round(geo(9, 3.5, v) * 10) / 10), dur: L20((v) => curve(3.0, 2.3, v)) }, // avalancha: baja de los picos y arrastra a todos
+  train:  { price: 18000, world: 5, only: 5, max: 1, upgrades: [] },
+  aval:   { price: 15000, world: 2, only: 2, max: 1, upgrades: [], dur: 2.6 }, // avalancha: baja de los picos y arrastra a todos
 };
+const ONE_SHOT = new Set(["wave", "meteor", "aval", "car", "arrows", "train"]); // se compran una vez (sin mejoras ni espera)
 const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car", "arrows", "train"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
@@ -1456,7 +1458,7 @@ const freshSave = () => ({
   tools: { finger: 1, bolt: 0, saw: 0, bomb: 0, meteor: 0, wave: 0, aval: 0, car: 0, arrows: 0 }, // 0 = sin comprar; 1+ = nivel
   up: { hire: 0, carea: 0, cchain: 0, fingers: 0, fspeed: 0, value: 0, crowd: 0, luck: 0, night: 0 },
   tool: "finger", hinted: false, lastSeen: Date.now(),
-  v: 6, // versión del guardado
+  v: 7, // versión del guardado
   level: 0, // nivel actual (la meta del siguiente usa el total de aplastados, que nunca se reinicia)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
   readyAsked: -1, // nivel en el que ya avisamos que podías viajar (solo se avisa una vez por nivel)
@@ -1544,7 +1546,19 @@ function loadSave() {
       if (int(u.fmove, 1)) back(25000);
       d.up.hire = oldHire > 0 ? 1 : 0; d.up.fingers = 0; d.up.fspeed = 0;
     }
-    d.v = 6;
+    d.v = 7;
+    // Tsunami, Meteoritos, Avalancha, Carro, Flechas y Tren ya no tienen mejoras (0.51): se devuelve lo que pagaste por ellas
+    if (!(s.v >= 7)) {
+      const m = LEVELS[d.level].coinMult || 1, old = {
+        wave: ups(20000, 1.33), meteor: ups(15000, 1.34), aval: ups(20000, 1.34), car: ups(18000, 1.33),
+        arrows: Array.from({ length: 9 }, (_, i) => nice(20000 * 1.45 ** i)), train: Array.from({ length: 9 }, (_, i) => nice(24000 * 1.45 ** i)),
+      };
+      for (const k in old) {
+        const L0 = Math.floor(num(s.tools && s.tools[k])); let paid = 0;
+        for (let l = 1; l < Math.min(L0, old[k].length + 1); l++) paid += old[k][l - 1];
+        if (paid > 0) { const back = nice(paid * m); d.coins += back; d.spent = Math.max(0, d.spent - back); }
+      }
+    }
     // La Descarga pasó de 20 a 10 niveles (0.50): te quedas con el nivel nuevo que alcanza lo que ya pagaste y se te
     // devuelve lo que sobra
     const oldBolt = Math.floor(num(s.tools && s.tools.bolt));
@@ -1647,15 +1661,15 @@ const STR = {
   homeTag: ["Smush. Collect. Relax.", "Aplasta. Junta. Relájate."], missions: ["Missions", "Misiones"], trophyCase: ["Trophy case", "Vitrina"], collection: ["Collection", "Colección"], trophies: ["Trophies", "Trofeos"], play: ["Play", "Jugar"], continue: ["Continue", "Continuar"],
   menu: ["Menu", "Menú"], howSub: ["The basics", "Lo básico"], setSub: ["Sound & theme", "Sonido y tema"],
   collect: ["Collect", "Recoger"],
-  buy: ["Buy", "Comprar"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
+  buy: ["Buy", "Comprar"], owned: ["Yours", "Tuya"], hireBtn: ["Hire", "Contratar"], upgrade: ["Upgrade", "Mejorar"], max: ["Max level", "Nivel máx."],
   finger: ["Click", "Click"], saw: ["Saw", "Sierra"], bolt: ["Shock", "Descarga"],
   bomb: ["Bomb", "Bomba"], bombD: ["Place bombs anywhere, then press Detonate. Buy more to place up to 10 at once.", "Pon bombas donde quieras y luego presiona Detonar. Compra más para poner hasta 10 a la vez."],
   wave: ["Tsunami", "Tsunami"], waveD: ["A giant wave rolls in from the sea and carries every alien away.", "Una ola gigante llega desde el mar y se lleva a todos los marcianitos."],
   detonate: ["Detonate", "Detonar"], addBomb: ["+1 bomb", "+1 bomba"], notHired: ["Not hired yet", "Sin contratar"],
   jet: ["Bomber jet", "Jet bombardero"], jetD: ["Flies across the middle of the field and scatters 6 huge bombs all over it.", "Cruza por en medio del campo y reparte 6 bombas enormes por todos lados."],
-  arrows: ["Arrows", "Flechas"], arrowsD: ["Tap to shoot: arrows fly in from both sides and go right through every alien in their way. Upgrade it for more arrows on each side.", "Toca para disparar: salen flechas volando desde los dos lados y atraviesan a todos los marcianitos en su camino. Mejórala para que salgan más flechas por lado."],
+  arrows: ["Arrows", "Flechas"], arrowsD: ["Tap to shoot: arrows fly in from both sides and go right through every alien in their way. Buy it once and use it as much as you like.", "Toca para disparar: salen flechas volando desde los dos lados y atraviesan a todos los marcianitos en su camino. Se compra una vez y la usas cuantas veces quieras."],
   secJungle: ["The Jungle", "The Jungle"], secToys: ["The Playroom", "The Playroom"],
-  train: ["Toy train", "Tren de juguete"], trainD: ["Tap to send it: the steam train whistles and the aliens nearby walk onto the tracks to look. Then it comes out, blows steam to both sides and sends them flying, and each one knocks down the others where it lands. Upgrades let you send it more often.", "Toca para mandarlo: el tren de vapor pita y los marcianitos cercanos se acercan a la vía a ver. Luego sale, echa vapor a los lados y los avienta volando, y cada uno tumba a los que están donde cae. Las mejoras hacen que lo puedas mandar más seguido."],
+  train: ["Toy train", "Tren de juguete"], trainD: ["Tap to send it: the steam train whistles and the aliens nearby walk onto the tracks to look. Then it comes out, blows steam to both sides and sends them flying, and each one knocks down the others where it lands. Buy it once and send it as often as you like.", "Toca para mandarlo: el tren de vapor pita y los marcianitos cercanos se acercan a la vía a ver. Luego sale, echa vapor a los lados y los avienta volando, y cada uno tumba a los que están donde cae. Se compra una vez y lo mandas cuantas veces quieras."],
   car: ["Car", "Carro"], carD: ["Tap to send it: it honks and the aliens nearby step onto its lane to look, then it speeds through and runs over all of them, leaving them flattened with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: pita el claxon y los marcianitos cercanos se meten a su carril a ver; luego pasa a toda velocidad y los atropella a todos, embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
   secCity: ["The City", "The City"],
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
@@ -1727,12 +1741,12 @@ function statText(id, lvl) {
 
   if (id === "saw") { const r = sawRadius(lvl); return es ? `Radio de ${r} px` : `${r} px radius`; }
   if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]), a = boltArea(lvl); return es ? `${a ? `Toque de ${a} px` : "Uno a la vez"} · +${n} en cadena · ${r} px` : `${a ? `${a} px tap` : "One at a time"} · +${n} chained · ${r} px`; }
-  if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
-  if (id === "car") { const c = TOOLS.car.cooldown[i]; return es ? `Atropella un carril · cada ${c} s` : `Runs over a lane · every ${c}s`; }
-  if (id === "train") { const c = TOOLS.train.cooldown[i]; return es ? `Sale cada ${c} s` : `Every ${c}s`; }
-  if (id === "arrows") { const n = TOOLS.arrows.count[i], c = TOOLS.arrows.cooldown[i]; return es ? `${n} flechas por lado · cada ${c} s` : `${n} arrows per side · every ${c}s`; }
+  if (id === "wave" || id === "aval") return es ? "Arrastra a todos · sin espera" : "Sweeps everyone · no waiting";
+  if (id === "car") return es ? "Atropella un carril · sin espera" : "Runs over a lane · no waiting";
+  if (id === "train") return es ? "Cruza el cuarto · sin espera" : "Crosses the room · no waiting";
+  if (id === "arrows") { const n = TOOLS.arrows.count; return es ? `${n} flechas por lado · sin espera` : `${n} arrows per side · no waiting`; }
   if (id === "bomb") { const n = TOOLS.bomb.count[i], r = px(TOOLS.bomb.radius[i]); return es ? `${n} ${n === 1 ? "bomba" : "bombas"} · ${r} px` : `${n} ${n === 1 ? "bomb" : "bombs"} · ${r} px`; }
-  const n = TOOLS.meteor.count[i], c = TOOLS.meteor.cooldown[i]; return es ? `${n} meteoritos · cada ${c} s` : `${n} meteors · every ${c}s`;
+  const n = TOOLS.meteor.count; return es ? `${n} meteoritos · sin espera` : `${n} meteors · no waiting`;
 }
 function statShort(id, lvl) {
   const i = lvl - 1;
@@ -1740,12 +1754,9 @@ function statShort(id, lvl) {
 
   if (id === "saw") return `${sawRadius(lvl)} px`;
   if (id === "bolt") return `${boltArea(lvl)} px · +${TOOLS.bolt.chains[i]}`;
-  const s = LANG === "es" ? " s" : "s";
-  if (id === "wave" || id === "aval" || id === "car") return `${TOOLS[id].cooldown[i]}${s}`;
-  if (id === "train") return `${TOOLS.train.cooldown[i]}${s}`;
-  if (id === "arrows") return `${TOOLS.arrows.count[i]}×2`;
+  if (ONE_SHOT.has(id)) return "";
   if (id === "bomb") return `${TOOLS.bomb.count[i]} · ${px(TOOLS.bomb.radius[i])} px`;
-  return `${TOOLS.meteor.count[i]} · ${TOOLS.meteor.cooldown[i]}${s}`;
+  return "";
 }
 // Texto de ayudantes y mejoras en un nivel. short = solo el número (para la flecha "→")
 function upText(k, l, short) {
@@ -2956,24 +2967,20 @@ function useTool(x, y, pid) {
   } else if (id === "saw") {
     // La sierra corta en el bucle mientras el dedo siga presionado (sawTick)
   } else if (id === "wave") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    startCd(id, TOOLS.wave.cooldown[L]);
-    waves.push({ t: 0, dur: TOOLS.wave.dur[L], id: ++waveId, front: -60, caught: [] });
+    if (waves.length) { ring(x, y, 4, 18, 0.3, PAL.text, 1.4, 0.2); return; } // ya hay uno pasando
+    waves.push({ t: 0, dur: TOOLS.wave.dur, id: ++waveId, front: -60, caught: [] });
     Sound.wave(); buzz([12, 60, 18, 60, 24]);
   } else if (id === "arrows") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    startCd(id, TOOLS.arrows.cooldown[L]);
-    launchArrows(TOOLS.arrows.count[L]);
+    if (arrows.length > TOOLS.arrows.count * 4) { ring(x, y, 4, 18, 0.3, PAL.text, 1.4, 0.2); return; } // ya hay uno pasando
+    launchArrows(TOOLS.arrows.count);
   } else if (id === "car") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    if (launchCar()) startCd(id, TOOLS.car.cooldown[L]);
+    if (cars.length >= 2) { ring(x, y, 4, 18, 0.3, PAL.text, 1.4, 0.2); return; } // ya hay uno pasando
+    launchCar();
   } else if (id === "train") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    if (launchTrain(L)) startCd(id, TOOLS.train.cooldown[L]);
+    if (!launchTrain(L)) { ring(x, y, 4, 18, 0.3, PAL.text, 1.4, 0.2); return; } // ya hay uno pasando
   } else if (id === "aval") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    startCd(id, TOOLS.aval.cooldown[L]);
-    launchAval(TOOLS.aval.dur[L]);
+    if (waves.length) { ring(x, y, 4, 18, 0.3, PAL.text, 1.4, 0.2); return; } // ya hay uno pasando
+    launchAval(TOOLS.aval.dur);
   } else if (id === "bomb") {
     placeBomb(x, y);
   } else if (id === "bolt") {
@@ -2995,10 +3002,9 @@ function useTool(x, y, pid) {
       sparks(c.x, c.y, 3); c.zapped = time; hit(c, 1, x, y, true, false);
     }));
   } else if (id === "meteor") {
-    if (cdLeft(id) > 0) { notReady(x, y); return; }
-    startCd(id, TOOLS.meteor.cooldown[L]);
+    if (meteors.length > TOOLS.meteor.count * 2) { ring(x, y, 4, 18, 0.3, PAL.text, 1.4, 0.2); return; } // ya hay uno pasando
     // Se reparten parejo en todo el círculo (espiral con el ángulo dorado y un poco de azar): nunca caen dos juntos
-    const M = TOOLS.meteor, n = M.count[L], S = M.spread[L] * RS, r = M.radius[L] * RS, a0 = rand(0, TAU), top = (seaTop() || 0) + 10;
+    const M = TOOLS.meteor, n = M.count, S = M.spread * RS, r = M.radius * RS, a0 = rand(0, TAU), top = (seaTop() || 0) + 10;
     for (let i = 0; i < n; i++) {
       const a = a0 + i * 2.39996 + rand(-0.25, 0.25), d = Math.sqrt((i + 0.35) / n) * S * rand(0.88, 1.08);
       meteors.push({ x: clamp(x + Math.cos(a) * d, 8, W - 8), y: clamp(y + Math.sin(a) * d * 0.8, top, H - 8), r, t: -i * 0.075 - rand(0, 0.05), dur: 0.34, dx: rand(0.35, 0.7), hit: false });
@@ -8867,7 +8873,7 @@ function renderToolbar() {
 // La espera del agujero negro y los meteoritos se ve como un reloj sobre su botón
 const cdShown = {};
 function updateCooldownUI() {
-  for (const id of ["meteor", "wave", "aval", "car", "arrows", "train"]) {
+  for (const id of []) { // (ya ninguna herramienta tiene espera)
     const el = toolEls[id]; if (!el) continue;
     const p = cdLen[id] ? Math.round((cdLeft(id) / cdLen[id]) * 100) / 100 : 0;
     if (cdShown[id] === p) continue;
@@ -8878,6 +8884,7 @@ function updateCooldownUI() {
 }
 const qtyWhat = (label, n) => (n > 1 ? `${label} ×${n}` : label);
 function buyButton(kind, key, price, label, blocked) {
+  if (price == null && kind === "tool" && ONE_SHOT.has(key)) return `<span class="maxed"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>${tx("owned")}</span>`;
   if (price == null) return `<span class="maxed"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.6 9.6 3.6"/></svg>${tx(key === "hire" ? "unlocked" : "maxShort")}</span>`;
   const b = bulk(kind, key);
   return `<button class="buy" type="button" data-kind="${kind}" data-key="${key}" data-label="${label}" data-n="${b.n}"${save.coins < b.cost || blocked ? " disabled" : ""}>
@@ -9476,7 +9483,7 @@ function drawCursor(x, y) {
     ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(x, y, down ? 7 : 9, 0, TAU); ctx.stroke();
     ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
   } else if (id === "saw" || id === "meteor" || id === "bomb" || (id === "finger" && TOOLS.finger.radius[L])) {
-    const R = id === "saw" ? sawRadius(L + 1) : (id === "finger" ? TOOLS.finger.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread[L]) * RS;
+    const R = id === "saw" ? sawRadius(L + 1) : (id === "finger" ? TOOLS.finger.radius[L] : id === "bomb" ? bombR() / RS : TOOLS.meteor.spread) * RS;
     ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
     ctx.globalAlpha = 0.3; ctx.setLineDash(id === "finger" ? [] : [3, 5]); ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
@@ -10769,7 +10776,7 @@ for (const L of LEVELS) addAch("col_" + L.id, "collect", "gem", 2, COL[L.id].nam
   addAch("gold" + n, "gold", "star", t, [`Golden touch ${fmtK(n)}`, `Toque dorado ${fmtK(n)}`], [`Smush ${fmt(n)} golden aliens`, `Aplasta ${fmt(n)} marcianitos dorados`], () => [save.byType.yellow, n]));
 [[25, 0], [100, 1], [300, 2]].forEach(([n, t]) =>
   addAch("ups" + n, "upgrades", "up", t, [`${n} upgrades`, `${n} mejoras`], [`Buy ${n} upgrade levels`, `Compra ${n} niveles de mejoras`], () => [save.g.ups, n]));
-addAch("maxtool", "upgrades", "up", 2, ["Maxed out", "Al máximo"], ["Take any tool to its last level", "Lleva cualquier herramienta a su último nivel"], () => [TOOL_ORDER.some((k) => k !== "finger" && save.tools[k] >= toolMax(k)) ? 1 : 0, 1]);
+addAch("maxtool", "upgrades", "up", 2, ["Maxed out", "Al máximo"], ["Take any tool to its last level", "Lleva cualquier herramienta a su último nivel"], () => [TOOL_ORDER.some((k) => k !== "finger" && !ONE_SHOT.has(k) && save.tools[k] >= toolMax(k)) ? 1 : 0, 1]);
 [[10, 0], [50, 1], [150, 2]].forEach(([n, t]) =>
   addAch("bub" + n, "bubbles", "bubble", t, [`${n} bubbles`, `${n} burbujas`], [`Pop ${n} ×2 or ×4 bubbles`, `Revienta ${n} burbujas ×2 o ×4`], () => [save.g.bubbles, n]));
 [[1000, 0], [10000, 1], [100000, 2]].forEach(([n, t]) =>
