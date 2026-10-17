@@ -1126,7 +1126,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.6";
+const VERSION = "0.49.7";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1640,7 +1640,7 @@ const STR = {
   arrows: ["Arrows", "Flechas"], arrowsD: ["Tap to shoot: arrows fly in from both sides and go right through every alien in their way. Upgrade it for more arrows on each side.", "Toca para disparar: salen flechas volando desde los dos lados y atraviesan a todos los marcianitos en su camino. Mejórala para que salgan más flechas por lado."],
   secJungle: ["The Jungle", "The Jungle"], secToys: ["The Playroom", "The Playroom"],
   train: ["Toy train", "Tren de juguete"], trainD: ["Tap to send it: the steam train whistles and the aliens nearby walk onto the tracks to look. Then it comes out, blows steam to both sides and sends them flying, and each one knocks down the others where it lands. Upgrades let you send it more often.", "Toca para mandarlo: el tren de vapor pita y los marcianitos cercanos se acercan a la vía a ver. Luego sale, echa vapor a los lados y los avienta volando, y cada uno tumba a los que están donde cae. Las mejoras hacen que lo puedas mandar más seguido."],
-  car: ["Car", "Carro"], carD: ["Tap to send it: a car speeds down its lane and runs over every alien in the way, leaving them flattened on the pavement with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: un carro pasa a toda velocidad por su carril y atropella a todos los marcianitos en su camino; quedan embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
+  car: ["Car", "Carro"], carD: ["Tap to send it: it honks and the aliens nearby step onto its lane to look, then it speeds through and runs over all of them, leaving them flattened with tire marks. Each time it comes from a different direction.", "Toca para mandarlo: pita el claxon y los marcianitos cercanos se meten a su carril a ver; luego pasa a toda velocidad y los atropella a todos, embarrados en el pavimento con marcas de llanta. Cada vez llega por un sentido diferente."],
   secCity: ["The City", "The City"],
   aval: ["Avalanche", "Avalancha"], avalD: ["Tap to send it: snow breaks loose from the peaks and rolls down the slope, carrying every alien away.", "Toca para soltarla: la nieve se desprende de los picos y baja rodando por la ladera, llevándose a todos los marcianitos."],
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
@@ -1986,10 +1986,11 @@ const Sound = (() => {
       for (let i = 0; i < n; i++) noise({ t: delay + 0.2 + i * (dur / n), dur: 0.07, vol: 0.022 * (i < 2 ? 0.6 : i > n - 3 ? 0.5 : 1), freq: i % 2 ? 520 : 380, q: 0.8, attack: 0.005, kind: "bandpass" });
     },
     toyHit() { const c = ensure(); if (!c || c.currentTime - lastThunk < 0.06) return; lastThunk = c.currentTime; thump({ vol: 0.08 }); tone(vary(240, 0.08), { dur: 0.08, vol: 0.05, slide: 0.75, attack: 0.002 }); noise({ dur: 0.04, vol: 0.035, freq: 1400, q: 2, attack: 0.001, kind: "bandpass" }); },
-    car() {
+    car(delay = 0) {
       for (const t of [0, 0.15]) { tone(392, { t, dur: 0.1, vol: 0.03, type: "triangle", attack: 0.004 }); tone(494, { t, dur: 0.1, vol: 0.025, type: "triangle", attack: 0.004 }); }
-      breath({ t: 0.2, dur: 0.5, vol: 0.06, from: 260, to: 1200 }); breath({ t: 0.7, dur: 0.55, vol: 0.05, from: 1200, to: 260 });
-      noise({ t: 0.2, dur: 1.0, vol: 0.05, freq: 150, q: 0.6, attack: 0.35, kind: "lowpass" });
+      const d = Math.max(0.2, delay);
+      breath({ t: d, dur: 0.5, vol: 0.06, from: 260, to: 1200 }); breath({ t: d + 0.5, dur: 0.55, vol: 0.05, from: 1200, to: 260 });
+      noise({ t: d, dur: 1.0, vol: 0.05, freq: 150, q: 0.6, attack: 0.35, kind: "lowpass" });
     },
     // Atropellado: un "splat" húmedo y sordo (cada uno un poquito más agudo si caen varios seguidos)
     splat(n = 0) {
@@ -6489,7 +6490,9 @@ function drawCityBg() {
    Los atropellados quedan embarrados en el pavimento y la llanta deja su huella del color del marcianito. ---------- */
 const cars = [], roadkills = [], skids = [];
 const CAR_COLORS = ["#E2604F", "#F1C84D", "#2FA3C4", "#A584E8", "#F4F2EC", "#6BCB9B"];
-const CAR_ORDER = [1, 0, 3, 2]; // 0 = a la derecha, 1 = bajando, 2 = a la izquierda, 3 = subiendo
+const CAR_ORDER = [1, 0, 3, 2];
+// El claxon: cuánto espera el carro antes de salir (s) y qué tan lejos lo oyen los marcianitos (px en el celular)
+const CAR_CALL = 1.0, CAR_CALL_R = 220; // 0 = a la derecha, 1 = bajando, 2 = a la izquierda, 3 = subiendo
 const DECAL_LIFE = 3; // s que se quedan las manchas y las huellas (el último segundo se desvanecen)
 let carTurn = 0, carColorI = 0;
 const rgbaOf = (hex, a) => { const [r, g, b] = hexRgb(hex); return `rgba(${r},${g},${b},${a})`; };
@@ -6557,13 +6560,28 @@ function launchCar() {
   const col = CAR_COLORS[carColorI++ % CAR_COLORS.length], taxi = col === "#F1C84D", dark = PAL.dark;
   const ext = hor ? [L + 30, Wc + 30] : [Wc + 30, L + 30];
   const spr = makePropSprite((g) => paintCar(g, ext[0] / 2, ext[1] / 2, d, L, Wc, col, dark, taxi), ext[0], ext[1], ext[0] / 2, ext[1] / 2);
-  cars.push({ d, hor, x, y, dx, dy, lx: hor ? 0 : lx, ly: hor ? ly : 0, L, Wc, v: dist / dur, spr, col, hits: 0, bob: 0, t: 0, honk: false });
-  Sound.car(); buzz([10, 40, 14]);
+  // El claxon: los marcianitos cercanos caminan a su carril (cada uno al punto más cercano) y ahí esperan al carro
+  const wait = CAR_CALL, reach = CAR_CALL_R * clamp(W / 390, 1, 1.6), until = time + wait + dur + 0.4;
+  for (const b of balls) {
+    if (b.state === "die" || b.pull || !b.entered) continue;
+    const fy = b.y + b.T.bottom * 0.7, tx = hor ? clamp(b.x + rand(-10, 10), 12, W - 12) : lx + rand(-Wc * 0.15, Wc * 0.15), ty = hor ? ly + rand(-Wc * 0.15, Wc * 0.15) : clamp(fy + rand(-10, 10), seaTop() + 12, H - 12);
+    if (Math.hypot(tx - b.x, ty - fy) > reach) continue;
+    b.lure = { x: tx, y: ty, until };
+  }
+  // Un aviso en la orilla por donde va a entrar: flechitas que parpadean
+  const ex = hor ? (dx > 0 ? 18 : W - 18) : lx, ey = hor ? ly : dy > 0 ? (seaTop() || 0) + 18 : H - 18;
+  cars.push({ d, hor, x, y, dx, dy, lx: hor ? 0 : lx, ly: hor ? ly : 0, L, Wc, v: dist / dur, spr, col, hits: 0, bob: 0, t: 0, honk: false, wait, ex, ey });
+  Sound.car(wait); buzz([10, 40, 14]);
   return true;
 }
 function updateCars(dt) {
   for (let i = cars.length - 1; i >= 0; i--) {
     const c = cars[i];
+    if (c.wait > 0) {
+      c.wait -= dt;
+      if (Math.random() < dt * 4) ring(c.ex, c.ey, 4, 30, 0.45, "#FFFFFF", 2, 0.6);
+      continue;
+    }
     c.t += dt; c.x += c.dx * c.v * dt; c.y += c.dy * c.v * dt; c.bob = Math.max(0, c.bob - dt * 6);
     // Atropella a todo lo que alcanza la defensa
     const px = -c.dy, py = c.dx;
