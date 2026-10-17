@@ -9,3 +9,5 @@ xcuserdata/
 *.xcuserstate
 app/ios/App/App/capacitor.config.json
 app/ios/App/App/config.xml
+store/raw/
+store/appstore/
