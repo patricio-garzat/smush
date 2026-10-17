@@ -785,6 +785,18 @@ a.row { text-decoration: none; }
 .foot { margin: 6px 0 4px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--muted); }
 
 /* Diálogos: confirmación y "bienvenido de vuelta" */
+#finale { position: fixed; inset: 0; z-index: 300; opacity: 0; transition: opacity 0.45s ease; background: #0B0A24; }
+#finale.open { opacity: 1; }
+#finale canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#finale .fin-ui { position: absolute; left: 0; right: 0; top: max(30vh, 220px); display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 24px; color: #FFFFFF; pointer-events: none; }
+#finale .fin-k { font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #FFD66B; }
+#finale .fin-t { margin: 10px 0 0; font-size: clamp(30px, 8.6vw, 46px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.08; text-shadow: 0 6px 30px rgba(140, 110, 255, 0.5); }
+#finale .fin-t .w { display: inline-block; white-space: nowrap; }
+#finale .fin-t b { display: inline-block; font-weight: inherit; }
+#finale .fin-s { max-width: 340px; margin: 14px 0 0; font-size: 16px; line-height: 1.45; color: rgba(255, 255, 255, 0.82); }
+#finale .fin-stats { margin: 10px 0 0; font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.55); letter-spacing: 0.02em; }
+#finale #fin-btn { position: fixed; left: 50%; bottom: max(36px, calc(env(safe-area-inset-bottom) + 24px)); transform: translateX(-50%); pointer-events: auto; border: 0; border-radius: 18px; padding: 15px 30px; font: 800 17px Outfit, system-ui, sans-serif; color: #2A1E5C; background: linear-gradient(135deg, #FFE29A, #FFC94A); box-shadow: 0 10px 30px rgba(255, 201, 74, 0.35); cursor: pointer; }
+#finale #fin-btn:active { filter: brightness(0.95); }
 .dialog { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 24px; }
 .dialog[hidden] { display: none; }
 .dialog .scrim { opacity: 1; }
@@ -1067,6 +1079,18 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
   </div>
 </div>
 
+<!-- El final (por ahora): escena de cierre en la última isla -->
+<div id="finale" hidden>
+  <canvas id="finale-cv" aria-hidden="true"></canvas>
+  <div class="fin-ui" role="dialog" aria-modal="true" aria-labelledby="fin-t">
+    <span id="fin-k" class="fin-k"></span>
+    <h2 id="fin-t" class="fin-t"></h2>
+    <p id="fin-s" class="fin-s"></p>
+    <p id="fin-stats" class="fin-stats"></p>
+    <button type="button" id="fin-btn"></button>
+  </div>
+</div>
+
 <!-- Intro del juego -->
 <div id="splash" aria-hidden="true"><canvas id="splash-cv"></canvas></div>
 
@@ -1126,7 +1150,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.51.0";
+const VERSION = "0.52.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1461,6 +1485,7 @@ const freshSave = () => ({
   v: 7, // versión del guardado
   level: 0, // nivel actual (la meta del siguiente usa el total de aplastados, que nunca se reinicia)
   pending: null, // lo ganado fuera que todavía no se recoge (se guarda para no perderlo)
+  finale: 0, // ya viste el final (en la última isla)
   readyAsked: -1, // nivel en el que ya avisamos que podías viajar (solo se avisa una vez por nivel)
   spots: [], // dónde está cada nube (fracción del área); llegan solas a su lugar y las puedes mover
   off: {}, // ayudantes apagados con su interruptor (siguen contratados, solo no trabajan)
@@ -1582,6 +1607,7 @@ function loadSave() {
     if (TOOLS[st] && d.tools[st] > 0 && (TOOLS[st].world || 0) <= d.level) d.tool = st;
     d.hinted = !!s.hinted;
     if (Number.isInteger(s.readyAsked)) d.readyAsked = s.readyAsked;
+    d.finale = s.finale ? 1 : 0;
     if (s.off && typeof s.off === "object") for (const k of HELPER_KEYS) if (s.off[k] === true) d.off[k] = true;
     d.g = cleanGoals(s.g);
     if (s.pending && Number.isFinite(s.pending.coins) && s.pending.coins > 0) d.pending = { coins: Math.floor(s.pending.coins), aliens: Math.floor(num(s.pending.aliens)), away: num(s.pending.away), secs: num(s.pending.secs) };
@@ -1692,7 +1718,7 @@ const STR = {
   cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
   visitLvl: ["Visit", "Visitar"], visitKicker: ["Just visiting", "De visita"], visitingNow: ["Visiting", "De visita"], backTo: ["Back to", "Regresar a"],
   visitNote: ["Just a visit: you arrive with your coins, tools and helpers, and you can smush and buy as usual, but nothing there counts. Your progress stays exactly as it is.", "Solo de visita: llegas con tus monedas, herramientas y ayudantes, y puedes aplastar y comprar como siempre, pero nada de lo de allá cuenta. Tu progreso se queda exactamente igual."],
-  tripNext: ["Next island", "Siguiente isla"], lastIsle: ["Last island, for now", "Última isla, por ahora"], tripSaving: ["Coins for the trip", "Monedas para el viaje"], tripReady: ["Ready to travel!", "¡Lista para viajar!"],
+  tripNext: ["Next island", "Siguiente isla"], finGoal: ["Final goal", "Meta final"], finName: ["The end", "El final"], finCoins: ["Coins for the finale", "Monedas para el final"], finReady: ["You made it!", "¡Lo lograste!"], finSee: ["See the ending", "Ver el final"], finSeen: ["See the ending again", "Ver el final otra vez"], lastIsle: ["Last island, for now", "Última isla, por ahora"], tripSaving: ["Coins for the trip", "Monedas para el viaje"], tripReady: ["Ready to travel!", "¡Lista para viajar!"],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
@@ -2056,6 +2082,10 @@ const Sound = (() => {
     boostEnd() { breath({ dur: 0.5, vol: 0.035, from: 1400, to: 450 }); },
     // Viaje a un nivel nuevo: arpegio largo sobre un acorde que respira
     // Nivel listo y llegada a un nivel nuevo: un soplo que crece, brillito y un golpe grave (sin notas)
+    // El final: una notita por cada isla, un acorde misterioso para la séptima y un "pop" suave de los fuegos artificiales
+    note(f) { pluck(f, { vol: 0.06, dur: 1.2 }); },
+    mystery() { pluck(587.33, { vol: 0.05, dur: 1.6 }); pluck(739.99, { t: 0.06, vol: 0.045, dur: 1.6 }); pluck(880, { t: 0.12, vol: 0.045, dur: 1.8 }); breath({ dur: 1.2, vol: 0.035, from: 500, to: 1800 }); },
+    fireworkPop() { thump({ vol: 0.05 }); coinRustle(4, 0.08, 0.6); },
     ready() { breath({ dur: 0.8, vol: 0.045, from: 350, to: 1500 }); coinRustle(5, 0.25, 0.7); thump({ t: 0.05, vol: 0.1 }); },
     levelUp() {
       breath({ dur: 1.8, vol: 0.05, from: 250, to: 1400 });
@@ -4122,6 +4152,7 @@ function applyLevel() {
 function ensureBg() { if (bgPending) { clearTimeout(bgPending); bgPending = 0; buildBackground(); } }
 // Chip del nivel (solo el nombre) y el botón del viaje con sus tres estados
 const TRIP_ICONS = {
+  end: '<svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="te-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1D1A4E"/><stop offset="1" stop-color="#4A3A8E"/></linearGradient><linearGradient id="te-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF0B0"/><stop offset="1" stop-color="#FFB627"/></linearGradient></defs><circle cx="16" cy="16" r="16" fill="url(#te-s)"/><circle cx="7" cy="9" r=".8" fill="#fff" opacity=".8"/><circle cx="25" cy="7" r=".6" fill="#fff" opacity=".7"/><circle cx="26" cy="22" r=".7" fill="#fff" opacity=".6"/><circle cx="6" cy="21" r=".5" fill="#fff" opacity=".6"/><path d="M16 6.5l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2-4.5-4.4 6.2-.9z" fill="url(#te-g)" stroke="#E0951A" stroke-width=".8" stroke-linejoin="round"/><path d="M13.6 12.6l1.4-2.4" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".8"/></svg>',
   isle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18c3 0 3-1.5 6-1.5s3 1.5 6 1.5 3-1.5 6-1.5"/><path d="M12 15V7"/><path d="M12 7c-2-2.5-5-2.5-6.5-.5M12 7c2-2.5 5-2.5 6.5-.5M12 7c-1-2.8-.2-4.5 1.5-5"/></svg>',
   coin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5v11"/></svg>',
   plane: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12c0-.8-.7-1.4-1.6-1.4H14L9.5 3.5H7.6l2.2 7.1H5.6L3.9 8.4H2.6l1 3.6-1 3.6h1.3l1.7-2.2h4.2l-2.2 7.1h1.9L14 13.4h5.4c.9 0 1.6-.6 1.6-1.4z"/></svg>',
@@ -4148,7 +4179,10 @@ function renderGoal() {
   // Tres estados: avanzar hacia la meta → juntar las monedas del viaje → ¡lista! (en el último nivel, el total)
   let state, cap, title, count, p;
   const pair = (a, b) => (b >= 100000 ? `${fmtShort(a)} / ${fmtShort(b)}` : `${fmt(a)} / ${fmt(b)}`); // los dos números con el mismo formato
-  if (!n) { state = "max"; cap = tx("lastIsle"); title = `${fmt(save.smushed)} ${tx("smushed")}`; count = ""; p = 0; }
+  if (!n && save.finale) { state = "end"; cap = tx("lastIsle"); title = tx("finSeen"); count = ""; p = 1; }
+  else if (!n && save.smushed < FINALE.smush) { state = "prog"; cap = tx("finGoal"); title = tx("finName"); count = pair(save.smushed, FINALE.smush); p = save.smushed / FINALE.smush; }
+  else if (!n && save.coins < FINALE.cost) { state = "coins"; cap = tx("finCoins"); title = tx("finName"); count = pair(Math.floor(save.coins), FINALE.cost); p = save.coins / FINALE.cost; }
+  else if (!n) { state = "go"; cap = tx("finReady"); title = tx("finSee"); count = ""; p = 1; }
   else if (save.smushed < n.smush) { state = "prog"; cap = tx("tripNext"); title = n.name; count = pair(save.smushed, n.smush); p = save.smushed / n.smush; }
   else if (save.coins < n.cost) { state = "coins"; cap = tx("tripSaving"); title = n.name; count = pair(Math.floor(save.coins), n.cost); p = save.coins / n.cost; }
   else { state = "go"; cap = tx("tripReady"); title = `${tx("travelTo")} ${n.name}`; count = ""; p = 1; }
@@ -4157,10 +4191,10 @@ function renderGoal() {
     tripState = key;
     el.classList.toggle("coins", state === "coins"); el.classList.toggle("go", state === "go");
     // La isla siempre; juntando monedas, una monedita en la esquina; lista para viajar, un avioncito
-    const isle = TRIP_ART[(n || lvl()).id] || TRIP_ICONS.isle;
-    $("#trip-ic").innerHTML = isle + (state === "coins" ? '<span class="trip-badge coin"></span>' : state === "go" ? '<span class="trip-badge plane">' + TRIP_ICONS.plane + "</span>" : "");
+    const isle = n ? TRIP_ART[n.id] || TRIP_ICONS.isle : TRIP_ICONS.end;
+    $("#trip-ic").innerHTML = isle + (state === "coins" ? '<span class="trip-badge coin"></span>' : state === "go" && n ? '<span class="trip-badge plane">' + TRIP_ICONS.plane + "</span>" : "");
     $("#trip-cap").textContent = cap; $("#trip-title").textContent = title; $("#trip-count").textContent = count;
-    el.setAttribute("aria-label", state === "go" ? `${tx("travelTo")} ${n.name}` : tx("levels"));
+    el.setAttribute("aria-label", state === "go" ? (n ? `${tx("travelTo")} ${n.name}` : tx("finSee")) : tx("levels"));
   }
   el.style.setProperty("--p", clamp(p, 0, 1).toFixed(4));
 }
@@ -4168,7 +4202,9 @@ function renderGoal() {
 $("#trip").addEventListener("click", () => {
   Sound.unlock(); Sound.tick();
   const n = nextLvl();
-  if (n && save.smushed >= n.smush && save.coins >= n.cost) openReady(); else openSheet($("#sheet-levels"));
+  if (n && save.smushed >= n.smush && save.coins >= n.cost) openReady();
+  else if (isLastIsle() && (save.finale || finaleReady())) { if (!save.finale) { save.finale = 1; markSave(); renderGoal(); } Finale.open(); }
+  else openSheet($("#sheet-levels"));
 });
 // Mientras tienes el dedo puesto en una hoja, lo que se vuelve a armar solo (Niveles, la vitrina) espera a que sueltes:
 // si se rearma entre que pones el dedo y lo levantas, el botón que tocaste ya es otro y el toque se pierde
@@ -4255,6 +4291,151 @@ const closeReady = () => { readyEl.classList.remove("open"); setTimeout(() => { 
 // Quedarse: el chip del nivel sigue brillando como recordatorio
 $("#btn-stay").addEventListener("click", () => { Sound.tick(); buzz(8); closeReady(); });
 $("#btn-go").addEventListener("click", () => { closeReady(); setTimeout(travel, 260); });
+/* ---------- El final (por ahora): en la última isla hay una meta como la de los viajes (marcianitos y monedas; las
+   monedas no se gastan). Al llegar, una escena de cierre: el cielo de noche, las seis islas apareciendo una por una
+   sobre la ruta del viaje, una séptima isla misteriosa con "?", fuegos artificiales suaves, el título letra por letra
+   y los cuatro marcianitos celebrando. Se puede volver a ver tocando el chip. ---------- */
+const FINALE = { smush: 80000, cost: 16000000 };
+const isLastIsle = () => !real && save.level === LEVELS.length - 1;
+const finaleReady = () => isLastIsle() && save.smushed >= FINALE.smush && save.coins >= FINALE.cost;
+let finaleOn = false;
+const Finale = (() => {
+  const el = $("#finale"), cv = $("#finale-cv"), g = cv.getContext("2d");
+  let raf = 0, t0 = 0, W0 = 0, H0 = 0, d = 1, imgs = [], stars = [], sparks = [], nextBoom = 0, crew = [], lit = 0;
+  const COLS = ["#F26B5B", "#FFC94A", "#3FB7C9", "#7FD18A", "#9B7BE8", "#F7A8C4"];
+  const NOTES = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+  function size() {
+    d = Math.min(window.devicePixelRatio || 1, 2); W0 = innerWidth; H0 = innerHeight;
+    cv.width = Math.round(W0 * d); cv.height = Math.round(H0 * d); g.setTransform(d, 0, 0, d, 0, 0);
+    const R = artRng(17);
+    stars = Array.from({ length: Math.round((W0 * H0) / 2600) }, () => ({ x: R() * W0, y: R() * H0, r: 0.4 + R() * 1.2, ph: R() * TAU, sp: 0.6 + R() * 1.6 }));
+  }
+  // Las islas del viaje (los íconos del chip), en una ruta ondulada; al final, la isla misteriosa
+  const route = () => {
+    const w = Math.min(W0 - 40, 640), x0 = (W0 - w) / 2, y0 = Math.max(110, H0 * 0.2), n = LEVELS.length + 1;
+    return Array.from({ length: n }, (_, i) => ({ x: x0 + (w * (i + 0.5)) / n, y: y0 + Math.sin(i * 1.15 + 0.4) * Math.min(26, H0 * 0.03) }));
+  };
+  function boom(x, y, big) {
+    const n = big ? 64 : 44, col = COLS[Math.floor(Math.random() * COLS.length)], col2 = COLS[Math.floor(Math.random() * COLS.length)];
+    for (let i = 0; i < n && sparks.length < 800; i++) { const a = (i / n) * TAU + rand(-0.05, 0.05), s = rand(110, big ? 280 : 210); sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, life: rand(1.2, 1.9), c: i % 3 ? col : col2, r: rand(2, 3.2) }); }
+    sparks.push({ x, y, vx: 0, vy: 0, t: 0, life: 0.35, c: "#FFFFFF", r: big ? 26 : 18, flash: 1 });
+    Sound.fireworkPop && Sound.fireworkPop();
+  }
+  function frame(now) {
+    raf = requestAnimationFrame(frame);
+    const t = (now - t0) / 1000, dt = 1 / 60, RM = reduceMotion;
+    // Cielo de noche (degradado) con estrellas que titilan
+    const sky = g.createLinearGradient(0, 0, 0, H0); sky.addColorStop(0, "#0B0A24"); sky.addColorStop(0.55, "#1D1A4E"); sky.addColorStop(1, "#3A2C6E");
+    g.globalAlpha = 1; g.fillStyle = sky; g.fillRect(0, 0, W0, H0);
+    const glow = g.createRadialGradient(W0 / 2, H0 * 0.42, 0, W0 / 2, H0 * 0.42, Math.max(W0, H0) * 0.6); glow.addColorStop(0, "rgba(140,110,255,0.22)"); glow.addColorStop(1, "rgba(140,110,255,0)");
+    g.fillStyle = glow; g.fillRect(0, 0, W0, H0);
+    g.fillStyle = "#FFFFFF";
+    for (const s of stars) { g.globalAlpha = Math.min(1, t / 0.8) * (0.35 + 0.45 * (0.5 + 0.5 * Math.sin(now / 1000 * s.sp + s.ph))); g.beginPath(); g.arc(s.x, s.y, s.r, 0, TAU); g.fill(); }
+    // La ruta y las islas
+    const P = route(), step = 0.32, start = 0.5;
+    g.globalAlpha = 1; g.strokeStyle = "rgba(255,255,255,0.55)"; g.lineWidth = 2; g.setLineDash([2, 7]); g.lineCap = "round";
+    const prog = RM ? P.length : clamp((t - start) / step, 0, P.length - 1);
+    g.beginPath();
+    for (let i = 0; i < P.length - 1; i++) {
+      const u = clamp(prog - i, 0, 1); if (u <= 0) break;
+      const a = P[i], b = P[i + 1], mx = (a.x + b.x) / 2, my = Math.min(a.y, b.y) - 26;
+      const pt = (k) => [(1 - k) ** 2 * a.x + 2 * (1 - k) * k * mx + k * k * b.x, (1 - k) ** 2 * a.y + 2 * (1 - k) * k * my + k * k * b.y];
+      g.moveTo(a.x, a.y); for (let j = 1; j <= 14; j++) { const [x, y] = pt((j / 14) * u); g.lineTo(x, y); }
+    }
+    g.stroke(); g.setLineDash([]);
+    const sz = clamp(Math.min(W0 / (P.length + 1.4), 64), 34, 64);
+    P.forEach((p, i) => {
+      const at = start + i * step, k = RM ? 1 : clamp((t - at) / 0.45, 0, 1); if (k <= 0) return;
+      if (i > lit - 1 && k > 0 && i < P.length) { lit = i + 1; if (i < LEVELS.length) { Sound.note && Sound.note(NOTES[i % NOTES.length]); buzz(6); } else { Sound.mystery && Sound.mystery(); buzz([8, 40, 12]); } }
+      const e = 1 - Math.pow(1 - k, 3), s = sz * (0.6 + 0.4 * e), last = i === P.length - 1, bob = RM ? 0 : Math.sin(now / 1000 * 1.4 + i) * 2.5;
+      // halo
+      const hg = g.createRadialGradient(p.x, p.y + bob, 0, p.x, p.y + bob, s * 1.1); hg.addColorStop(0, last ? `rgba(255,214,120,${0.5 * e * (0.7 + 0.3 * Math.sin(now / 300))})` : `rgba(255,255,255,${0.22 * e})`); hg.addColorStop(1, "rgba(255,255,255,0)");
+      g.globalAlpha = 1; g.fillStyle = hg; g.fillRect(p.x - s * 1.2, p.y + bob - s * 1.2, s * 2.4, s * 2.4);
+      g.globalAlpha = e;
+      if (!last && imgs[i] && imgs[i].complete && imgs[i].naturalWidth) g.drawImage(imgs[i], p.x - s / 2, p.y + bob - s / 2, s, s);
+      else if (last) {
+        g.fillStyle = "#2A2560"; g.beginPath(); g.arc(p.x, p.y + bob, s / 2, 0, TAU); g.fill();
+        g.strokeStyle = "rgba(255,214,120,0.9)"; g.lineWidth = 2; g.setLineDash([3, 4]); g.beginPath(); g.arc(p.x, p.y + bob, s / 2 + 3, now / 1500, now / 1500 + TAU); g.stroke(); g.setLineDash([]);
+        g.fillStyle = "#FFE29A"; g.font = `800 ${Math.round(s * 0.55)}px Outfit, system-ui, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("?", p.x, p.y + bob + 1);
+      }
+      g.globalAlpha = 1;
+    });
+    // Fuegos artificiales suaves (empiezan cuando aparece la isla misteriosa; luego, de vez en cuando)
+    const tBoom = start + (P.length - 1) * step + 0.3;
+    if (!RM && t > tBoom && now > nextBoom) {
+      const first = nextBoom === 0; nextBoom = now + (first ? 260 : rand(1400, 2600));
+      boom(rand(W0 * 0.2, W0 * 0.8), rand(H0 * 0.1, H0 * 0.38), first);
+      if (first) setTimeout(() => finaleOn && boom(W0 * 0.25, H0 * 0.18, false), 350), setTimeout(() => finaleOn && boom(W0 * 0.75, H0 * 0.22, false), 650);
+    }
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const q = sparks[i]; q.t += dt; if (q.t >= q.life) { sparks.splice(i, 1); continue; }
+      q.vx *= 0.975; q.vy = q.vy * 0.975 + 60 * dt; q.x += q.vx * dt; q.y += q.vy * dt;
+      const u = q.t / q.life;
+      if (q.flash) { const fg = g.createRadialGradient(q.x, q.y, 0, q.x, q.y, q.r * (1 + u)); fg.addColorStop(0, `rgba(255,250,230,${0.8 * (1 - u)})`); fg.addColorStop(1, "rgba(255,250,230,0)"); g.globalAlpha = 1; g.fillStyle = fg; g.fillRect(q.x - q.r * 2, q.y - q.r * 2, q.r * 4, q.r * 4); continue; }
+      g.globalAlpha = (1 - u) * (1 - u); g.fillStyle = q.c; g.beginPath(); g.arc(q.x, q.y, q.r * (1 - u * 0.4), 0, TAU); g.fill();
+      if (u < 0.5) { g.globalAlpha = 0.5 * (1 - u * 2); g.fillStyle = "#FFFFFF"; g.beginPath(); g.arc(q.x, q.y, q.r * 0.45, 0, TAU); g.fill(); }
+    }
+    // Los cuatro marcianitos, abajo, celebrando (suben a su lugar y saltan tantito, sin rebotes de caricatura)
+    const tCrew = start + (P.length - 1) * step + 0.6, cy = Math.min(H0 * 0.76, H0 - 150);
+    crew.forEach((c, i) => {
+      const k = RM ? 1 : clamp((t - tCrew - i * 0.12) / 0.6, 0, 1); if (k <= 0 || !c.S) return;
+      const e = 1 - Math.pow(1 - k, 3), hop = RM ? 0 : Math.max(0, Math.sin(now / 1000 * 3.2 + c.ph)) * 7, x = W0 / 2 + c.dx, y = cy + (1 - e) * 60;
+      g.globalAlpha = e * 0.35; g.fillStyle = "#000"; g.beginPath(); g.ellipse(x, y + 1, c.h * 0.42 * (1 - hop / 40), c.h * 0.08, 0, 0, TAU); g.fill();
+      g.globalAlpha = e; g.save(); g.translate(x, y - hop); g.scale(c.flip, 1); drawRig(g, c.S, now / 1000 * 4 + c.ph, now / 1000, c.ph, false); g.restore();
+    });
+    g.globalAlpha = 1;
+  }
+  // Los íconos de las islas (los del chip) se cargan antes, para que ya estén listos al abrir
+  // (no traen xmlns: sin eso no cargan como imagen suelta)
+  function loadIsles() { if (!imgs.length) imgs = LEVELS.map((L) => { const im = new Image(), svg = (TRIP_ART[L.id] || TRIP_ICONS.isle).replace(/^<svg (?!xmlns)/, '<svg xmlns="http://www.w3.org/2000/svg" '); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); return im; }); }
+  setTimeout(loadIsles, 3000);
+  function open() {
+    if (finaleOn) return;
+    finaleOn = true; size();
+    loadIsles();
+    crew = [["green", -120, 1, 0], ["orange", -44, 1, 1.3], ["purple", 40, -1, 2.1], ["yellow", 124, -1, 0.7]].map(([k, dx, flip, ph]) => {
+      const S1 = cachedSprite(k, 20, false), h = k === "purple" ? 92 : k === "orange" ? 62 : k === "green" ? 76 : 70;
+      return { S: S1 ? cachedSprite(k, 20 * (h / S1.vhPx), false) : null, h, dx: dx * clamp(W0 / 390, 0.8, 1.3), flip, ph };
+    });
+    sparks = []; nextBoom = 0; lit = 0;
+    const es = LANG === "es";
+    $("#fin-k").textContent = es ? "Las seis islas" : "All six islands";
+    const title = es ? "¡Llegaste al final!" : "You've reached the end!";
+    // Letra por letra, pero sin partir las palabras al cambiar de renglón
+    $("#fin-t").innerHTML = title.split(" ").map((wd) => `<span class="w">${[...wd].map((ch) => `<b>${ch}</b>`).join("")}</span>`).join(" ");
+    $("#fin-s").textContent = es ? "…por ahora. Vienen muchas islas más, con nuevos marcianitos y herramientas." : "…for now. Many more islands are on the way, with new aliens and new tools.";
+    $("#fin-stats").textContent = es ? `${fmtFull(save.smushed)} marcianitos aplastados` : `${fmtFull(save.smushed)} aliens smushed`;
+    $("#fin-btn").textContent = es ? "Seguir aplastando" : "Keep smushing";
+    el.hidden = false; void el.offsetWidth; el.classList.add("open");
+    t0 = performance.now(); raf = requestAnimationFrame(frame);
+    Sound.levelUp(); buzz([12, 60, 18]);
+    // El texto: el subtítulo, el título letra por letra (sube desde una máscara), los números y el botón
+    const P = LEVELS.length + 1, tText = (0.5 + (P - 1) * 0.32 + 0.2) * 1000, E = "cubic-bezier(.2,.8,.2,1)", anim = (n, kf, o) => (n.animate && !reduceMotion ? n.animate(kf, { fill: "both", easing: E, ...o }) : null);
+    anim($("#fin-k"), [{ opacity: 0, letterSpacing: "0.4em" }, { opacity: 1, letterSpacing: "0.14em" }], { delay: tText, duration: 700 });
+    $("#fin-t").querySelectorAll("b").forEach((b, i) => anim(b, [{ transform: "translateY(0.5em)", opacity: 0 }, { transform: "none", opacity: 1 }], { delay: tText + 150 + i * 35, duration: 620 }));
+    anim($("#fin-s"), [{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { delay: tText + 900, duration: 600 });
+    anim($("#fin-stats"), [{ opacity: 0 }, { opacity: 1 }], { delay: tText + 1200, duration: 600 });
+    anim($("#fin-btn"), [{ opacity: 0, transform: "translateX(-50%) translateY(10px) scale(.96)" }, { opacity: 1, transform: "translateX(-50%)" }], { delay: tText + 1500, duration: 520 });
+    if (!reduceMotion) setTimeout(() => finaleOn && Sound.trophy(), tText + 200);
+  }
+  function close() {
+    if (!finaleOn) return;
+    Sound.tick(); buzz(8);
+    el.classList.remove("open");
+    setTimeout(() => { el.hidden = true; cancelAnimationFrame(raf); raf = 0; finaleOn = false; el.getAnimations({ subtree: true }).forEach((a) => a.cancel()); }, 420);
+  }
+  $("#fin-btn").addEventListener("click", close);
+  addEventListener("resize", () => { if (finaleOn) size(); });
+  return { open, close };
+})();
+// Se abre sola una vez, en cuanto llegas a la meta jugando (como el aviso de viaje)
+function checkFinale() {
+  if (!isLastIsle() || save.finale || !playing || !inGame || !finaleReady()) return;
+  if (document.querySelector(".sheet.open, .dialog.open") || !$("#travel").hidden || waves.length) return;
+  save.finale = 1; markSave(); renderGoal();
+  Finale.open();
+}
+
 $("#levels-list").addEventListener("click", (e) => {
   if (e.target.closest("[data-travel]")) { travel(); return; }
   const v = e.target.closest("[data-visit]");
@@ -8843,7 +9024,7 @@ function updateUI() {
   renderGoal();
   if (!$("#sheet-records").hidden) renderRecords();
   if (!homeEl.hidden) renderHome();
-  checkReady();
+  checkReady(); checkFinale();
 }
 const pips = (n, max = 3) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
 
@@ -9524,6 +9705,7 @@ function loop(now) {
   last = now;
   if (flying && travelOv.hidden) flying = false; // seguro: si el vuelo ya no se ve, el juego sigue
   if (flying) return; // el lienzo se queda con el último cuadro, tapado por el vuelo
+  if (finaleOn) return; // el final tapa todo: el juego espera
   const dt = Math.min(raw, 1 / 30);
   time += dt;
   perf(half ? raw / 2 : raw, dt); // a media velocidad no es que el equipo no alcance
