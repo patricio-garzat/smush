@@ -1126,7 +1126,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.7";
+const VERSION = "0.49.8";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1646,7 +1646,7 @@ const STR = {
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
   sawD: ["Hold and drag: a spinning saw that slices every alien it touches in half. Upgrades make it bigger.", "Mantén y arrastra: una sierra que gira y parte a la mitad a cada marcianito que toca. Las mejoras la hacen más grande."],
-  boltD: ["Zaps an alien and arcs to its neighbors.", "Electrocuta a un marcianito y salta a los cercanos."],
+  boltD: ["Zaps every alien in your tap area (the same as your Click, so it grows when you upgrade Click) and arcs on to their neighbors.", "Electrocuta a todos los marcianitos en el área de tu toque (la misma del Click, así que crece cuando mejoras el Click) y salta a los cercanos."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
   secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"], secSnow: ["The Slopes", "The Slopes"],
@@ -2885,13 +2885,13 @@ function stompAt(x, y, R, dmg, auto) {
   balls.filter((b) => b.state !== "die" && !b.pull && Math.hypot(b.x - x, b.y - y) < R + b.r * 0.5).forEach((b, i) => hit(b, dmg, x, y, i > 0 || auto, auto));
 }
 // Rayo en cadena: pega en el primero y salta a los vecinos, uno tras otro
-function zapChain(x, y, first, chains, range, dmg, auto) {
-  const chain = [first];
+function zapChain(x, y, first, chains, range, dmg, auto, skip) {
+  const chain = [first], skipS = skip && skip.length ? new Set(skip) : null;
   let cur = first;
   for (let i = 0; i < chains; i++) {
     let best = null, bd = Infinity;
     for (const c of balls) {
-      if (c.state === "die" || c.pull || !c.entered || chain.includes(c)) continue;
+      if (c.state === "die" || c.pull || !c.entered || chain.includes(c) || (skipS && skipS.has(c))) continue;
       const d = Math.hypot(c.x - cur.x, c.y - cur.y);
       if (d < range + c.r && d < bd) { bd = d; best = c; }
     }
@@ -2959,10 +2959,23 @@ function useTool(x, y, pid) {
   } else if (id === "bomb") {
     placeBomb(x, y);
   } else if (id === "bolt") {
-    const b = pick(x, y, 16);
+    // El toque de la descarga mide lo mismo que el del Click (crece cuando mejoras el Click): electrocuta a todos los
+    // que estén dentro y, desde el más cercano, sigue saltando en cadena
+    const R = TOOLS.finger.radius[lvlOf("finger") - 1] || 0;
+    const area = R ? balls.filter((b) => b.state !== "die" && !b.pull && b.entered && Math.hypot(b.x - x, b.y - y) < R + b.r * 0.5).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)) : [];
+    const b = area[0] || pick(x, y, 16);
+    if (R) ring(x, y, R * 0.25, R, 0.34, PAL.onDark ? "#9FE3FF" : "#3AB0F5", 1.8, 0.3, 0.06);
     if (!b) { ring(x, y, 3, 18, 0.3, PAL.text, 1.5, 0.2); sparks(x, y, 3); Sound.miss(); return; }
     buzz([8, 30, 8]);
-    zapChain(x, y, b, TOOLS.bolt.chains[L], TOOLS.bolt.range[L] * RS, 1, false);
+    const rest = area.slice(1);
+    zapChain(x, y, b, TOOLS.bolt.chains[L], TOOLS.bolt.range[L] * RS, 1, false, rest);
+    // Los demás del área: cada uno con su propio rayo desde donde tocaste
+    rest.forEach((c, i) => later(0.02 + i * 0.025, () => {
+      if (c.state === "die") return;
+      const pts = jag(x, y, c.x, c.y);
+      bolts.push({ pts, br: forks(pts), t: 0, dur: 0.24 });
+      sparks(c.x, c.y, 3); c.zapped = time; hit(c, 1, x, y, true, false);
+    }));
   } else if (id === "meteor") {
     if (cdLeft(id) > 0) { notReady(x, y); return; }
     startCd(id, TOOLS.meteor.cooldown[L]);
