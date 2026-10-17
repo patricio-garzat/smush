@@ -1126,7 +1126,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.50.1";
+const VERSION = "0.50.2";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -2122,7 +2122,7 @@ const Sound = (() => {
 /* ---------- 4b. Música: cada nivel puede tener su canción, en repeat. Antes de que termine, vuelve a empezar
    y las dos vueltas se funden (fade de 4 s), así suena como si nunca acabara. Al cambiar de nivel, una canción
    se desvanece mientras entra la otra. Se apaga suave al salir de la app. ---------- */
-const MUSIC = { fade: 4, tracks: { void: "audio/void.m4a", beach: "audio/beach.m4a?v=2", snow: "audio/slopes.m4a", city: "audio/city.m4a", jungle: "audio/jungle.m4a" } }; // ?v= cambia cuando se cambia la canción (para que no se quede la vieja en caché)
+const MUSIC = { fade: 4, tracks: { void: "audio/void.m4a", beach: "audio/beach.m4a?v=2", snow: "audio/slopes.m4a", city: "audio/city.m4a", jungle: "audio/jungle.m4a", toys: "audio/toys.m4a" }, gain: { "audio/toys.m4a": 1.3 } }; // ?v= cambia cuando se cambia la canción (para que no se quede la vieja en caché)
 let musicReady = false; // suena hasta que terminan las intros
 const Music = (() => {
   const bufs = {}, loading = {}, failed = {};
@@ -2141,8 +2141,10 @@ const Music = (() => {
   function voice(buf, at) {
     const s = c.createBufferSource(), g = c.createGain(), F = Math.min(MUSIC.fade, buf.duration / 4), end = at + buf.duration;
     s.buffer = buf;
-    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(1, at + F);
-    g.gain.setValueAtTime(1, end - F); g.gain.linearRampToValueAtTime(0, end);
+    // (las canciones que vienen más bajitas se emparejan con las demás)
+    const V = (MUSIC.gain && MUSIC.gain[playing]) || 1;
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(V, at + F);
+    g.gain.setValueAtTime(V, end - F); g.gain.linearRampToValueAtTime(0, end);
     s.connect(g).connect(out); s.start(at); s.stop(end + 0.05);
     const v = { s, g, end, F };
     voices.push(v); s.onended = () => { voices = voices.filter((x) => x !== v); };
