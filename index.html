@@ -1150,7 +1150,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.52.2";
+const VERSION = "0.53.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1279,13 +1279,19 @@ for (const k of TYPE_ORDER) BALL_TYPES[k].baseR = BALL_TYPES[k].r; // r cambia e
 //   Monedas al llegar: START_BASE × coinMult del nivel nuevo.
 const START_BASE = 3000;
 const startCoins = (i) => START_BASE * LEVELS[i].coinMult;
+// Metas (desde 0.53): cada isla empieza de cero, así que se calcula por tiempo jugado en esa isla.
+//   Marcianitos de la isla i (i = 1 en The Void):  Δi = 20 000 × 1.4^(i−1)
+//     20 000 ≈ 40 min a ~8/s (ayudantes a medias, medido); cada isla pide 40 % más (≈ 40, 58, 82, 114, 160, 224 min).
+//     Con todo al máximo (~28/s) queda en ≈ 12 → 64 min por isla. "smush" es el total acumulado, redondeado con nice().
+//   Pasaje:  cost = Δi × 12 (monedas promedio por marcianito) × coinMult de la isla de donde sales × 0.4
+//     = el 40 % de lo que valen los marcianitos de la isla sin mejoras de monedas.
 const LEVELS = [
   { id: "void",  name: "The Void",  coinMult: 1 },
-  { id: "beach", name: "The Beach", coinMult: 2, smush: 4000, cost: 25000 },
-  { id: "snow",  name: "The Slopes", coinMult: 4, smush: 10000, cost: 100000 },
-  { id: "city",  name: "The City", coinMult: 8, smush: 20000, cost: 360000 },
-  { id: "jungle", name: "The Jungle", coinMult: 16, smush: 35000, cost: 1300000 },
-  { id: "toys", name: "The Playroom", coinMult: 32, smush: 55000, cost: 4500000 },
+  { id: "beach", name: "The Beach", coinMult: 2, smush: 20000, cost: 96000 },
+  { id: "snow",  name: "The Slopes", coinMult: 4, smush: 48000, cost: 270000 },
+  { id: "city",  name: "The City", coinMult: 8, smush: 87000, cost: 750000 },
+  { id: "jungle", name: "The Jungle", coinMult: 16, smush: 140000, cost: 2100000 },
+  { id: "toys", name: "The Playroom", coinMult: 32, smush: 220000, cost: 5900000 },
 ];
 let city = null; // The City: la geometría del cruce (se arma con el fondo)
 // Lo que no se atraviesa en cualquier nivel (troncos, estanques, el castillo…): elipses en el piso (se arman con el fondo)
@@ -4301,7 +4307,7 @@ $("#btn-go").addEventListener("click", () => { closeReady(); setTimeout(travel, 
    monedas no se gastan). Al llegar, una escena de cierre: el cielo de noche, las seis islas apareciendo una por una
    sobre la ruta del viaje, una séptima isla misteriosa con "?", fuegos artificiales suaves, el título letra por letra
    y los cuatro marcianitos celebrando. Se puede volver a ver tocando el chip. ---------- */
-const FINALE = { smush: 80000, cost: 16000000 };
+const FINALE = { smush: 330000, cost: 17000000 }; // la "isla 7" de la fórmula de LEVELS (Δ7 = 107 565)
 const isLastIsle = () => !real && save.level === LEVELS.length - 1;
 const finaleReady = () => isLastIsle() && save.smushed >= FINALE.smush && save.coins >= FINALE.cost;
 let finaleOn = false;
