@@ -1126,7 +1126,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.50.0";
+const VERSION = "0.50.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1678,7 +1678,7 @@ const STR = {
   cityD: ["A quiet crossroads downtown: crosswalks, shop fronts and street lamps that light up at night. Every alien is worth ×8, and they can't walk through the buildings. No peaks here, so no Avalanche.", "Un cruce tranquilo en el centro: pasos peatonales, tiendas y postes de luz que se prenden de noche. Cada marcianito vale ×8 y no pueden atravesar los edificios. Aquí no hay picos, así que no hay Avalancha."],
   visitLvl: ["Visit", "Visitar"], visitKicker: ["Just visiting", "De visita"], visitingNow: ["Visiting", "De visita"], backTo: ["Back to", "Regresar a"],
   visitNote: ["Just a visit: you arrive with your coins, tools and helpers, and you can smush and buy as usual, but nothing there counts. Your progress stays exactly as it is.", "Solo de visita: llegas con tus monedas, herramientas y ayudantes, y puedes aplastar y comprar como siempre, pero nada de lo de allá cuenta. Tu progreso se queda exactamente igual."],
-  tripNext: ["Next island", "Siguiente isla"], tripSaving: ["Coins for the trip", "Monedas para el viaje"], tripReady: ["Ready to travel!", "¡Lista para viajar!"],
+  tripNext: ["Next island", "Siguiente isla"], lastIsle: ["Last island, for now", "Última isla, por ahora"], tripSaving: ["Coins for the trip", "Monedas para el viaje"], tripReady: ["Ready to travel!", "¡Lista para viajar!"],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Aliens smushed in total", "Marcianitos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
   travelTo: ["Travel to", "Viajar a"],
@@ -4140,7 +4140,7 @@ function renderGoal() {
   // Tres estados: avanzar hacia la meta → juntar las monedas del viaje → ¡lista! (en el último nivel, el total)
   let state, cap, title, count, p;
   const pair = (a, b) => (b >= 100000 ? `${fmtShort(a)} / ${fmtShort(b)}` : `${fmt(a)} / ${fmt(b)}`); // los dos números con el mismo formato
-  if (!n) { state = "max"; cap = tx("max"); title = `${fmt(save.smushed)} ${tx("smushed")}`; count = ""; p = 0; }
+  if (!n) { state = "max"; cap = tx("lastIsle"); title = `${fmt(save.smushed)} ${tx("smushed")}`; count = ""; p = 0; }
   else if (save.smushed < n.smush) { state = "prog"; cap = tx("tripNext"); title = n.name; count = pair(save.smushed, n.smush); p = save.smushed / n.smush; }
   else if (save.coins < n.cost) { state = "coins"; cap = tx("tripSaving"); title = n.name; count = pair(Math.floor(save.coins), n.cost); p = save.coins / n.cost; }
   else { state = "go"; cap = tx("tripReady"); title = `${tx("travelTo")} ${n.name}`; count = ""; p = 1; }
@@ -10336,7 +10336,7 @@ function renderHome() {
   $("#home-coins").textContent = fmtFull(save.coins);
   $("#play-label").textContent = save.smushed > 0 ? tx("continue") : tx("play");
   $("#play-sub").textContent = lvl().name;
-  $("#hc-levels").textContent = real ? `${tx("backTo")} ${LEVELS[real.level].name}` : n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("max");
+  $("#hc-levels").textContent = real ? `${tx("backTo")} ${LEVELS[real.level].name}` : n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("lastIsle");
   $("#hc-records").textContent = `${fmtShort((real || save).smushed)} ${tx("smushed")}`;
   $("#home-ver").textContent = "v" + VERSION;
 }
