@@ -1126,7 +1126,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.49.8";
+const VERSION = "0.49.9";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1318,6 +1318,9 @@ const TOOLS = {
 const TOOL_ORDER = ["finger", "bolt", "saw", "bomb", "wave", "meteor", "aval", "car", "arrows", "train"];
 const PREMIUM = new Set();
 const toolMax = (id) => TOOLS[id].max || 3;
+// Área del toque de la Descarga en su nivel l: los mismos tamaños que el Click, nivel por nivel (1 = uno solo, luego
+// 24 → 90 px); del nivel 10 en adelante se queda en 90 px y las mejoras siguen dando cadena y alcance
+const boltArea = (l) => TOOLS.finger.radius[clamp(l, 1, TOOLS.finger.radius.length) - 1] || 0;
 // Radio de la sierra en esta pantalla (l = nivel 1–4): en el celular, exacto; en la compu, más grande en proporción
 const sawRadius = (l) => { const r = TOOLS.saw.radius[clamp(l, 1, TOOLS.saw.max) - 1]; return W && W < PHONE_WIDTH ? r : Math.round(r * clamp(RS / 0.65, 1, 1.6)); };
 const toolWorld = (id) => TOOLS[id].world || 0;
@@ -1646,7 +1649,7 @@ const STR = {
   secVoid: ["The Void", "The Void"], secBoostWorld: ["Coins & aliens", "Monedas y marcianitos"], secBoostHelp: ["Helpers", "Ayudantes"],
   fingerD: ["Tap to smush. Upgrades widen each tap into an area.", "Toca para aplastar. Las mejoras hacen que cada toque aplaste un área."],
   sawD: ["Hold and drag: a spinning saw that slices every alien it touches in half. Upgrades make it bigger.", "Mantén y arrastra: una sierra que gira y parte a la mitad a cada marcianito que toca. Las mejoras la hacen más grande."],
-  boltD: ["Zaps every alien in your tap area (the same as your Click, so it grows when you upgrade Click) and arcs on to their neighbors.", "Electrocuta a todos los marcianitos en el área de tu toque (la misma del Click, así que crece cuando mejoras el Click) y salta a los cercanos."],
+  boltD: ["Zaps every alien in its tap area and arcs on to their neighbors. Upgrades widen the tap (same sizes as Click) and make the chain longer.", "Electrocuta a todos los marcianitos en el área de su toque y salta a los cercanos. Las mejoras agrandan el toque (con los mismos tamaños que el Click) y alargan la cadena."],
   meteor: ["Meteors", "Meteoritos"], meteorD: ["A shower of meteors. Nothing survives.", "Una lluvia de meteoritos. Nada sobrevive."],
   premium: ["Pro", "Pro"],
   secBasics: ["Basics", "Básicas"], secPro: ["Pro tools", "Herramientas Pro"], secBeach: ["The Beach", "The Beach"], secSnow: ["The Slopes", "The Slopes"],
@@ -1710,7 +1713,7 @@ function statText(id, lvl) {
   if (id === "finger") { const r = TOOLS.finger.radius[i]; return !r ? (es ? "Aplasta uno a la vez" : "Smushes one at a time") : es ? `Área de ${r} px` : `${r} px tap area`; }
 
   if (id === "saw") { const r = sawRadius(lvl); return es ? `Radio de ${r} px` : `${r} px radius`; }
-  if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]); return es ? `+${n} en cadena · ${r} px` : `+${n} chained · ${r} px`; }
+  if (id === "bolt") { const n = TOOLS.bolt.chains[i], r = px(TOOLS.bolt.range[i]), a = boltArea(lvl); return es ? `${a ? `Toque de ${a} px` : "Uno a la vez"} · +${n} en cadena · ${r} px` : `${a ? `${a} px tap` : "One at a time"} · +${n} chained · ${r} px`; }
   if (id === "wave" || id === "aval") { const c = TOOLS[id].cooldown[i]; return es ? `Arrastra a todos · cada ${c} s` : `Sweeps everyone · every ${c}s`; }
   if (id === "car") { const c = TOOLS.car.cooldown[i]; return es ? `Atropella un carril · cada ${c} s` : `Runs over a lane · every ${c}s`; }
   if (id === "train") { const c = TOOLS.train.cooldown[i]; return es ? `Sale cada ${c} s` : `Every ${c}s`; }
@@ -1723,7 +1726,7 @@ function statShort(id, lvl) {
   if (id === "finger") return `${TOOLS.finger.radius[i]} px`;
 
   if (id === "saw") return `${sawRadius(lvl)} px`;
-  if (id === "bolt") return `+${TOOLS.bolt.chains[i]} · ${px(TOOLS.bolt.range[i])} px`;
+  if (id === "bolt") return `${boltArea(lvl)} px · +${TOOLS.bolt.chains[i]}`;
   const s = LANG === "es" ? " s" : "s";
   if (id === "wave" || id === "aval" || id === "car") return `${TOOLS[id].cooldown[i]}${s}`;
   if (id === "train") return `${TOOLS.train.cooldown[i]}${s}`;
@@ -2959,9 +2962,9 @@ function useTool(x, y, pid) {
   } else if (id === "bomb") {
     placeBomb(x, y);
   } else if (id === "bolt") {
-    // El toque de la descarga mide lo mismo que el del Click (crece cuando mejoras el Click): electrocuta a todos los
-    // que estén dentro y, desde el más cercano, sigue saltando en cadena
-    const R = TOOLS.finger.radius[lvlOf("finger") - 1] || 0;
+    // El toque de la descarga tiene su propia área (con los mismos tamaños que el Click): electrocuta a todos los que
+    // estén dentro y, desde el más cercano, sigue saltando en cadena
+    const R = boltArea(L + 1);
     const area = R ? balls.filter((b) => b.state !== "die" && !b.pull && b.entered && Math.hypot(b.x - x, b.y - y) < R + b.r * 0.5).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)) : [];
     const b = area[0] || pick(x, y, 16);
     if (R) ring(x, y, R * 0.25, R, 0.34, PAL.onDark ? "#9FE3FF" : "#3AB0F5", 1.8, 0.3, 0.06);
