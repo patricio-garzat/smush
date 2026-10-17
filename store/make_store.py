@@ -18,13 +18,13 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 BASE = "http://localhost:8791/Smush/store/compose.html"
 
 SIZES = {"iphone-6.9": ("phone", 1320, 2868), "iphone-6.3": ("phone", 1206, 2622), "ipad-13": ("ipad", 2752, 2064)}
-SCENES = ["squish", "train", "helpers", "levels", "trophies", "city"]
+SCENES = ["squish", "train", "helpers", "shop", "trophies", "city"]
 TEXT = {
     "en": {
         "squish": ("<b>Squish</b> every<br>last alien", "A relaxing clicker for any moment"),
         "train": ("Unlock <b>powerful</b><br>tools", "Saws, meteors, a tsunami and more"),
         "helpers": ("Hire <b>helpers</b>", "They keep working while you're away"),
-        "levels": ("Travel to<br><b>six islands</b>", "Each with its own music and style"),
+        "shop": ("Upgrade<br><b>everything</b>", "Tools, helpers and boosts"),
         "trophies": ("<b>68 trophies</b><br>to unlock", "Plus missions, collectibles and rare finds"),
         "city": ("Calm, <b>day</b><br>or <b>night</b>", "Light and dark themes"),
         "header": "Squish. Collect. Relax.",
@@ -34,7 +34,7 @@ TEXT = {
         "squish": ("<b>Aplasta</b><br>a todos", "Un clicker relajante para cualquier momento"),
         "train": ("Herramientas<br><b>poderosas</b>", "Sierras, meteoritos, un tsunami y más"),
         "helpers": ("Contrata<br><b>ayudantes</b>", "Siguen trabajando mientras no estás"),
-        "levels": ("Viaja por<br><b>seis islas</b>", "Cada una con su propia música y estilo"),
+        "shop": ("Mejora<br><b>todo</b>", "Herramientas, ayudantes y mejoras"),
         "trophies": ("<b>68 trofeos</b><br>por ganar", "Además de misiones, coleccionables y sorpresas"),
         "city": ("Tranquilo, de<br><b>día</b> o de <b>noche</b>", "Tema claro y oscuro"),
         "header": "Aplasta. Junta. Relájate.",

@@ -21,8 +21,8 @@ const SCENES = {
     STEP(7); useTool(W / 2, H / 2, 1); STEP(+(window.TRAIN_T || 2.3));` },
   helpers: { theme: "dark", save: { level: 2, tools: { finger: 6, bolt: 5, saw: 2, bomb: 3, wave: 1, meteor: 1, aval: 1 }, tool: "bolt", up: { hire: 1, carea: 12, cchain: 12, crowd: 10, fingers: 2, fspeed: 6 } }, run: `
     STEP(9); for (let i = 0; i < 80 && bolts.length < 3; i++) STEP(0.05);` },
-  levels: { theme: "light", save: { level: 4, tools: { finger: 6, bolt: 4 }, tool: "finger" }, sheet: "levels", run: `
-    STEP(4); window.requestAnimationFrame = RAF0; openSheet($("#sheet-levels")); setTimeout(() => { const pb = $("#sheet-levels .panel-body"); if (pb) pb.scrollTop = 0; }, 700);` },
+  shop: { theme: "light", save: { level: 0, tools: { finger: 7, bolt: 5, saw: 2 }, tool: "finger", up: { hire: 1, carea: 9, cchain: 7, fingers: 2, fspeed: 5, value: 6, crowd: 4 } }, sheet: "shop", run: `
+    STEP(5); window.requestAnimationFrame = RAF0; shopTab = "helpers"; $("#btn-shop").click();` },
   trophies: { theme: "dark", save: { level: 3, tools: { finger: 6, bolt: 4, car: 1 }, tool: "finger" }, sheet: "goals", run: `
     STEP(4); window.requestAnimationFrame = RAF0; ACH.forEach((a, i) => { const [c, t] = a.prog(); if (c >= t || (a.grp !== "smush" && a.grp !== "spent" && i % 3 !== 1)) save.g.ach[a.id] = Date.now(); }); openGoals("ach");` },
   city: { theme: "dark", save: { level: 3, tools: { finger: 6, bolt: 4, saw: 2, bomb: 3, meteor: 1, car: 1 }, tool: "car", up: { hire: 1, carea: 6, cchain: 6 } }, run: `
@@ -46,7 +46,7 @@ let port; chrome.stderr.on("data", (d) => { const m = /127\.0\.0\.1:(\d+)/.exec(
   for (const name of (only ? only.split(",") : Object.keys(SCENES))) {
     const S = SCENES[name];
     await send("Page.navigate", { url: URL }); await sleep(1200);
-    const save = { coins: [0, 245000, 1830000, 7420000, 26900000, 96400000][S.save.level], earned: 1e10, smushed: [0, 31200, 64800, 112400, 176500, 251300][S.save.level], v: 7, up: {}, hinted: true, readyAsked: 9, ...S.save };
+    const save = { coins: [184500, 245000, 1830000, 7420000, 26900000, 96400000][S.save.level], earned: 1e10, smushed: [14200, 31200, 64800, 112400, 176500, 251300][S.save.level], v: 7, up: {}, hinted: true, readyAsked: 9, ...S.save };
     // Se escribe la partida y se bloquea el guardado de esta página (si no, al recargar el juego guarda la suya encima)
     await ev(`(() => { const set = Storage.prototype.setItem; set.call(localStorage, "smush-save-v1", ${JSON.stringify(JSON.stringify(save))}); set.call(localStorage, "smush-settings-v1", ${JSON.stringify(JSON.stringify({ theme: S.theme, lang, mv: 3, sound: false, music: false, haptics: false }))}); Storage.prototype.setItem = function () {}; return 1; })()`);
     await send("Page.navigate", { url: URL }); await sleep(2500);
