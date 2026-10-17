@@ -640,6 +640,8 @@ body::before {
 .lvl-art .mult { right: 12px; font-size: 12.5px; letter-spacing: 0.02em; text-transform: none; }
 .lvl-art .mult .coin { font-size: 14px; }
 .lvl-card.locked .lvl-art canvas { filter: brightness(0.36); }
+.lvl-art.mystery { background: radial-gradient(120% 140% at 50% 30%, #1B1D2A 0%, #0B0C12 70%); display: grid; place-items: center; }
+.lvl-art.mystery .q { font-family: var(--font-display); font-weight: 800; font-size: 64px; line-height: 1; color: rgba(255, 255, 255, 0.16); }
 .lvl-card.locked .lvl-art::after {
   content: ""; position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
   background: rgba(16, 14, 34, 0.42) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='3' fill='white' fill-opacity='.25'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / 24px no-repeat; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26), 0 8px 20px rgba(0, 0, 0, 0.25);
@@ -1152,7 +1154,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.53.2";
+const VERSION = "0.54.0";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -1729,7 +1731,8 @@ const STR = {
   tripNext: ["Next island", "Siguiente isla"], finGoal: ["Final goal", "Meta final"], finName: ["The end", "El final"], finCoins: ["Coins for the finale", "Monedas para el final"], finReady: ["You made it!", "¡Lo lograste!"], finSee: ["See the ending", "Ver el final"], finSeen: ["See the ending again", "Ver el final otra vez"], lastIsle: ["Last island, for now", "Última isla, por ahora"], tripSaving: ["Coins for the trip", "Monedas para el viaje"], tripReady: ["Ready to travel!", "¡Lista para viajar!"],
   youAreHere: ["You are here", "Estás aquí"], completed: ["Completed", "Completado"], lockedLvl: ["Locked", "Bloqueado"],
   reqSmush: ["Aliens smushed in total", "Marcianos aplastados en total"], reqPay: ["Pay the trip", "Paga el viaje"],
-  travelTo: ["Travel to", "Viajar a"],
+  travelTo: ["Travel to", "Viajar a"], travelNext: ["Travel to the next island", "Viajar a la siguiente isla"],
+  mysteryD: ["A new island to discover. Keep smushing to find out what's there.", "Una isla nueva por descubrir. Sigue aplastando para saber qué hay ahí."], readyMystery: ["A new island is waiting for you", "Una isla nueva te espera"],
   freshStart: ["Fresh start: tools, helpers and boosts reset, and you begin with {c} coins. Your smush count comes with you.", "Empiezas de cero: herramientas, ayudantes y mejoras se reinician y arrancas con {c} monedas. Tu cuenta de aplastados viaja contigo."], needSmush: ["Keep smushing", "Sigue aplastando"], needCoins: ["Need more coins", "Faltan monedas"],
   soon: ["More levels coming soon", "Pronto habrá más niveles"], soonD: ["New worlds, new aliens, new tools.", "Nuevos mundos, nuevos marcianos, nuevas herramientas."],
   ready: ["Ready!", "¡Listo!"],
@@ -3840,6 +3843,11 @@ const lvl = () => LEVELS[save.level];
 const nextLvl = () => (real ? null : LEVELS[save.level + 1]); // de visita no hay siguiente nivel
 const ALIEN_URL = {};
 const alienUrl = (k) => ALIEN_URL[k] || (ALIEN_URL[k] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(ALIENS[k].svg));
+// Sorpresa (desde 0.54.0): las islas a las que todavía no llegas no se ven ni se nombran en ningún lado (Niveles,
+// el botón del viaje, el aviso de viaje, el Inicio, la Tienda y los trofeos): foto en negro con "?" y nombre "???"
+const MYSTERY = "???";
+const reachedLvl = () => (real ? real.level : save.level);
+const mysteryArt = (n, i) => { const m = LEVELS[i] ? LEVELS[i].coinMult : 1; return `<div class="lvl-art mystery"><span class="q">?</span>${n ? `<span class="num">${tx("level")} ${n}</span>` : ""}${m > 1 ? `<span class="mult"><span class="coin"></span>×${m}</span>` : ""}</div>`; };
 const levelArt = (id, n) => {
   const L = LEVELS.find((l) => l.id === id), m = L ? L.coinMult : 1;
   return `<div class="lvl-art ${id}"><canvas data-art="${id}" aria-hidden="true"></canvas>${n ? `<span class="num">${tx("level")} ${n}</span>` : ""}${m > 1 ? `<span class="mult"><span class="coin"></span>×${m}</span>` : ""}</div>`;
@@ -4166,6 +4174,8 @@ function applyLevel() {
 function ensureBg() { if (bgPending) { clearTimeout(bgPending); bgPending = 0; buildBackground(); } }
 // Chip del nivel (solo el nombre) y el botón del viaje con sus tres estados
 const TRIP_ICONS = {
+  // La siguiente isla es sorpresa: un círculo oscuro con un "?"
+  mystery: '<svg viewBox="0 0 32 32" aria-hidden="true"><defs><radialGradient id="tq-s" cx=".5" cy=".35" r=".7"><stop offset="0" stop-color="#2A2D3E"/><stop offset="1" stop-color="#0B0C12"/></radialGradient></defs><circle cx="16" cy="16" r="16" fill="url(#tq-s)"/><text x="16" y="22.2" text-anchor="middle" font-family="Outfit, system-ui, sans-serif" font-weight="800" font-size="17" fill="#FFFFFF" opacity=".85">?</text></svg>',
   end: '<svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="te-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1D1A4E"/><stop offset="1" stop-color="#4A3A8E"/></linearGradient><linearGradient id="te-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF0B0"/><stop offset="1" stop-color="#FFB627"/></linearGradient></defs><circle cx="16" cy="16" r="16" fill="url(#te-s)"/><circle cx="7" cy="9" r=".8" fill="#fff" opacity=".8"/><circle cx="25" cy="7" r=".6" fill="#fff" opacity=".7"/><circle cx="26" cy="22" r=".7" fill="#fff" opacity=".6"/><circle cx="6" cy="21" r=".5" fill="#fff" opacity=".6"/><path d="M16 6.5l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2-4.5-4.4 6.2-.9z" fill="url(#te-g)" stroke="#E0951A" stroke-width=".8" stroke-linejoin="round"/><path d="M13.6 12.6l1.4-2.4" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".8"/></svg>',
   isle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18c3 0 3-1.5 6-1.5s3 1.5 6 1.5 3-1.5 6-1.5"/><path d="M12 15V7"/><path d="M12 7c-2-2.5-5-2.5-6.5-.5M12 7c2-2.5 5-2.5 6.5-.5M12 7c-1-2.8-.2-4.5 1.5-5"/></svg>',
   coin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5v11"/></svg>',
@@ -4197,18 +4207,18 @@ function renderGoal() {
   else if (!n && save.smushed < FINALE.smush) { state = "prog"; cap = tx("finGoal"); title = tx("finName"); count = pair(save.smushed, FINALE.smush); p = save.smushed / FINALE.smush; }
   else if (!n && save.coins < FINALE.cost) { state = "coins"; cap = tx("finCoins"); title = tx("finName"); count = pair(Math.floor(save.coins), FINALE.cost); p = save.coins / FINALE.cost; }
   else if (!n) { state = "go"; cap = tx("finReady"); title = tx("finSee"); count = ""; p = 1; }
-  else if (save.smushed < n.smush) { state = "prog"; cap = tx("tripNext"); title = n.name; count = pair(save.smushed, n.smush); p = save.smushed / n.smush; }
-  else if (save.coins < n.cost) { state = "coins"; cap = tx("tripSaving"); title = n.name; count = pair(Math.floor(save.coins), n.cost); p = save.coins / n.cost; }
-  else { state = "go"; cap = tx("tripReady"); title = `${tx("travelTo")} ${n.name}`; count = ""; p = 1; }
+  else if (save.smushed < n.smush) { state = "prog"; cap = tx("tripNext"); title = MYSTERY; count = pair(save.smushed, n.smush); p = save.smushed / n.smush; }
+  else if (save.coins < n.cost) { state = "coins"; cap = tx("tripSaving"); title = MYSTERY; count = pair(Math.floor(save.coins), n.cost); p = save.coins / n.cost; }
+  else { state = "go"; cap = tx("tripReady"); title = tx("travelNext"); count = ""; p = 1; }
   const key = state + cap + title + count + LANG;
   if (key !== tripState) {
     tripState = key;
     el.classList.toggle("coins", state === "coins"); el.classList.toggle("go", state === "go");
     // La isla siempre; juntando monedas, una monedita en la esquina; lista para viajar, un avioncito
-    const isle = n ? TRIP_ART[n.id] || TRIP_ICONS.isle : TRIP_ICONS.end;
+    const isle = n ? TRIP_ICONS.mystery : TRIP_ICONS.end; // la isla que sigue es sorpresa
     $("#trip-ic").innerHTML = isle + (state === "coins" ? '<span class="trip-badge coin"></span>' : state === "go" && n ? '<span class="trip-badge plane">' + TRIP_ICONS.plane + "</span>" : "");
     $("#trip-cap").textContent = cap; $("#trip-title").textContent = title; $("#trip-count").textContent = count;
-    el.setAttribute("aria-label", state === "go" ? (n ? `${tx("travelTo")} ${n.name}` : tx("finSee")) : tx("levels"));
+    el.setAttribute("aria-label", state === "go" ? (n ? tx("travelNext") : tx("finSee")) : tx("levels"));
   }
   el.style.setProperty("--p", clamp(p, 0, 1).toFixed(4));
 }
@@ -4252,9 +4262,10 @@ function renderLevels(animate) {
         <div class="req-row${okS && okC ? " ok" : ""}"><span class="chk">${checkSvg}</span><span>${tx("reqPay")}</span><span class="v"><span class="coin"></span>${fmt(L.cost)}</span></div>
       </div>
       <p class="fresh">${tx("freshStart").replace("{c}", fmtFull(startCoins(i)))}</p>
-      <button class="travel-btn${okS && okC ? " go" : ""}" type="button" data-travel ${okS && okC ? "" : "disabled"}>${!okS ? tx("needSmush") : !okC ? tx("needCoins") : `${tx("travelTo")} ${L.name}`}</button>`;
+      <button class="travel-btn${okS && okC ? " go" : ""}" type="button" data-travel ${okS && okC ? "" : "disabled"}>${!okS ? tx("needSmush") : !okC ? tx("needCoins") : tx("travelNext")}</button>`;
     }
-    cards.push(`<div class="lvl-card${i > cur ? " locked" : ""}" data-i="${i}">${levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${L.name}${status}</h3><p>${tx(L.id + "D")}</p>${req}</div></div>`);
+    const myst = i > cur;
+    cards.push(`<div class="lvl-card${myst ? " locked" : ""}" data-i="${i}">${myst ? mysteryArt(i + 1, i) : levelArt(L.id, i + 1)}<div class="lvl-body"><h3>${myst ? MYSTERY : L.name}${status}</h3><p>${myst ? tx("mysteryD") : tx(L.id + "D")}</p>${req}</div></div>`);
   });
   cards.push(`<div class="lvl-card"><div class="lvl-art soon"><canvas data-art="soon" aria-hidden="true"></canvas></div><div class="lvl-body"><h3>${tx("soon")}</h3><p>${tx("soonD")}</p></div></div>`);
   // Solo se cambia la tarjeta que cambió (normalmente la del siguiente nivel): los botones de las demás siguen siendo los mismos
@@ -4287,17 +4298,13 @@ function openReady() {
   const n = nextLvl();
   if (!n || document.querySelector(".dialog.open")) return;
   const es = LANG === "es";
-  $("#ready-art").innerHTML = levelArt(n.id, save.level + 2);
-  mountArts($("#ready-art"), "rd");
+  $("#ready-art").innerHTML = mysteryArt(save.level + 2, save.level + 1);
   $("#ready-kicker").textContent = `${tx("level")} ${save.level + 2} ${tx("unlocked")}`;
-  $("#ready-title").textContent = `${n.name} ${tx("readyTitle")}`;
+  $("#ready-title").textContent = tx("readyMystery");
   $("#ready-msg").textContent = es
     ? `Ya llevas ${fmt(n.smush)} marcianos aplastados y tienes las ${fmt(n.cost)} monedas del viaje. Allá empiezas de cero con ${fmtFull(startCoins(save.level + 1))} monedas; tu cuenta de aplastados viaja contigo.`
     : `You've smushed ${fmt(n.smush)} aliens in total and you have the ${fmt(n.cost)} coins for the trip. You start fresh there with ${fmtFull(startCoins(save.level + 1))} coins; your smush count comes with you.`;
   $("#btn-go").textContent = tx("travelNow");
-  readyEl.classList.toggle("to-snow", n.id === "snow");
-  readyEl.classList.toggle("to-city", n.id === "city");
-  readyEl.classList.toggle("to-jungle", n.id === "jungle"); readyEl.classList.toggle("to-toys", n.id === "toys");
   readyEl.hidden = false; void readyEl.offsetWidth; readyEl.classList.add("open");
   Sound.ready(); buzz([10, 60, 14]);
 }
@@ -9159,7 +9166,7 @@ function renderShop(animate) {
   let html = "";
   if (shopTab === "tools") {
     // Cada isla con sus herramientas (si ya no queda ninguna en este nivel, no sale ni el título)
-    const grp = (k, ids) => { const c = ids.filter((id) => !toolGone(id)).map(toolCard).join(""); return c ? sect(k) + c : ""; };
+    const grp = (k, ids) => { const c = ids.filter((id) => !toolGone(id) && toolWorld(id) <= reachedLvl()).map(toolCard).join(""); return c ? sect(k) + c : ""; };
     html = grp("secVoid", ["finger", "bolt", "saw"]) + grp("secBeach", ["bomb", "wave"]) + grp("secSnow", ["meteor", "aval"])
       + grp("secCity", ["car"]) + grp("secJungle", ["arrows"]) + grp("secToys", ["train"]);
   } else if (shopTab === "helpers") {
@@ -10561,7 +10568,7 @@ function renderHome() {
   $("#home-coins").textContent = fmtFull(save.coins);
   $("#play-label").textContent = save.smushed > 0 ? tx("continue") : tx("play");
   $("#play-sub").textContent = lvl().name;
-  $("#hc-levels").textContent = real ? `${tx("backTo")} ${LEVELS[real.level].name}` : n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${n.name}` : tx("lastIsle");
+  $("#hc-levels").textContent = real ? `${tx("backTo")} ${LEVELS[real.level].name}` : n ? `${Math.floor((Math.min(save.smushed, n.smush) / n.smush) * 100)}% → ${MYSTERY}` : tx("lastIsle");
   $("#hc-records").textContent = `${fmtShort((real || save).smushed)} ${tx("smushed")}`;
   $("#home-ver").textContent = "v" + VERSION;
 }
@@ -10986,6 +10993,7 @@ const fmtK = (n) => fmtShort(n);
   addAch("lv" + i, "levels", "flag", t, [LEVELS[i].name, LEVELS[i].name], [`Travel to ${LEVELS[i].name}`, `Viaja a ${LEVELS[i].name}`], () => [save.level >= i ? 1 : 0, 1]));
 for (const L of LEVELS) addAch("ev_" + L.id, "events", "bolt", 1, EVENTS[L.id].name, [`Smush 20 aliens during the ${LX(EVENTS[L.id].name)} in ${L.name}`, `Aplasta 20 marcianos en la ${LX(EVENTS[L.id].name)} de ${L.name}`], () => [save.g.ev[L.id] ? 1 : 0, 1]);
 for (const L of LEVELS) addAch("col_" + L.id, "collect", "gem", 2, COL[L.id].name, [`Collect all 10 in ${L.name}`, `Junta las 10 de ${L.name}`], () => [(save.g.col[L.id] || []).length, 10]);
+ACH.forEach((a) => { const m = /^(ev|col)_(\w+)$/.exec(a.id); if (m) a.lvl = LEVELS.findIndex((L) => L.id === m[2]); }); // de qué isla es (para no adelantarla)
 [[5, 0], [25, 1], [100, 2]].forEach(([n, t]) =>
   addAch("mis" + n, "missions", "check", t, [`${n} missions`, `${n} misiones`], [`Complete ${n} missions`, `Completa ${n} misiones`], () => [save.g.misDone, n]));
 [[50, 0], [250, 1], [1000, 2], [3000, 3]].forEach(([n, t]) =>
@@ -11631,8 +11639,9 @@ function renderGoals(animate) {
     const top = (real || save).level;
     LEVELS.forEach((L, li) => {
       const have = save.g.col[L.id] || [], locked = li > top;
-      h += `<div class="col-lv${locked ? " locked" : ""}"><div class="col-h"><b>${LX(COL[L.id].name)}</b><span>${L.name} · ${have.length}/10</span></div><div class="col-grid">`;
-      for (let i = 0; i < 10; i++) h += `<span class="col-slot${have.includes(i) ? " got" : ""}" style="--c:${COL_COLS[i]}"><img alt="" src="${colIcon(L.id, i, !have.includes(i))}">${have.includes(i) ? "" : "<i>?</i>"}</span>`;
+      // Las islas que todavía no conoces no dicen qué se colecciona ahí (sorpresa)
+      h += `<div class="col-lv${locked ? " locked" : ""}"><div class="col-h"><b>${locked ? MYSTERY : LX(COL[L.id].name)}</b><span>${locked ? MYSTERY : L.name} · ${have.length}/10</span></div><div class="col-grid">`;
+      for (let i = 0; i < 10; i++) h += `<span class="col-slot${have.includes(i) ? " got" : ""}" style="--c:${COL_COLS[i]}">${locked ? "" : `<img alt="" src="${colIcon(L.id, i, !have.includes(i))}">`}${have.includes(i) ? "" : "<i>?</i>"}</span>`;
       h += `</div></div>`;
     });
   } else {
@@ -11643,7 +11652,8 @@ function renderGoals(animate) {
       h += `<div class="group-title">${LX(gname)}</div><div class="shelf">`;
       for (const a of list) {
         const got = !!save.g.ach[a.id], [c, t] = a.prog(), pct = Math.min(1, c / t);
-        h += `<div class="tro${got ? " got" : ""}" style="--tc:${TIERS[a.tier][1]}">${trophySVG(a.tier, a.glyph, !got)}<b>${LX(a.name)}</b><small>${LX(a.desc)}</small>${got ? "" : `<span class="t-bar"><i style="width:${pct * 100}%"></i></span>`}</div>`;
+        const hide = !got && a.lvl != null && a.lvl > (real || save).level; // trofeo de una isla que no conoces: sorpresa
+        h += `<div class="tro${got ? " got" : ""}" style="--tc:${TIERS[a.tier][1]}">${trophySVG(a.tier, a.glyph, !got)}<b>${hide ? MYSTERY : LX(a.name)}</b><small>${hide ? LX(["Reach a new island to reveal it", "Llega a una isla nueva para verlo"]) : LX(a.desc)}</small>${got ? "" : `<span class="t-bar"><i style="width:${pct * 100}%"></i></span>`}</div>`;
       }
       h += `</div>`;
     }
