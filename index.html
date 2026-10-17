@@ -386,6 +386,8 @@ body::before {
 .toast small { font-size: 9px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tc, var(--muted)); }
 .toast b { font-family: var(--font-display); font-size: 13px; font-weight: 850; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toast .d { display: none; } /* discreto: el detalle está en la vitrina */
+.toast.mis .d { display: inline-flex; align-items: center; gap: 4px; margin-top: 1px; font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; } /* las misiones se cobran solas: dice cuánto */
+.toast.mis .d .coin { font-size: 11px; }
 .fly-coin { position: fixed; z-index: 270; font-size: 16px; pointer-events: none; }
 /* La vitrina */
 .goals-count { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px 0 9px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); font-size: 13.5px; font-weight: 850; color: #C9962A; }
@@ -1150,7 +1152,7 @@ html.native #studio { background: #FFFFFF; box-shadow: 0 50vh 0 0 #FFFFFF; trans
    ===================================================================== */
 
 /* ---------- 1. Configuración: precios, recompensas y balance (todo editable aquí) ---------- */
-const VERSION = "0.53.0";
+const VERSION = "0.53.1";
 const SAVE_KEY = "smush-save-v1";
 const SETTINGS_KEY = "smush-settings-v1";
 
@@ -11058,7 +11060,7 @@ function checkAch() {
   for (const a of ACH) if (!save.g.ach[a.id]) { const [c, t] = a.prog(); if (c >= t) award(a); }
 }
 
-/* --- Misiones (3 por nivel; al cumplirse se cobran en la vitrina) --- */
+/* --- Misiones (3 por nivel; al cumplirse se cobran solas y avisan) --- */
 const TYPE_NAME = { green: ["green", "verdes"], orange: ["orange", "naranjas"], purple: ["purple", "morados"], yellow: ["golden", "dorados"] };
 function misText(m) {
   const lid = lvl().id;
@@ -11140,38 +11142,29 @@ function missions() {
   if (!list) list = save.g.mis[lid] = [];
   for (let i = 0; i < list.length; i++) if (misImpossible(list[i])) { list.splice(i, 1, newMission(list.filter((_, j) => j !== i))); goalsDirty = true; }
   while (list.length < 3) list.push(newMission(list));
+  if (!real) for (let i = 0; i < list.length; i++) if (list[i].done) payMission(list, i); // partidas de antes (se cobraban a mano)
   return list;
+}
+// Desde 0.53.1 las misiones se cobran solas al completarse: suman las monedas, avisan y entra otra en su lugar
+function payMission(list, i) {
+  const m = list[i], r = misReward(m);
+  save.coins += r; save.earned += r; save.g.misDone++; uiDirty = true; coinBump = true; goalsDirty = true;
+  list.splice(i, 1, newMission(list.filter((_, j) => j !== i)));
+  toast({ kind: "mis", color: MIS_COL[m.k], icon: `<i class="t-mis" style="--c:${MIS_COL[m.k]}"><svg viewBox="0 0 24 24">${GLYPH.check}</svg></i>`, cap: LX(["Mission complete", "Misión completa"]), title: misText(m), desc: `<span class="coin"></span>+${fmtShort(r)} ${LX(["coins", "monedas"])}`, sound: () => { Sound.mission(); setTimeout(() => Sound.collect(), 260); }, buzz: [10, 50, 14] });
+  markSave();
 }
 function misProgress(k, a, inc = 1, setTo) {
   if (!tracking()) return;
-  for (const m of missions()) {
+  const list = missions();
+  let paid = false;
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i];
     if (m.done || m.k !== k || (m.a && m.a !== a)) continue;
     m.p = setTo != null ? Math.max(m.p, setTo) : m.p + inc;
-    if (m.p >= m.n) { m.p = m.n; m.done = true; goalsDirty = true;
-      toast({ kind: "mis", color: MIS_COL[m.k], icon: `<i class="t-mis" style="--c:${MIS_COL[m.k]}"><svg viewBox="0 0 24 24">${GLYPH.check}</svg></i>`, cap: LX(["Mission complete", "Misión completa"]), title: misText(m), desc: LX(["Claim it in the Trophy case", "Cóbrala en la Vitrina"]), sound: () => Sound.mission(), buzz: [10, 50, 14] });
-    }
+    if (m.p >= m.n) { m.p = m.n; m.done = true; payMission(list, i); paid = true; }
     markSave();
   }
-}
-const claimable = () => !real && save.g && (save.g.mis[lvl().id] || []).some((m) => m.done);
-function claimMission(id, btn) {
-  const list = missions(), i = list.findIndex((m) => m.id === id);
-  if (i < 0 || !list[i].done) return;
-  const r = misReward(list[i]);
-  save.coins += r; save.earned += r; save.g.misDone++; uiDirty = true; coinBump = true;
-  list.splice(i, 1, newMission(list.filter((_, j) => j !== i)));
-  writeSave(); Sound.collect(); buzz([12, 60, 18]);
-  // Monedas que salen volando del botón hacia arriba
-  if (btn && btn.animate && !reduceMotion) {
-    const r0 = btn.getBoundingClientRect();
-    for (let k = 0; k < 10; k++) {
-      const c = document.createElement("span"); c.className = "coin fly-coin"; document.body.appendChild(c);
-      Object.assign(c.style, { left: r0.left + r0.width / 2 + "px", top: r0.top + r0.height / 2 + "px" });
-      const dx = rand(-90, 90), dy = rand(-170, -90);
-      c.animate([{ transform: "translate(-50%,-50%) scale(.4)", opacity: 0 }, { transform: `translate(calc(-50% + ${dx * 0.6}px), calc(-50% + ${dy * 0.7}px)) scale(1.15)`, opacity: 1, offset: 0.45 }, { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.7)`, opacity: 0 }], { delay: k * 30, duration: 760, easing: "cubic-bezier(.2,.8,.3,1)", fill: "both" }).onfinish = () => c.remove();
-    }
-  }
-  checkAch(); renderGoals(); renderHome && !homeEl.hidden && renderHome();
+  if (paid) { checkAch(); if (renderHome && !homeEl.hidden) renderHome(); }
 }
 
 /* --- Combos --- */
@@ -11605,11 +11598,8 @@ function goalsOnLevel() { if (ev) { ev = null; evHud().classList.remove("ev"); }
 /* --- La vitrina (hoja con tres pestañas: Misiones, Colección, Trofeos) --- */
 let goalsTab = "mis";
 function renderGoalsBadge() {
-  const can = claimable();
-  const b = $("#btn-goals"); if (b) b.classList.toggle("has", can);
   const hb = $("#hc-goals"); if (hb && save.g) hb.textContent = `${achCount()}/${ACH.length} ${LX(["trophies", "trofeos"])}`;
-  const hm = $("#hc-mis"); if (hm && save.g) { const n = real ? 0 : (save.g.mis[lvl().id] || []).filter((m) => m.done).length; hm.textContent = real ? LX(["Not while visiting", "No cuentan de visita"]) : n ? LX([`${n} ready to claim`, `${n} lista${n > 1 ? "s" : ""} para cobrar`]) : LX(["3 active", "3 activas"]); }
-  document.querySelectorAll('.hcard[data-go="mis"]').forEach((c) => c.classList.toggle("has", can));
+  const hm = $("#hc-mis"); if (hm && save.g) { hm.textContent = real ? LX(["Not while visiting", "No cuentan de visita"]) : LX(["3 active", "3 activas"]); }
 }
 // La cuenta exacta de aplastados en la vitrina (tu progreso de verdad, aunque estés de visita)
 function renderGoalsSmushed() {
@@ -11632,7 +11622,7 @@ function renderGoals(animate) {
         const c = MIS_COL[m.k], icon = m.k === "tool" && ICONS[m.a] ? ICONS[m.a] : `<svg viewBox="0 0 24 24" fill="#fff">${GLYPH[MIS_ICON[m.k]]}</svg>`, pct = Math.min(1, m.p / m.n);
         h += `<div class="mis${m.done ? " done" : ""}" data-id="${m.id}" style="--c:${c}"><span class="m-ic">${icon}</span><span class="m-t"><b>${misText(m)}</b>
           <span class="m-bar"><i style="width:${pct * 100}%"></i></span><span class="m-n"><span>${misNum(m, m.p)} / ${misNum(m, m.n)}</span><span class="m-r"><span class="coin"></span>${fmtShort(misReward(m))}</span></span></span>
-          ${m.done ? `<button class="claim" type="button" data-claim="${m.id}"><span class="coin"></span>${LX(["Claim", "Cobrar"])}</button>` : ""}</div>`;
+          </div>`;
       }
     }
     h += `<div class="mis-stats"><span>${LX(["Missions completed", "Misiones completadas"])}<b>${fmt(save.g.misDone)}</b></span><span>${LX(["Best combo", "Mejor combo"])}<b>×${fmt(save.g.best.combo)}</b></span><span>${LX(["Kings caught", "Reyes atrapados"])}<b>${fmt(save.g.rares)}</b></span></div>`;
@@ -11663,9 +11653,8 @@ function renderGoals(animate) {
 }
 function openGoals(tab) { if (tab) goalsTab = tab; renderGoals(true); openSheet($("#sheet-goals")); $("#goals-body").scrollTop = 0; }
 
-$("#btn-goals").addEventListener("click", () => { Sound.unlock(); Sound.tick(); openGoals(claimable() ? "mis" : goalsTab); });
+$("#btn-goals").addEventListener("click", () => { Sound.unlock(); Sound.tick(); openGoals(goalsTab); });
 $("#goals-tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b || b.dataset.tab === goalsTab) return; goalsTab = b.dataset.tab; renderGoals(true); $("#goals-body").scrollTop = 0; Sound.tick(); });
-$("#goals-body").addEventListener("click", (e) => { const b = e.target.closest("[data-claim]"); if (b) claimMission(b.dataset.claim, b); });
 
 function startGame() {
   playing = true;
